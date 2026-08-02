@@ -5,7 +5,10 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(__dirname, '..', 'public', 'icons');
+const assetsDir = resolve(__dirname, '..', 'assets');
+const BACKGROUND = '#1a1a2e';
 mkdirSync(outDir, { recursive: true });
+mkdirSync(assetsDir, { recursive: true });
 
 function generateSvg(size = 512) {
   const cx = size / 2;
@@ -41,6 +44,27 @@ async function generate() {
   await sharp(svg512).resize(180, 180).png().toFile(resolve(outDir, 'apple-touch-icon.png'));
 
   console.log('✅ Icons generated in public/icons/');
+
+  // Source assets consumed by `@capacitor/assets` (npx capacitor-assets generate)
+  // to produce Android launcher icon densities and the splash screen. The SVG is
+  // rendered directly at each target size, so upscaling to 1024/2732 is lossless.
+  const svg1024 = Buffer.from(generateSvg(1024));
+  await sharp(svg1024).resize(1024, 1024).png().toFile(resolve(assetsDir, 'icon.png'));
+
+  const splashIcon = await sharp(Buffer.from(generateSvg(1024))).resize(1024, 1024).png().toBuffer();
+  await sharp({
+    create: {
+      width: 2732,
+      height: 2732,
+      channels: 4,
+      background: BACKGROUND,
+    },
+  })
+    .composite([{ input: splashIcon, gravity: 'center' }])
+    .png()
+    .toFile(resolve(assetsDir, 'splash.png'));
+
+  console.log('✅ Capacitor asset sources generated in assets/');
 }
 
 generate().catch((err) => {

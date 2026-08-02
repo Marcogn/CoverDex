@@ -6,7 +6,7 @@ code.
 
 ## Project Identity
 
-The Pokémon Team Analyzer is a single-page PWA for building Pokémon
+CoverDex (formerly known as the Pokémon Team Analyzer) is a single-page PWA for building Pokémon
 teams and analysing their type coverage offensively and defensively.
 It supports custom Pokémon and per-slot type overrides, which makes it
 useful for ROM hack runs and competitive draft building. It is **not**
@@ -308,6 +308,10 @@ for manual completion. The block is still imported.
   generations requires updating this hardcoded list.
 - The composite score weights (0.5 / 1.0) used in both suggestion
   and team generation engines.
+- `capacitor.config.ts` (`appId`, `appName`, `webDir`) and the Android
+  `applicationId`/`namespace` in `android/app/build.gradle`, which must
+  match it. Changing `appId` post-release changes the app's identity on
+  any device that installed it under the old one.
 
 ## Common Pitfalls
 
@@ -339,6 +343,35 @@ for manual completion. The block is still imported.
   multiplicative, never additive. Watch for the immunity case where
   one type's 0× cancels the other type's 2×.
 
+## Android Platform
+
+CoverDex ships a native Android shell via Capacitor, additive to the PWA —
+it must never carry business logic of its own. Stable invariants only;
+operational/build detail lives in `docs/android/BUILD.md`.
+
+- `android/` is a **committed native project**, not build output. Its
+  `res/`, Gradle config, and Java sources are source of truth; only build
+  artifacts, local SDK paths, and signing secrets are gitignored (see
+  `.gitignore`).
+- `@capacitor/cli` requires **Node >=22** — stricter than the web app's
+  Node 18+. Any command that shells out to `cap` (`npx cap sync android`,
+  `npm run android:build`, CI) needs Node 22+, even though `deploy.yml`
+  and `pr-check.yml` stay on Node 20 for the unrelated web pipeline.
+- `capacitor.config.ts`: `appId: "com.marcogn.coverdex"`,
+  `appName: "CoverDex"`, `webDir: "dist"`. `appId` is rename-sensitive —
+  same category as the `VITE_BASE_URL` in `deploy.yml` — because the repo
+  is still named `poke-team-builder` pending a rename to `coverdex`.
+- Run `npx cap sync android` (or `npm run android:build`, which also runs
+  the web build first) after every web build and before any native build —
+  it copies `dist/` into `android/app/src/main/assets/public`. A native
+  build against a stale sync serves an outdated WebView.
+- The Workbox service worker must not register when
+  `Capacitor.isNativePlatform()` is true (`src/utils/registerServiceWorker.ts`).
+  Native assets are bundled locally, not served over the network there.
+- `.github/workflows/android-build.yml` requires four secrets, values never
+  documented here: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+  `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+
 ## Dev Commands
 
 ```bash
@@ -348,6 +381,9 @@ npm run preview        # preview the production build locally
 npm run test           # run the Vitest suite once
 npm run test:coverage  # run the Vitest suite with coverage
 npm run generate-icons # generate PWA icons locally
+npm run cap:sync       # sync the web build into android/
+npm run android:open   # open the Android project in Android Studio
+npm run android:build  # web build + cap sync android
 ```
 
 ### i18n
@@ -364,6 +400,13 @@ Icons are generated at build time by scripts/generate-icons.mjs
 using the sharp package. They are gitignored and regenerated
 on every deploy. Do not commit icon PNG files.
 To regenerate locally: npm run generate-icons
+
+The same script also writes `assets/icon.png` and `assets/splash.png`
+(gitignored), the source images `@capacitor/assets` reads to generate the
+Android launcher icon densities and splash screens under
+`android/app/src/main/res/` (those generated `res/` files ARE committed —
+see "Android Platform" above). Regenerate with:
+`npm run generate-icons && npx capacitor-assets generate --android`.
 
 ### Searchable Dropdowns
 

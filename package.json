@@ -14,9 +14,14 @@
     "typecheck": "tsc --noEmit",
     "check-data": "node -e \"const d=require('./src/data/pokemon-data.json'); if(d.version<2) { console.error('pokemon-data.json is outdated or placeholder. Run: npm run generate-data'); process.exit(1); }\"",
     "generate-data": "node scripts/generate-pokemon-data.mjs",
-    "generate-icons": "node scripts/generate-icons.mjs"
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "cap:sync": "cap sync android",
+    "android:open": "cap open android",
+    "android:build": "npm run build && npm run cap:sync"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "i18next": "^26.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -24,6 +29,8 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",

@@ -16,10 +16,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       strategies: 'generateSW',
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'Pokémon Team Analyzer',
-        short_name: 'TeamDex',
+        name: 'CoverDex',
+        short_name: 'CoverDex',
         description: 'Build Pokémon teams and analyze type coverage offline.',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',
