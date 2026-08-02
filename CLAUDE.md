@@ -353,6 +353,10 @@ operational/build detail lives in `docs/android/BUILD.md`.
   `res/`, Gradle config, and Java sources are source of truth; only build
   artifacts, local SDK paths, and signing secrets are gitignored (see
   `.gitignore`).
+- `@capacitor/cli` requires **Node >=22** — stricter than the web app's
+  Node 18+. Any command that shells out to `cap` (`npx cap sync android`,
+  `npm run android:build`, CI) needs Node 22+, even though `deploy.yml`
+  and `pr-check.yml` stay on Node 20 for the unrelated web pipeline.
 - `capacitor.config.ts`: `appId: "com.marcogn.coverdex"`,
   `appName: "CoverDex"`, `webDir: "dist"`. `appId` is rename-sensitive —
   same category as the `VITE_BASE_URL` in `deploy.yml` — because the repo

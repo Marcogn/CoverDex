@@ -6,7 +6,9 @@ upgrade changes a version number below, update this file, not `CLAUDE.md`.
 
 ## Prerequisites
 
-- Node.js 20+ and npm (same as the web app).
+- Node.js **22+** and npm. Stricter than the plain web app (which only
+  needs 18+): `@capacitor/cli` 8.x refuses to run on Node 20, failing
+  `cap sync`/`cap add` with `The Capacitor CLI requires NodeJS >=22.0.0`.
 - JDK 21 (Temurin recommended). Matches the AGP 8.13 / Gradle 8.14 toolchain
   `@capacitor/android` generated into `android/`.
 - Android SDK (via Android Studio, or `sdkmanager` standalone) with at least

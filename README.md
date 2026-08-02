@@ -132,6 +132,8 @@ listing, and CI does not publish anywhere automatically.
 
 ### Prerequisites
 
+- Node.js **22.x or later** — `@capacitor/cli` requires it, stricter than
+  the plain web app's Node 18+ requirement above.
 - JDK 21 (Temurin recommended).
 - Android SDK / Android Studio (for the emulator, device deployment, and SDK
   Manager).
