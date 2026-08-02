@@ -41,7 +41,7 @@ jobs:
         run: node scripts/generate-icons.mjs
       - run: npm run build
         env:
-          VITE_BASE_URL: /poke-team-builder/
+          VITE_BASE_URL: /CoverDex/
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
