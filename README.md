@@ -1,4 +1,4 @@
-# Pokémon Team Analyzer
+# CoverDex
 
 A React + TypeScript Progressive Web App for assembling Pokémon teams and
 analysing their offensive and defensive type coverage. It is built primarily
@@ -108,7 +108,7 @@ cache** to force a re-download (for example after a PokéAPI update).
 
 1. Open the deployed site in the browser.
 2. Click the install icon in the address bar (or use the menu →
-   *Install Pokémon Team Analyzer*).
+   *Install CoverDex*).
 3. The app opens in its own window and works offline.
 
 ### iOS (Safari)
@@ -121,6 +121,41 @@ cache** to force a re-download (for example after a PokéAPI update).
 
 1. Open the site in Chrome.
 2. Tap the menu, then *Install app* / *Add to Home screen*.
+
+## Android App
+
+In addition to the installable PWA above, CoverDex ships as a native Android
+app shell via [Capacitor](https://capacitorjs.com/), living in `android/`.
+It wraps the same web build in a WebView — no separate business logic, no
+backend. This is currently **sideload/testing-only**: there is no Play Store
+listing, and CI does not publish anywhere automatically.
+
+### Prerequisites
+
+- JDK 21 (Temurin recommended).
+- Android SDK / Android Studio (for the emulator, device deployment, and SDK
+  Manager).
+
+### Building locally
+
+```bash
+npm run android:build   # web build + cap sync android
+npm run android:open    # opens android/ in Android Studio
+```
+
+From Android Studio you can run on an emulator or a connected device. For a
+signed release build (APK + AAB) from the command line, see
+[`docs/android/BUILD.md`](docs/android/BUILD.md), which covers generating a
+release keystore and the local signed-build steps.
+
+### CI-built artifacts
+
+`.github/workflows/android-build.yml` builds a signed APK and AAB on every
+push to the Android development branch, or on demand via
+**Actions → Android Build → Run workflow**. Download them from the
+workflow run's **Artifacts** section (retained 30 days). There is no
+automated Play Store upload — install the APK directly on a device
+(`adb install app-release.apk`) or distribute it for manual testing.
 
 ## Showdown import / export format
 

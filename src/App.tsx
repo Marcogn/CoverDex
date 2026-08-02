@@ -306,8 +306,8 @@ export default function App() {
     <div className="min-h-screen bg-white dark:bg-bg text-gray-900 dark:text-slate-100">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1a1a2e] border-b border-gray-200 dark:border-white/10 sticky top-0 z-50">
-        <span className="bg-accent text-white px-2 py-0.5 rounded text-sm font-bold">TD</span>
-        <span className="text-base font-semibold whitespace-nowrap text-gray-900 dark:text-white">Pokémon Team Analyzer</span>
+        <span className="bg-accent text-white px-2 py-0.5 rounded text-sm font-bold">CD</span>
+        <span className="text-base font-semibold whitespace-nowrap text-gray-900 dark:text-white">CoverDex</span>
         <span
           className={`text-[10px] px-1.5 py-0.5 rounded ${
             data.version === 0 ? 'bg-red-700 text-red-100' : 'bg-panel2 text-slate-400'

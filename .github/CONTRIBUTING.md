@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution to the Pokémon Team Analyzer.
+Thanks for considering a contribution to CoverDex.
 
 ## Workflow
 

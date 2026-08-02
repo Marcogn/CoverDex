@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CoverDex</string>
+    <string name="title_activity_main">CoverDex</string>
+    <string name="package_name">com.marcogn.coverdex</string>
+    <string name="custom_url_scheme">com.marcogn.coverdex</string>
+</resources>
