@@ -84,6 +84,12 @@ CI decodes the base64 secret to `android/release.keystore` and writes
 `android/keystore.properties` from the other three, both gitignored and
 deleted at the end of the job.
 
+These secrets are optional at the workflow level: if `ANDROID_KEYSTORE_BASE64`
+is unset, the decode/write steps are skipped entirely and the build still
+succeeds, producing an **unsigned** APK/AAB (with a CI warning annotation).
+Add the four secrets whenever you want CI-built artifacts to be signed —
+no workflow change needed once they're set.
+
 ## Running the Espresso smoke test locally
 
 `android/app/src/androidTest/java/com/marcogn/coverdex/MainActivitySmokeTest.java`

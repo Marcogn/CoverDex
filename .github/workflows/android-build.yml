@@ -47,13 +47,21 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      # Signing is optional here on purpose: android/app/build.gradle only
+      # applies a signingConfig when keystore.properties exists, so without
+      # the ANDROID_KEYSTORE_BASE64 secret this still produces a valid
+      # UNSIGNED release build instead of failing. Once the secrets below
+      # are set (see docs/android/BUILD.md), builds become signed
+      # automatically — no workflow change needed.
       - name: Decode release keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: android
         run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
       - name: Write keystore.properties
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: android
         run: |
           cat > keystore.properties <<EOF
@@ -63,11 +71,15 @@ jobs:
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
+      - name: Warn if building unsigned
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+        run: echo "::warning::ANDROID_KEYSTORE_BASE64 not set — building UNSIGNED release artifacts. See docs/android/BUILD.md to add signing secrets."
+
       - name: Gradle lint + unit tests
         working-directory: android
         run: ./gradlew lint testDebugUnitTest
 
-      - name: Build signed release APK + AAB
+      - name: Build release APK + AAB
         working-directory: android
         run: ./gradlew assembleRelease bundleRelease
 
