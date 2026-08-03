@@ -3,13 +3,13 @@ import { Modal } from '../Modal/Modal';
 import { Team } from '../../types';
 import { exportTeamToShowdown } from '../../utils/showdownParser';
 
-interface Props {
+export interface ExportModalProps {
   open: boolean;
   onClose: () => void;
   team: Team;
 }
 
-export function ExportModal({ open, onClose, team }: Props) {
+export function ExportModal({ open, onClose, team }: ExportModalProps) {
   const [copied, setCopied] = useState(false);
   const exported = exportTeamToShowdown(team.members);
 

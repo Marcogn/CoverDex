@@ -16,7 +16,7 @@ import { getAbilityEffects, normalizeAbilityName } from '../../data/abilityEffec
 import { AbilityDropdown } from '../AbilityDropdown/AbilityDropdown';
 import { useTranslation } from 'react-i18next';
 
-interface Props {
+export interface PokemonSlotProps {
   member: TeamMember | null;
   pokemon: PokemonEntry[];
   moves: MoveEntry[];
@@ -36,7 +36,7 @@ export function PokemonSlot({
   onChange,
   onSaveCustom,
   onClear,
-}: Props) {
+}: PokemonSlotProps) {
   // Per-slot "include saved custom Pokémon" toggle. Owned locally so that
   // toggling on one slot does *not* leak into the other five slots.
   const [includeCustoms, setIncludeCustoms] = useState(false);

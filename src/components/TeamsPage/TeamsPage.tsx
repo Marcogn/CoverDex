@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Team } from '../../types';
 import { NewTeamModal } from '../Modal/NewTeamModal';
 
-interface Props {
+export interface TeamsPageProps {
   teams: Team[];
   onSelectTeam: (id: string) => void;
   onCreateEmpty: () => void;
@@ -12,7 +12,7 @@ interface Props {
   onSurpriseMe: () => void;
 }
 
-export function TeamsPage({ teams, onSelectTeam, onCreateEmpty, onImport, onRenameTeam, onDuplicateTeam, onSurpriseMe }: Props) {
+export function TeamsPage({ teams, onSelectTeam, onCreateEmpty, onImport, onRenameTeam, onDuplicateTeam, onSurpriseMe }: TeamsPageProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');

@@ -99,7 +99,7 @@ export interface MoveIndexEntry {
 
 export type TypeChart = Record<PokemonType, Record<PokemonType, number>>;
 
-/** Shape of the pre-compiled pokemon-data.json file. */
+/** Shape of the dataset fetchPokemonData() assembles and usePokemonData caches under teamdex_pokeapi_cache. */
 export interface PokemonDataFile {
   generatedAt: string | null;
   version: number;

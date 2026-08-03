@@ -73,7 +73,10 @@
     "data": "Data",
     "currentData": "Current data: v{{version}}",
     "generated": "Generated: {{date}}",
-    "regenerateHint": "To regenerate Pokémon data, run:",
+    "dataCounts": "{{pokemon}} Pokémon, {{moves}} moves",
+    "refreshData": "Redownload Pokémon data",
+    "refreshing": "Downloading…",
+    "dataError": "Last refresh failed:",
     "installApp": "Install App",
     "app": "App"
   },
@@ -155,5 +158,16 @@
   },
   "common": {
     "searchPlaceholder": "Start typing to search..."
+  },
+  "loading": {
+    "title": "Downloading Pokémon data…",
+    "subtitle": "One-time download on first launch. This can take 30–90 seconds depending on your connection.",
+    "stagePokemon": "Pokémon",
+    "stageSpecies": "Species",
+    "stageEvolutionChains": "Evolution chains",
+    "stageTypes": "Types",
+    "stageMoves": "Moves",
+    "errorTitle": "Couldn't download Pokémon data",
+    "retry": "Retry"
   }
 }

@@ -1,13 +1,13 @@
 import { Modal } from '../Modal/Modal';
 
-interface Props {
+export interface DeleteTeamModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
   teamName: string;
 }
 
-export function DeleteTeamModal({ open, onClose, onConfirm, teamName }: Props) {
+export function DeleteTeamModal({ open, onClose, onConfirm, teamName }: DeleteTeamModalProps) {
   return (
     <Modal open={open} onClose={onClose}>
       <div className="flex flex-col gap-4">

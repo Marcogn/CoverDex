@@ -1,7 +1,7 @@
 import { MoveEntry, PokemonEntry, Team, TeamMember } from '../../types';
 import { PokemonSlot } from '../PokemonSlot/PokemonSlot';
 
-interface Props {
+export interface TeamBuilderProps {
   team: Team;
   pokemon: PokemonEntry[];
   moves: MoveEntry[];
@@ -23,7 +23,7 @@ export function TeamBuilder({
   onUpdateMember,
   onSaveCustom,
   onRenameTeam,
-}: Props) {
+}: TeamBuilderProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">

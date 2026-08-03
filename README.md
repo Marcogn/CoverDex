@@ -1,9 +1,13 @@
 # CoverDex
 
-A React + TypeScript Progressive Web App for assembling Pokémon teams and
-analysing their offensive and defensive type coverage. It is built primarily
-for ROM hack players and competitive builders who want fast iteration over
-team composition without depending on a backend or an account system.
+A React + TypeScript Progressive Web App (and native Android app) for
+assembling Pokémon teams and analysing their offensive and defensive type
+coverage. It is built primarily for ROM hack players and competitive
+builders who want fast iteration over team composition without depending
+on a backend or an account system.
+
+For how the app is put together under the hood, see
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Screenshots
 
@@ -56,7 +60,9 @@ in this section._
 - Vite as the build tool and dev server
 - Tailwind CSS for styling (dark theme)
 - `vite-plugin-pwa` for the manifest and service worker
-- [PokéAPI](https://pokeapi.co) as the data source (cached in `localStorage`)
+- [PokéAPI](https://pokeapi.co) as the ultimate data source, consumed via
+  the static `PokeAPI/api-data` mirror on GitHub (not the live REST API),
+  cached in `localStorage` — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ## Getting started
 
@@ -99,8 +105,10 @@ and work fully offline. Your teams and custom Pokémon are stored
 separately under `teamdex_userdata` and are never affected by cache
 resets.
 
-The cache is never refreshed automatically. Use **Settings → Reset PokéAPI
-cache** to force a re-download (for example after a PokéAPI update).
+The cache is never refreshed automatically. Use **Settings → Data →
+Redownload Pokémon data** to force a re-download (for example after a
+PokéAPI update) — the app keeps working with the existing data until the
+new download finishes. This works identically on the Android app.
 
 ## Installing as a PWA
 
@@ -138,10 +146,16 @@ listing, and CI does not publish anywhere automatically.
 - Android SDK / Android Studio (for the emulator, device deployment, and SDK
   Manager).
 
+The Android build is a **separate Vite build target** from the PWA: `vite
+build --mode android` outputs to `dist-android/` (the PWA's `dist/` is
+completely unaffected), and only this build includes the Material Design
+(MUI) UI layer — see `CLAUDE.md` → "Android Platform" for the
+shared-logic/platform-presentation file convention this relies on.
+
 ### Building locally
 
 ```bash
-npm run android:build   # web build + cap sync android
+npm run android:build   # builds dist-android/ + cap sync android
 npm run android:open    # opens android/ in Android Studio
 ```
 
@@ -152,12 +166,20 @@ release keystore and the local signed-build steps.
 
 ### CI-built artifacts
 
-`.github/workflows/android-build.yml` builds a signed APK and AAB on every
-push to the Android development branch, or on demand via
-**Actions → Android Build → Run workflow**. Download them from the
-workflow run's **Artifacts** section (retained 30 days). There is no
-automated Play Store upload — install the APK directly on a device
-(`adb install app-release.apk`) or distribute it for manual testing.
+`.github/workflows/android-build.yml` builds a signed release APK and AAB
+on every push to the Android development branch, or on demand via
+**Actions → Android Build → Run workflow**. A debug APK is **not** built
+automatically — it's a separate job that only runs when you manually
+trigger the workflow, so you get one exactly when you ask for it, and can
+delete that workflow run afterward from the Actions history if you don't
+want it kept. Because this repo is public, CI **never** publishes any
+Android build output as a GitHub Actions artifact — those are downloadable
+by any signed-in GitHub user with read access, debug builds included.
+Instead, both the debug and signed release APKs are pushed to **Firebase
+App Distribution**, which only reaches testers explicitly invited by
+email — no public link, no Play Store review. See
+[`docs/android/BUILD.md`](docs/android/BUILD.md) for
+Firebase project setup and tester-group management.
 
 ## Showdown import / export format
 

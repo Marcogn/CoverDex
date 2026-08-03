@@ -73,7 +73,10 @@
     "data": "Dati",
     "currentData": "Dati attuali: v{{version}}",
     "generated": "Generato il: {{date}}",
-    "regenerateHint": "Per rigenerare i dati Pokémon, esegui:",
+    "dataCounts": "{{pokemon}} Pokémon, {{moves}} mosse",
+    "refreshData": "Riscarica dati Pokémon",
+    "refreshing": "Download in corso…",
+    "dataError": "Ultimo aggiornamento fallito:",
     "installApp": "Installa App",
     "app": "App"
   },
@@ -155,5 +158,16 @@
   },
   "common": {
     "searchPlaceholder": "Inizia a digitare per cercare..."
+  },
+  "loading": {
+    "title": "Download dati Pokémon in corso…",
+    "subtitle": "Download una tantum al primo avvio. Può richiedere 30–90 secondi a seconda della connessione.",
+    "stagePokemon": "Pokémon",
+    "stageSpecies": "Specie",
+    "stageEvolutionChains": "Catene evolutive",
+    "stageTypes": "Tipi",
+    "stageMoves": "Mosse",
+    "errorTitle": "Impossibile scaricare i dati Pokémon",
+    "retry": "Riprova"
   }
 }

@@ -8,7 +8,7 @@ import {
   SuggestionFilterState,
 } from './SuggestionFilters';
 
-interface Props {
+export interface SuggestionPanelProps {
   suggestions: Suggestion[];
   mixedMovesNote: boolean;
   onApply?: (s: Suggestion) => void;
@@ -16,7 +16,7 @@ interface Props {
   onGenerationChange: (g: string) => void;
 }
 
-function filterByType(
+export function filterByType(
   suggestions: Suggestion[],
   types: PokemonType[],
 ): Suggestion[] {
@@ -26,7 +26,7 @@ function filterByType(
   });
 }
 
-function pickRandom(pool: Suggestion[], count: number): Suggestion[] {
+export function pickRandom(pool: Suggestion[], count: number): Suggestion[] {
   const withGain = pool.filter((s) => s.compositeScore > 0);
   const noGain = pool.filter((s) => s.compositeScore <= 0);
   const picks: Suggestion[] = [];
@@ -48,7 +48,7 @@ function pickRandom(pool: Suggestion[], count: number): Suggestion[] {
   return picks;
 }
 
-export function SuggestionPanel({ suggestions, mixedMovesNote, onApply, generation, onGenerationChange }: Props) {
+export function SuggestionPanel({ suggestions, mixedMovesNote, onApply, generation, onGenerationChange }: SuggestionPanelProps) {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<SuggestionFilterState>({
     generation: generation as SuggestionFilterState['generation'],

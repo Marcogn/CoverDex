@@ -5,7 +5,7 @@ import { defensiveMultiplier, memberHasMoves } from '../../utils/coverageEngine'
 import { TypeBadge } from '../TypeBadge/TypeBadge';
 import { getAbilityEffects, normalizeAbilityName } from '../../data/abilityEffects';
 
-interface Props {
+export interface CoverageGridProps {
   chart: TypeChart;
   members: TeamMember[];
 }
@@ -17,7 +17,7 @@ function cellClass(mult: number): string {
   return 'bg-gray-100 dark:bg-panel2 text-gray-700 dark:text-slate-300';
 }
 
-function multLabel(mult: number): string {
+export function multLabel(mult: number): string {
   if (mult === 0) return '0×';
   if (mult === 0.25) return '¼×';
   if (mult === 0.5) return '½×';
@@ -145,7 +145,7 @@ function CoverageColgroup() {
   );
 }
 
-export function CoverageGrid({ chart, members }: Props) {
+export function CoverageGrid({ chart, members }: CoverageGridProps) {
   const { t } = useTranslation();
 
   // Coverage basis notice
@@ -328,7 +328,7 @@ export function CoverageGrid({ chart, members }: Props) {
   );
 }
 
-function collectAttackingTypes(m: TeamMember): PokemonType[] {
+export function collectAttackingTypes(m: TeamMember): PokemonType[] {
   const damaging = m.moves.filter(
     (mv) => mv && mv.damageClass !== 'status' && (mv.power ?? 0) > 0,
   );

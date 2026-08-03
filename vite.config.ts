@@ -1,19 +1,31 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { androidPlatformResolve } from './vite-plugins/androidPlatformResolve';
 
 /// <reference types="vitest" />
 
 // Base path is configurable via VITE_BASE_URL env var for GitHub Pages deploys.
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: process.env.VITE_BASE_URL ?? '/',
   build: {
-    outDir: 'dist',
+    outDir: mode === 'android' ? 'dist-android' : 'dist',
     sourcemap: true,
+    rollupOptions: {
+      // vite-plugin-pwa isn't loaded in android mode (see plugins below), so
+      // this virtual module has no provider. The only import site
+      // (registerServiceWorker.ts) is gated behind Capacitor.isNativePlatform()
+      // and never reaches it at runtime — safe to externalize.
+      external: mode === 'android' ? ['virtual:pwa-register'] : [],
+    },
   },
   plugins: [
     react(),
-    VitePWA({
+    androidPlatformResolve(mode),
+    // Web-only: the Capacitor WebView never registers the service worker
+    // (src/utils/registerServiceWorker.ts), so Workbox assets would be
+    // dead weight in the Android build.
+    mode !== 'android' && VitePWA({
       registerType: 'autoUpdate',
       strategies: 'generateSW',
       injectRegister: false,
@@ -70,4 +82,4 @@ export default defineConfig({
       include: ['src/utils/**', 'src/hooks/**', 'src/components/**'],
     },
   },
-});
+}));

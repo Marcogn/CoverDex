@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KNOWN_ABILITIES_WITH_EFFECTS, normalizeAbilityName, ABILITY_EFFECTS } from '../../data/abilityEffects';
 
-interface Props {
+export interface AbilityDropdownProps {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -12,7 +12,7 @@ interface Props {
  * Filterable dropdown for abilities. Shows known abilities with coverage
  * effects, plus allows free-text entry for rom-hack compatibility.
  */
-export function AbilityDropdown({ value, onChange, placeholder }: Props) {
+export function AbilityDropdown({ value, onChange, placeholder }: AbilityDropdownProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
