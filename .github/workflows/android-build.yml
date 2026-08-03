@@ -32,6 +32,21 @@ jobs:
 
       - run: npm ci
 
+      # `secrets` isn't a valid named-value inside `if:` expressions (GitHub
+      # Actions only exposes it to `env:`/`with:`), so presence checks are
+      # done here once, as step outputs, and every conditional step below
+      # branches on `steps.secrets_check.outputs.*` instead of `secrets.*`
+      # directly.
+      - name: Check which optional secrets are configured
+        id: secrets_check
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then echo "has_keystore=true" >> "$GITHUB_OUTPUT"; else echo "has_keystore=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -n "$FIREBASE_APP_ID" ] && [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then echo "has_firebase=true" >> "$GITHUB_OUTPUT"; else echo "has_firebase=false" >> "$GITHUB_OUTPUT"; fi
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
       - name: Run web test suite
         run: npm run test
 
@@ -60,14 +75,14 @@ jobs:
       # docs/android/BUILD.md), release builds become signed automatically —
       # no workflow change needed. Values are never echoed to the log.
       - name: Decode release keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: steps.secrets_check.outputs.has_keystore == 'true'
         working-directory: android
         run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
       - name: Write keystore.properties
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: steps.secrets_check.outputs.has_keystore == 'true'
         working-directory: android
         run: |
           cat > keystore.properties <<EOF
@@ -78,7 +93,7 @@ jobs:
           EOF
 
       - name: Warn if building unsigned
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+        if: steps.secrets_check.outputs.has_keystore == 'false'
         run: echo "::warning::ANDROID_KEYSTORE_BASE64 not set — building an UNSIGNED release artifact. See docs/android/BUILD.md to add signing secrets."
 
       - name: Gradle lint + unit tests
@@ -101,7 +116,7 @@ jobs:
       # release notes intentionally carry only the commit SHA, never secret
       # values.
       - name: Distribute debug APK via Firebase App Distribution
-        if: ${{ secrets.FIREBASE_APP_ID != '' && secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        if: steps.secrets_check.outputs.has_firebase == 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
@@ -111,7 +126,7 @@ jobs:
           releaseNotes: "debug build, commit ${{ github.sha }}"
 
       - name: Distribute release APK via Firebase App Distribution
-        if: ${{ secrets.FIREBASE_APP_ID != '' && secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        if: steps.secrets_check.outputs.has_firebase == 'true'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
@@ -121,7 +136,7 @@ jobs:
           releaseNotes: "release build, commit ${{ github.sha }}"
 
       - name: Warn if Firebase distribution was skipped
-        if: ${{ secrets.FIREBASE_APP_ID == '' || secrets.FIREBASE_SERVICE_ACCOUNT == '' }}
+        if: steps.secrets_check.outputs.has_firebase == 'false'
         run: echo "::warning::FIREBASE_APP_ID/FIREBASE_SERVICE_ACCOUNT not set — built APKs were not distributed anywhere. See docs/android/BUILD.md."
 
   # Emulator-based Espresso smoke test. Deliberately NOT part of the required
