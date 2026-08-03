@@ -1,33 +1,9 @@
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import fs from 'node:fs';
+import { androidPlatformResolve } from './vite-plugins/androidPlatformResolve';
 
 /// <reference types="vitest" />
-
-/**
- * Android build mode (`vite build --mode android`) resolves any local
- * import that has a sibling `<name>.android.tsx`/`.android.ts` file to that
- * sibling instead of the default file. This is the platform-presentation
- * convention documented in CLAUDE.md: shared hooks/logic stay in the
- * default file, only the Android-specific JSX lives in `.android.tsx`.
- * A no-op in every other mode, so the PWA build path is untouched.
- */
-function androidPlatformResolve(mode: string): Plugin | false {
-  if (mode !== 'android') return false;
-  return {
-    name: 'android-platform-resolve',
-    enforce: 'pre',
-    async resolveId(source, importer, options) {
-      if (!importer) return null;
-      const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
-      if (!resolved || resolved.external) return null;
-      if (!/\.tsx?$/.test(resolved.id) || /\.android\.tsx?$/.test(resolved.id)) return null;
-      const androidId = resolved.id.replace(/\.(tsx|ts)$/, '.android.$1');
-      return fs.existsSync(androidId) ? androidId : resolved.id;
-    },
-  };
-}
 
 // Base path is configurable via VITE_BASE_URL env var for GitHub Pages deploys.
 export default defineConfig(({ mode }) => ({
