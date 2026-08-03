@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { AppSettings } from '../../types';
 
-interface Props {
+export interface SettingsPageProps {
   settings: AppSettings;
   onSettingsChange: (s: AppSettings) => void;
   installAvailable: boolean;
@@ -17,7 +17,7 @@ export function SettingsPage({
   onInstall,
   dataVersion,
   dataGeneratedAt,
-}: Props) {
+}: SettingsPageProps) {
   const { t, i18n } = useTranslation();
 
   return (
