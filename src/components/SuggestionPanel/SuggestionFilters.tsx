@@ -31,7 +31,7 @@ export interface SuggestionFilterState {
   mode: SuggestionMode;
 }
 
-interface Props {
+export interface SuggestionFiltersProps {
   filters: SuggestionFilterState;
   onChange: (f: SuggestionFilterState) => void;
   onRandomize: () => void;
@@ -54,7 +54,7 @@ export function getGenRange(gen: GenerationFilter): [number, number] {
   return GEN_RANGES[gen];
 }
 
-const GEN_LABELS: Record<GenerationFilter, string> = {
+export const GEN_LABELS: Record<GenerationFilter, string> = {
   all: 'All generations',
   '1': 'Gen 1 (1-151)',
   '2': 'Gen 2 (152-251)',
@@ -67,7 +67,7 @@ const GEN_LABELS: Record<GenerationFilter, string> = {
   '9': 'Gen 9 (906+)',
 };
 
-export function SuggestionFilters({ filters, onChange, onRandomize }: Props) {
+export function SuggestionFilters({ filters, onChange, onRandomize }: SuggestionFiltersProps) {
   const { t } = useTranslation();
   const toggleType = (tp: PokemonType) => {
     const next = filters.types.includes(tp)

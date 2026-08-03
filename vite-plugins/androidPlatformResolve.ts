@@ -24,6 +24,11 @@ export function androidPlatformResolve(mode: string): Plugin | false {
       if (!resolved || resolved.external) return null;
       if (!/\.tsx?$/.test(resolved.id) || /\.android\.tsx?$/.test(resolved.id)) return null;
       const androidId = resolved.id.replace(/\.(tsx|ts)$/, '.android.$1');
+      // An .android.tsx file importing (non-type) values from its own base
+      // sibling — e.g. a pure helper function — is intentional reuse, not a
+      // platform substitution request. Redirecting it back to itself would
+      // create a self-referential import that can't find those exports.
+      if (androidId === importer) return null;
       return fs.existsSync(androidId) ? androidId : resolved.id;
     },
   };

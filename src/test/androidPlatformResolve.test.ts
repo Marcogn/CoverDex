@@ -41,4 +41,12 @@ describe('androidPlatformResolve (vite android build plugin)', () => {
     const result = await getResolveId().call(fakeResolveContext(appAndroidTsx), './App.android', mainTsx, {});
     expect(result).toBeNull();
   });
+
+  it('does not redirect an .android.tsx file importing values from its own base sibling', async () => {
+    // e.g. CoverageGrid.android.tsx doing `import { collectAttackingTypes } from './CoverageGrid'`
+    // — returning null here defers to normal resolution (-> the base file),
+    // rather than looping the import back to the android file itself.
+    const result = await getResolveId().call(fakeResolveContext(appTsx), './App', appAndroidTsx, {});
+    expect(result).toBeNull();
+  });
 });
