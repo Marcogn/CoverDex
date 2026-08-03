@@ -9,7 +9,7 @@ import { DeleteTeamModal } from '../Modal/DeleteTeamModal';
 import { useCoverageAnalysis } from '../../hooks/useCoverageAnalysis';
 import { useSuggestions, Suggestion } from '../../hooks/useSuggestions';
 
-interface Props {
+export interface TeamDetailPageProps {
   team: Team;
   tab: 'pokemon' | 'analysis';
   onTabChange: (tab: 'pokemon' | 'analysis') => void;
@@ -49,7 +49,7 @@ export function TeamDetailPage({
   onIncludeCustomsChange,
   includeMegaDynamax,
   excludeLegendaries,
-}: Props) {
+}: TeamDetailPageProps) {
   const { t } = useTranslation();
   const [exportOpen, setExportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

@@ -2,13 +2,13 @@ import { v4 as uuid } from 'uuid';
 import { MoveEntry, POKEMON_TYPES, PokemonMove, PokemonType } from '../../types';
 import { SearchableDropdown, DropdownOption } from '../SearchableDropdown/SearchableDropdown';
 
-interface Props {
+export interface MoveSlotProps {
   move: PokemonMove | null;
   moves: MoveEntry[];
   onChange: (mv: PokemonMove | null) => void;
 }
 
-export function MoveSlot({ move, moves, onChange }: Props) {
+export function MoveSlot({ move, moves, onChange }: MoveSlotProps) {
   const options: DropdownOption<MoveEntry>[] = moves.map((m) => ({
     key: 'm-' + m.id,
     label: `${m.displayName} · ${m.type}${m.power ? ` · ${m.power}` : ''}`,
