@@ -3,14 +3,14 @@ import { v4 as uuid } from 'uuid';
 import { POKEMON_TYPES, PokemonType, TeamMember } from '../../types';
 import { TypeBadge } from '../TypeBadge/TypeBadge';
 
-interface Props {
+export interface CustomPkmnPageProps {
   customs: TeamMember[];
   onAdd: (m: TeamMember) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
 }
 
-export function CustomPkmnPage({ customs, onAdd, onRename, onDelete }: Props) {
+export function CustomPkmnPage({ customs, onAdd, onRename, onDelete }: CustomPkmnPageProps) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [type1, setType1] = useState<PokemonType>('normal');
