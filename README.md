@@ -158,15 +158,19 @@ release keystore and the local signed-build steps.
 
 ### CI-built artifacts
 
-`.github/workflows/android-build.yml` builds a debug APK, a signed release
-APK, and a release AAB on every push to the Android development branch, or
-on demand via **Actions → Android Build → Run workflow**. Because this repo
-is public, CI **never** publishes any Android build output as a GitHub
-Actions artifact — those are downloadable by any signed-in GitHub user with
-read access, debug builds included. Instead, both the debug and signed
-release APKs are pushed to **Firebase App Distribution**, which only
-reaches testers explicitly invited by email — no public link, no Play
-Store review. See [`docs/android/BUILD.md`](docs/android/BUILD.md) for
+`.github/workflows/android-build.yml` builds a signed release APK and AAB
+on every push to the Android development branch, or on demand via
+**Actions → Android Build → Run workflow**. A debug APK is **not** built
+automatically — it's a separate job that only runs when you manually
+trigger the workflow, so you get one exactly when you ask for it, and can
+delete that workflow run afterward from the Actions history if you don't
+want it kept. Because this repo is public, CI **never** publishes any
+Android build output as a GitHub Actions artifact — those are downloadable
+by any signed-in GitHub user with read access, debug builds included.
+Instead, both the debug and signed release APKs are pushed to **Firebase
+App Distribution**, which only reaches testers explicitly invited by
+email — no public link, no Play Store review. See
+[`docs/android/BUILD.md`](docs/android/BUILD.md) for
 Firebase project setup and tester-group management.
 
 ## Showdown import / export format

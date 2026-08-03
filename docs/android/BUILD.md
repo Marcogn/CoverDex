@@ -130,6 +130,33 @@ Testers receive an email invite the first time a build reaches their
 group, with a link to install the Firebase App Tester app (or open the APK
 directly on Android) — no Play Store involved.
 
+## CI job structure and one-shot debug builds
+
+`.github/workflows/android-build.yml` has three jobs:
+
+- **`build`** — runs on every push to the Android dev branch, and on manual
+  `workflow_dispatch`. Web tests, `gradle lint`/`testDebugUnitTest`
+  (required gate), and a signed release APK + AAB. This is the only job
+  that runs automatically.
+- **`debug-build`** — `workflow_dispatch` only, never runs on push. Builds
+  and distributes a debug APK (default Android debug signing, no keystore
+  secret needed). Trigger it from **Actions → Android Build → Run
+  workflow** whenever you actually want a debug build on a device — it
+  depends on `build` passing first, so it never ships a debug APK from a
+  red build.
+- **`instrumented-test`** — `workflow_dispatch` only, the Espresso smoke
+  test on an emulator (see below).
+
+Because `debug-build` only ever runs as part of a manually-triggered
+workflow run, you get a debug APK exactly when you ask for one — never as
+a side effect of ordinary pushes. If you don't want a particular debug
+build's record kept around, delete that workflow run from **Actions →
+Android Build → (the run) → ⋯ → Delete workflow run** — this removes the
+run and its logs from the repository entirely. It does not touch whatever
+Firebase already distributed to testers; remove a release from testers'
+view in Firebase console → App Distribution if you don't want it
+reachable there either.
+
 ## Running the Espresso smoke test locally
 
 `android/app/src/androidTest/java/com/marcogn/coverdex/MainActivitySmokeTest.java`
