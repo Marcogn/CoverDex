@@ -1,14 +1,21 @@
 name: Android Build
 
-# Builds the Capacitor Android app as a signed APK + AAB artifact.
-# Separate from deploy.yml (web PWA) on purpose — see CLAUDE.md "Android platform".
-# Not enabled on `main` pushes yet: this is a manual/iterative pipeline until
-# the Android build has proven stable (see ROADMAP.md).
+# Builds the Capacitor Android app (debug + signed release APK, plus an AAB
+# for eventual Play Store readiness). Separate from deploy.yml (web PWA) on
+# purpose — see CLAUDE.md "Android platform". Not enabled on `main` pushes
+# yet: this is a manual/iterative pipeline until the Android build has
+# proven stable (see ROADMAP.md).
+#
+# This repo is public. actions/upload-artifact is NEVER used for any
+# APK/AAB here — Actions artifacts are downloadable by any signed-in GitHub
+# user with read access, debug builds included. Instead, debug and signed
+# release APKs go to Firebase App Distribution, which only reaches testers
+# explicitly invited by email. See docs/android/BUILD.md.
 
 on:
   workflow_dispatch:
   push:
-    branches: [claude/coverdex-android-capacitor-f9rr2j]
+    branches: [claude/coverdex-android-capacitor-0vx8vl]
 
 jobs:
   build:
@@ -47,10 +54,11 @@ jobs:
 
       # Signing is optional here on purpose: android/app/build.gradle only
       # applies a signingConfig when keystore.properties exists, so without
-      # the ANDROID_KEYSTORE_BASE64 secret this still produces a valid
-      # UNSIGNED release build instead of failing. Once the secrets below
-      # are set (see docs/android/BUILD.md), builds become signed
-      # automatically — no workflow change needed.
+      # the ANDROID_KEYSTORE_BASE64 secret this still produces a build
+      # instead of failing (debug always uses Android's default debug
+      # signing regardless). Once the secrets below are set (see
+      # docs/android/BUILD.md), release builds become signed automatically —
+      # no workflow change needed. Values are never echoed to the log.
       - name: Decode release keystore
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         working-directory: android
@@ -71,32 +79,50 @@ jobs:
 
       - name: Warn if building unsigned
         if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' }}
-        run: echo "::warning::ANDROID_KEYSTORE_BASE64 not set — building UNSIGNED release artifacts. See docs/android/BUILD.md to add signing secrets."
+        run: echo "::warning::ANDROID_KEYSTORE_BASE64 not set — building an UNSIGNED release artifact. See docs/android/BUILD.md to add signing secrets."
 
       - name: Gradle lint + unit tests
         working-directory: android
         run: ./gradlew lint testDebugUnitTest
 
-      - name: Build release APK + AAB
+      - name: Build debug APK, release APK, and release AAB
         working-directory: android
-        run: ./gradlew assembleRelease bundleRelease
+        run: ./gradlew assembleDebug assembleRelease bundleRelease
 
       - name: Clean up keystore secrets
         if: always()
         working-directory: android
         run: rm -f release.keystore keystore.properties
 
-      - uses: actions/upload-artifact@v4
+      # Firebase App Distribution is likewise optional at the workflow level:
+      # without FIREBASE_APP_ID/FIREBASE_SERVICE_ACCOUNT, these steps are
+      # skipped with a warning rather than failing the build, so tests/lint/
+      # build stay green while you set up Firebase (see docs/android/BUILD.md).
+      # release notes intentionally carry only the commit SHA, never secret
+      # values.
+      - name: Distribute debug APK via Firebase App Distribution
+        if: ${{ secrets.FIREBASE_APP_ID != '' && secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          name: coverdex-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
-          retention-days: 30
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: internal-debug
+          file: android/app/build/outputs/apk/debug/app-debug.apk
+          releaseNotes: "debug build, commit ${{ github.sha }}"
 
-      - uses: actions/upload-artifact@v4
+      - name: Distribute release APK via Firebase App Distribution
+        if: ${{ secrets.FIREBASE_APP_ID != '' && secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          name: coverdex-release-aab
-          path: android/app/build/outputs/bundle/release/*.aab
-          retention-days: 30
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: internal-release
+          file: android/app/build/outputs/apk/release/app-release.apk
+          releaseNotes: "release build, commit ${{ github.sha }}"
+
+      - name: Warn if Firebase distribution was skipped
+        if: ${{ secrets.FIREBASE_APP_ID == '' || secrets.FIREBASE_SERVICE_ACCOUNT == '' }}
+        run: echo "::warning::FIREBASE_APP_ID/FIREBASE_SERVICE_ACCOUNT not set — built APKs were not distributed anywhere. See docs/android/BUILD.md."
 
   # Emulator-based Espresso smoke test. Deliberately NOT part of the required
   # `build` job above (or its trigger) — GitHub-hosted emulator runners are
@@ -114,9 +140,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
-        env:
-          VITE_BASE_URL: /
+      - run: npm run build:android
       - run: npx cap sync android
 
       - uses: actions/setup-java@v4
