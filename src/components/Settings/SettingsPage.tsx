@@ -1,5 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { AppSettings } from '../../types';
+import type { FetchProgress, FetchStage } from '../../utils/pokeApiFetch';
+
+const STAGE_KEY: Record<FetchStage, string> = {
+  pokemon: 'loading.stagePokemon',
+  species: 'loading.stageSpecies',
+  'evolution-chains': 'loading.stageEvolutionChains',
+  types: 'loading.stageTypes',
+  moves: 'loading.stageMoves',
+};
 
 export interface SettingsPageProps {
   settings: AppSettings;
@@ -8,6 +17,12 @@ export interface SettingsPageProps {
   onInstall: () => void;
   dataVersion: number;
   dataGeneratedAt: string | null;
+  dataPokemonCount: number;
+  dataMoveCount: number;
+  dataError: string | null;
+  dataRefreshing: boolean;
+  dataProgress: FetchProgress | null;
+  onRefreshData: () => void;
 }
 
 export function SettingsPage({
@@ -17,6 +32,12 @@ export function SettingsPage({
   onInstall,
   dataVersion,
   dataGeneratedAt,
+  dataPokemonCount,
+  dataMoveCount,
+  dataError,
+  dataRefreshing,
+  dataProgress,
+  onRefreshData,
 }: SettingsPageProps) {
   const { t, i18n } = useTranslation();
 
@@ -90,14 +111,42 @@ export function SettingsPage({
       {/* Data */}
       <section className="flex flex-col gap-3">
         <h3 className="font-semibold text-sm text-gray-500 dark:text-slate-300 uppercase tracking-wide">{t('settings.data')}</h3>
-        <div className="text-sm text-gray-500 dark:text-slate-400">
-          <span className="bg-gray-100 dark:bg-panel2 px-2 py-0.5 rounded text-xs text-gray-700 dark:text-slate-300">
+        <div className="text-sm text-gray-500 dark:text-slate-400 flex flex-col gap-1">
+          <span className="bg-gray-100 dark:bg-panel2 px-2 py-0.5 rounded text-xs text-gray-700 dark:text-slate-300 self-start">
             {t('settings.currentData', { version: dataVersion })}{dataGeneratedAt ? `, ${t('settings.generated', { date: new Date(dataGeneratedAt).toLocaleDateString() })}` : ''}
           </span>
+          <span className="text-xs text-gray-500 dark:text-slate-500">
+            {t('settings.dataCounts', { pokemon: dataPokemonCount, moves: dataMoveCount })}
+          </span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-slate-500 bg-gray-50 dark:bg-panel2 p-3 rounded">
-          {t('settings.regenerateHint')} <code className="text-gray-700 dark:text-slate-300">npm run generate-data</code>
-        </div>
+
+        {dataError && (
+          <div className="text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/30 p-2 rounded">
+            {t('settings.dataError')} {dataError}
+          </div>
+        )}
+
+        {dataRefreshing && dataProgress && (
+          <div className="flex flex-col gap-1">
+            <div className="text-xs text-gray-500 dark:text-slate-400">
+              {t('settings.refreshing')} {t(STAGE_KEY[dataProgress.stage])} {dataProgress.done}/{dataProgress.total}
+            </div>
+            <div className="w-full h-1.5 bg-gray-100 dark:bg-panel2 rounded overflow-hidden">
+              <div
+                className="h-full bg-accent transition-[width] duration-200"
+                style={{ width: `${dataProgress.total > 0 ? Math.round((dataProgress.done / dataProgress.total) * 100) : 0}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <button
+          className="text-xs px-3 py-1.5 rounded bg-panel2 hover:bg-panel text-gray-900 dark:text-slate-100 self-start disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={onRefreshData}
+          disabled={dataRefreshing}
+        >
+          {dataRefreshing ? t('settings.refreshing') : t('settings.refreshData')}
+        </button>
       </section>
 
       {/* Install */}

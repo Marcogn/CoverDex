@@ -12,7 +12,6 @@ import Link from '@mui/material/Link';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
 import Container from '@mui/material/Container';
 import { useAppShell } from './hooks/useAppShell';
 import { createAppMuiTheme } from './theme/muiTheme';
@@ -23,6 +22,7 @@ import { TeamDetailPage } from './components/TeamDetailPage/TeamDetailPage';
 import { CustomPkmnPage } from './components/CustomRoster/CustomPkmnPage';
 import { SettingsPage } from './components/Settings/SettingsPage';
 import { SurpriseMeModal } from './components/SurpriseMe/SurpriseMeModal';
+import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 import './i18n';
 
 export default function App() {
@@ -63,6 +63,15 @@ export default function App() {
 
   const navValue = view.page === 'team' ? 'teams' : view.page;
 
+  if (data.loading || (data.error && data.pokemon.length === 0)) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <LoadingScreen progress={data.progress} error={data.pokemon.length === 0 ? data.error : null} onRetry={data.refresh} />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -73,13 +82,6 @@ export default function App() {
             <Typography variant="h6" component="div" noWrap>
               CoverDex
             </Typography>
-            <Chip
-              label={data.version === 0 ? 'data: not generated' : `data v${data.version}`}
-              size="small"
-              color={data.version === 0 ? 'error' : 'default'}
-              variant="outlined"
-              title={data.generatedAt ? `Generated: ${new Date(data.generatedAt).toLocaleString()}` : undefined}
-            />
             {installEvent && (
               <Button onClick={handleInstall} variant="contained" size="small" sx={{ ml: 'auto' }}>
                 Install
@@ -102,12 +104,6 @@ export default function App() {
             </Toolbar>
           )}
         </AppBar>
-
-        {data.error && (
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <Alert severity="error">{data.error}</Alert>
-          </Container>
-        )}
 
         <Container maxWidth="lg" sx={{ py: 2, flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
           {view.page === 'teams' && (
@@ -162,6 +158,12 @@ export default function App() {
               onInstall={handleInstall}
               dataVersion={data.version}
               dataGeneratedAt={data.generatedAt}
+              dataPokemonCount={data.pokemon.length}
+              dataMoveCount={data.moves.length}
+              dataError={data.error}
+              dataRefreshing={data.refreshing}
+              dataProgress={data.progress}
+              onRefreshData={data.refresh}
             />
           )}
         </Container>

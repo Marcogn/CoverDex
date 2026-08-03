@@ -12,8 +12,20 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import LinearProgress from '@mui/material/LinearProgress';
+import Stack from '@mui/material/Stack';
 import { AppSettings } from '../../types';
+import type { FetchStage } from '../../utils/pokeApiFetch';
 import type { SettingsPageProps } from './SettingsPage';
+
+const STAGE_KEY: Record<FetchStage, string> = {
+  pokemon: 'loading.stagePokemon',
+  species: 'loading.stageSpecies',
+  'evolution-chains': 'loading.stageEvolutionChains',
+  types: 'loading.stageTypes',
+  moves: 'loading.stageMoves',
+};
 
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
@@ -30,6 +42,12 @@ export function SettingsPage({
   onInstall,
   dataVersion,
   dataGeneratedAt,
+  dataPokemonCount,
+  dataMoveCount,
+  dataError,
+  dataRefreshing,
+  dataProgress,
+  onRefreshData,
 }: SettingsPageProps) {
   const { t, i18n } = useTranslation();
 
@@ -97,9 +115,27 @@ export function SettingsPage({
           }
           sx={{ alignSelf: 'flex-start' }}
         />
-        <Typography variant="caption" color="text.secondary" component="div" sx={{ bgcolor: 'action.hover', p: 1.5, borderRadius: 1 }}>
-          {t('settings.regenerateHint')} <code>npm run generate-data</code>
+        <Typography variant="caption" color="text.secondary">
+          {t('settings.dataCounts', { pokemon: dataPokemonCount, moves: dataMoveCount })}
         </Typography>
+
+        {dataError && <Alert severity="error" variant="outlined">{t('settings.dataError')} {dataError}</Alert>}
+
+        {dataRefreshing && dataProgress && (
+          <Stack spacing={0.5}>
+            <Typography variant="caption" color="text.secondary">
+              {t('settings.refreshing')} {t(STAGE_KEY[dataProgress.stage])} {dataProgress.done}/{dataProgress.total}
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={dataProgress.total > 0 ? Math.round((dataProgress.done / dataProgress.total) * 100) : 0}
+            />
+          </Stack>
+        )}
+
+        <Button variant="outlined" size="small" onClick={onRefreshData} disabled={dataRefreshing} sx={{ alignSelf: 'flex-start' }}>
+          {dataRefreshing ? t('settings.refreshing') : t('settings.refreshData')}
+        </Button>
       </Paper>
 
       {installAvailable && (

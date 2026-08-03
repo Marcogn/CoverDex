@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 const srcDir = path.dirname(fileURLToPath(import.meta.url)).replace(/\/test$/, '');
 const thisFile = fileURLToPath(import.meta.url);
 
+// Matches an actual URL construction (`https://pokeapi.co/...`, or a bare
+// `//pokeapi.co/...`), not prose that merely mentions the host name in a
+// comment (e.g. "unlike the live pokeapi.co REST API").
+const POKEAPI_URL_PATTERN = /\/\/[^\s'"`]*pokeapi\.co/;
+
 function walk(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   return entries.flatMap((entry) => {
@@ -17,19 +22,20 @@ function walk(dir: string): string[] {
 }
 
 /**
- * CLAUDE.md invariant: the PokéAPI download is build-time only
- * (scripts/generate-pokemon-data.mjs), never a runtime fetch from the app.
- * usePokemonData.ts statically imports the pre-generated pokemon-data.json.
- * Sprite <img> URLs point at raw.githubusercontent.com/PokeAPI, which is a
- * static asset CDN, not the pokeapi.co REST API — those are fine and not
- * what this guards against.
+ * CLAUDE.md invariant: the PokéAPI download happens exactly once, from
+ * src/utils/pokeApiFetch.ts, and only ever hits the static
+ * raw.githubusercontent.com/PokeAPI/api-data mirror — never the live
+ * pokeapi.co REST API, which has no CORS/rate-limit guarantees for a
+ * client run by every app user. This guards against that regressing,
+ * without flagging comments that merely *mention* pokeapi.co (e.g. to
+ * explain why the mirror is used instead).
  */
-describe('no runtime PokéAPI fetch in src/', () => {
-  it('never references the pokeapi.co REST API host outside build-time scripts', () => {
+describe('no runtime fetch of the pokeapi.co REST API in src/', () => {
+  it('never constructs a pokeapi.co URL outside this guard test itself', () => {
     const offenders = walk(srcDir)
       .filter((file) => file !== thisFile)
-      .filter((file) => fs.readFileSync(file, 'utf-8').includes('pokeapi.co'));
+      .filter((file) => POKEAPI_URL_PATTERN.test(fs.readFileSync(file, 'utf-8')));
 
-    expect(offenders, `Found pokeapi.co references in: ${offenders.join(', ')}`).toEqual([]);
+    expect(offenders, `Found pokeapi.co URL references in: ${offenders.join(', ')}`).toEqual([]);
   });
 });

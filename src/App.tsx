@@ -5,6 +5,7 @@ import { TeamDetailPage } from './components/TeamDetailPage/TeamDetailPage';
 import { CustomPkmnPage } from './components/CustomRoster/CustomPkmnPage';
 import { SettingsPage } from './components/Settings/SettingsPage';
 import { SurpriseMeModal } from './components/SurpriseMe/SurpriseMeModal';
+import { LoadingScreen } from './components/LoadingScreen/LoadingScreen';
 import './i18n';
 
 export default function App() {
@@ -41,20 +42,16 @@ export default function App() {
 
   const { t } = useTranslation();
 
+  if (data.loading || (data.error && data.pokemon.length === 0)) {
+    return <LoadingScreen progress={data.progress} error={data.pokemon.length === 0 ? data.error : null} onRetry={data.refresh} />;
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-bg text-gray-900 dark:text-slate-100">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#1a1a2e] border-b border-gray-200 dark:border-white/10 sticky top-0 z-50">
         <span className="bg-accent text-white px-2 py-0.5 rounded text-sm font-bold">CD</span>
         <span className="text-base font-semibold whitespace-nowrap text-gray-900 dark:text-white">CoverDex</span>
-        <span
-          className={`text-[10px] px-1.5 py-0.5 rounded ${
-            data.version === 0 ? 'bg-red-700 text-red-100' : 'bg-panel2 text-slate-400'
-          }`}
-          title={data.generatedAt ? `Generated: ${new Date(data.generatedAt).toLocaleString()}` : undefined}
-        >
-          {data.version === 0 ? 'data: not generated' : `data v${data.version}`}
-        </span>
         {installEvent && (
           <button
             onClick={handleInstall}
@@ -101,12 +98,6 @@ export default function App() {
           </button>
           <span className="mx-1">&gt;</span>
           <span className="text-slate-200">{currentTeam.name}</span>
-        </div>
-      )}
-
-      {data.error && (
-        <div className="max-w-6xl mx-auto px-4 mt-4 bg-red-900/40 text-red-200 p-3 rounded text-sm">
-          {data.error}
         </div>
       )}
 
@@ -163,6 +154,12 @@ export default function App() {
             onInstall={handleInstall}
             dataVersion={data.version}
             dataGeneratedAt={data.generatedAt}
+            dataPokemonCount={data.pokemon.length}
+            dataMoveCount={data.moves.length}
+            dataError={data.error}
+            dataRefreshing={data.refreshing}
+            dataProgress={data.progress}
+            onRefreshData={data.refresh}
           />
         )}
       </main>
