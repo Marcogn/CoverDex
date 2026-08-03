@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../Modal/Modal';
 
-interface Props {
+export interface NewTeamModalProps {
   open: boolean;
   onClose: () => void;
   onCreateEmpty: () => void;
@@ -10,7 +10,7 @@ interface Props {
   onSurpriseMe: () => void;
 }
 
-export function NewTeamModal({ open, onClose, onCreateEmpty, onImport, onSurpriseMe }: Props) {
+export function NewTeamModal({ open, onClose, onCreateEmpty, onImport, onSurpriseMe }: NewTeamModalProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'choose' | 'import'>('choose');
   const [text, setText] = useState('');
