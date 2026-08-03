@@ -138,10 +138,16 @@ listing, and CI does not publish anywhere automatically.
 - Android SDK / Android Studio (for the emulator, device deployment, and SDK
   Manager).
 
+The Android build is a **separate Vite build target** from the PWA: `vite
+build --mode android` outputs to `dist-android/` (the PWA's `dist/` is
+completely unaffected), and only this build includes the Material Design
+(MUI) UI layer — see `CLAUDE.md` → "Android Platform" for the
+shared-logic/platform-presentation file convention this relies on.
+
 ### Building locally
 
 ```bash
-npm run android:build   # web build + cap sync android
+npm run android:build   # builds dist-android/ + cap sync android
 npm run android:open    # opens android/ in Android Studio
 ```
 
@@ -152,12 +158,16 @@ release keystore and the local signed-build steps.
 
 ### CI-built artifacts
 
-`.github/workflows/android-build.yml` builds a signed APK and AAB on every
-push to the Android development branch, or on demand via
-**Actions → Android Build → Run workflow**. Download them from the
-workflow run's **Artifacts** section (retained 30 days). There is no
-automated Play Store upload — install the APK directly on a device
-(`adb install app-release.apk`) or distribute it for manual testing.
+`.github/workflows/android-build.yml` builds a debug APK, a signed release
+APK, and a release AAB on every push to the Android development branch, or
+on demand via **Actions → Android Build → Run workflow**. Because this repo
+is public, CI **never** publishes any Android build output as a GitHub
+Actions artifact — those are downloadable by any signed-in GitHub user with
+read access, debug builds included. Instead, both the debug and signed
+release APKs are pushed to **Firebase App Distribution**, which only
+reaches testers explicitly invited by email — no public link, no Play
+Store review. See [`docs/android/BUILD.md`](docs/android/BUILD.md) for
+Firebase project setup and tester-group management.
 
 ## Showdown import / export format
 

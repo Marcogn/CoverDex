@@ -17,12 +17,12 @@ upgrade changes a version number below, update this file, not `CLAUDE.md`.
 - An `android/local.properties` pointing `sdk.dir` at your SDK — Android
   Studio writes this automatically on first open; it's gitignored.
 
-## Building locally (unsigned debug)
+## Building locally (debug)
 
 ```bash
-npm run android:build   # web build + cap sync android
+npm run android:build   # builds dist-android/ (Android web bundle) + cap sync android
 cd android
-./gradlew assembleDebug # unsigned APK at app/build/outputs/apk/debug/
+./gradlew assembleDebug # debug-signed APK at app/build/outputs/apk/debug/
 ```
 
 Or open `android/` in Android Studio (`npm run android:open`) and run from
@@ -79,6 +79,8 @@ Actions. Never commit them.
 | `ANDROID_KEYSTORE_PASSWORD` | keystore's store password |
 | `ANDROID_KEY_ALIAS` | key alias used when generating it (`coverdex` above) |
 | `ANDROID_KEY_PASSWORD` | key password (often equal to the store password) |
+| `FIREBASE_APP_ID` | the Android app's App ID from Firebase project settings |
+| `FIREBASE_SERVICE_ACCOUNT` | full JSON content of a Firebase service account key with App Distribution access |
 
 CI decodes the base64 secret to `android/release.keystore` and writes
 `android/keystore.properties` from the other three, both gitignored and
@@ -86,9 +88,47 @@ deleted at the end of the job.
 
 These secrets are optional at the workflow level: if `ANDROID_KEYSTORE_BASE64`
 is unset, the decode/write steps are skipped entirely and the build still
-succeeds, producing an **unsigned** APK/AAB (with a CI warning annotation).
-Add the four secrets whenever you want CI-built artifacts to be signed —
-no workflow change needed once they're set.
+succeeds, producing an **unsigned** release APK/AAB (with a CI warning
+annotation) — debug always uses Android's default debug signing regardless.
+Add the four signing secrets whenever you want CI-built release artifacts
+to be signed — no workflow change needed once they're set. Same story for
+`FIREBASE_APP_ID`/`FIREBASE_SERVICE_ACCOUNT`: without them, the Firebase
+distribution steps are skipped with a warning instead of failing the build.
+
+## Firebase App Distribution setup
+
+CI never uploads Android build output as a GitHub Actions artifact — this
+repo is public, and Actions artifacts are downloadable by any signed-in
+GitHub user with read access, debug builds included. Firebase App
+Distribution is the replacement: free, supports both debug and release
+APKs, and only ever reaches testers you've explicitly invited by email.
+
+1. **Create (or reuse) a Firebase project** at
+   [console.firebase.google.com](https://console.firebase.google.com/).
+   Any Google account can create one; this doesn't require a paid plan.
+2. **Add an Android app** to the project with application ID
+   `com.marcogn.coverdex` (must match `capacitor.config.ts`'s `appId`
+   exactly). You don't need to download/commit `google-services.json` —
+   this project doesn't use any other Firebase service, only App
+   Distribution, which authenticates via the service account below instead.
+3. **Find the App ID**: Project settings → General → your Android app →
+   "App ID" (format `1:1234567890:android:abcdef...`). This is
+   `FIREBASE_APP_ID`.
+4. **Create a service account** with App Distribution access: Project
+   settings → Service accounts → Generate new private key (or, more
+   narrowly scoped, create one via Google Cloud IAM with the
+   `Firebase App Distribution Admin` role). This downloads a JSON key
+   file — its full contents become the `FIREBASE_SERVICE_ACCOUNT` secret.
+5. **Create two tester groups** in Firebase console → App Distribution →
+   Testers & Groups: `internal-debug` and `internal-release` (the exact
+   names the workflow's `groups:` inputs reference). Add your own email to
+   both to start; add others later only if you want wider testing.
+6. **Add the two secrets** to the repo (Settings → Secrets and variables →
+   Actions): `FIREBASE_APP_ID`, `FIREBASE_SERVICE_ACCOUNT`.
+
+Testers receive an email invite the first time a build reaches their
+group, with a link to install the Firebase App Tester app (or open the APK
+directly on Android) — no Play Store involved.
 
 ## Running the Espresso smoke test locally
 
