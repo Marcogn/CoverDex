@@ -1,9 +1,13 @@
 # CoverDex
 
-A React + TypeScript Progressive Web App for assembling Pokémon teams and
-analysing their offensive and defensive type coverage. It is built primarily
-for ROM hack players and competitive builders who want fast iteration over
-team composition without depending on a backend or an account system.
+A React + TypeScript Progressive Web App (and native Android app) for
+assembling Pokémon teams and analysing their offensive and defensive type
+coverage. It is built primarily for ROM hack players and competitive
+builders who want fast iteration over team composition without depending
+on a backend or an account system.
+
+For how the app is put together under the hood, see
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Screenshots
 
@@ -56,7 +60,9 @@ in this section._
 - Vite as the build tool and dev server
 - Tailwind CSS for styling (dark theme)
 - `vite-plugin-pwa` for the manifest and service worker
-- [PokéAPI](https://pokeapi.co) as the data source (cached in `localStorage`)
+- [PokéAPI](https://pokeapi.co) as the ultimate data source, consumed via
+  the static `PokeAPI/api-data` mirror on GitHub (not the live REST API),
+  cached in `localStorage` — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ## Getting started
 
@@ -99,8 +105,10 @@ and work fully offline. Your teams and custom Pokémon are stored
 separately under `teamdex_userdata` and are never affected by cache
 resets.
 
-The cache is never refreshed automatically. Use **Settings → Reset PokéAPI
-cache** to force a re-download (for example after a PokéAPI update).
+The cache is never refreshed automatically. Use **Settings → Data →
+Redownload Pokémon data** to force a re-download (for example after a
+PokéAPI update) — the app keeps working with the existing data until the
+new download finishes. This works identically on the Android app.
 
 ## Installing as a PWA
 

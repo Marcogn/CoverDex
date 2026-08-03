@@ -2,7 +2,10 @@
 
 Instructions for AI coding agents (Claude Code, GitHub Copilot, etc.)
 working in this repository. Read this file in full before editing any
-code.
+code. For a narrative, human-facing walkthrough of how the app fits
+together (data flow, the two engines, import/export, the web/Android
+split), see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — this file
+stays focused on rules and invariants for agents.
 
 ## Project Identity
 
@@ -30,13 +33,18 @@ a damage calculator.
 
 1. **App boot.** `usePokemonData` checks `localStorage` for the cache
    under `teamdex_pokeapi_cache`. If missing or its `version` does not
-   match `CACHE_VERSION`, the hook fetches Pokémon, species, evolution
-   chains, types, and the move index from the static
+   match `CACHE_VERSION`, the hook calls `fetchPokemonData()`
+   (`src/utils/pokeApiFetch.ts`), which fetches Pokémon, species,
+   evolution chains, types, and moves from the static
    `raw.githubusercontent.com/PokeAPI/api-data` mirror (batched 50 at
    a time, 50 ms between batches, one retry per resource). On completion
-   it writes the cache with `version: 2`. `teamdex_userdata` is never
-   touched during this process. UI renders only after the cache is
-   complete.
+   it writes the cache with the current `CACHE_VERSION`. `teamdex_userdata`
+   is never touched during this process. This first-launch download is
+   the only case where the whole UI blocks (`App.tsx`/`App.android.tsx`
+   render `LoadingScreen` while `usePokemonData().loading` is true); a
+   manual re-download via Settings → Data (`refresh()`) keeps the
+   existing data usable in the rest of the app until the new fetch
+   completes or fails.
 2. **Pokémon selection.** When the user picks a species in a slot, the
    slot reads the form's types from the cache, and pre-populates the
    ability field from `PokemonEntry.defaultAbility`. The user can
@@ -57,17 +65,33 @@ a damage calculator.
 
 ## Module Responsibilities
 
+### `src/utils/pokeApiFetch.ts`
+
+Pure (no React, no `localStorage`) fetch/assembly engine — the actual
+PokéAPI/api-data mirror client. Exports `fetchPokemonData(onProgress?,
+signal?)`, `CACHE_KEY`, `CACHE_VERSION`, and the `FetchProgress`/
+`FetchStage` types. The mirror only serves numeric-ID paths (e.g.
+`/pokemon/1/index.json`); name-based paths 404, so every resource type
+resolves its numeric ID from an index/list endpoint first. Batches 50
+requests at a time, 50 ms between batches, one retry per resource
+(`RETRY_DELAY_MS`), and throws rather than returning a partial result if
+zero final evolutions come back (a signal the evolution-chain fetches all
+failed). Must **not** import React or touch `localStorage` — that's
+`usePokemonData.ts`'s job.
+
 ### `src/hooks/usePokemonData.ts`
 
-Owns all static data fetching from the PokeAPI/api-data mirror on
-GitHub (`raw.githubusercontent.com/PokeAPI/api-data`) and
-`localStorage` caching for species, forms, the move index, types, and
-evolution chains under `teamdex_pokeapi_cache`. Must **never** touch
-`teamdex_userdata`. Must **not** contain coverage logic, suggestion
-logic, or UI-only state. Invariants: the cache is either complete and
-versioned (`{ version: CACHE_VERSION, data: { … } }`) or fully absent —
-never partial. Move details are loaded lazily via `loadMoveDetails` and
-written back into the same cache entry.
+Thin React wrapper around `pokeApiFetch.ts`: reads/writes the
+`localStorage` cache under `teamdex_pokeapi_cache`, exposes `loading`
+(true only for a genuine first-launch fetch with nothing cached yet),
+`refreshing` (true for a background/manual re-fetch while old data is
+still usable), `progress`, `error`, and `refresh()` (clears the cache
+and re-fetches; wired to the Settings → Data "Redownload" button). Must
+**never** touch `teamdex_userdata`. Must **not** contain coverage logic,
+suggestion logic, or UI-only state. Invariants: the cache is either
+complete and versioned (`{ version: CACHE_VERSION, data: { … } }`) or
+fully absent — never partial. A stale-versioned cache is treated as
+absent and re-fetched.
 
 ### `src/utils/spriteUtils.ts`
 
@@ -187,10 +211,10 @@ Categories and their filters:
 - **Mega evolutions:** name includes `-mega`.
 - **Dynamax/Gmax:** name includes `-gmax`.
 
-**Data field audit (isLegendary / isMythical):** The fields in
-`src/data/pokemon-data.json` are `isLegendary` (boolean) and
-`isMythical` (boolean), matching the PokeAPI species endpoint's
-`is_legendary` and `is_mythical` fields. Verified: Mewtwo has
+**Data field audit (isLegendary / isMythical):** `PokemonEntry.isLegendary`
+and `PokemonEntry.isMythical` (both boolean) are populated by
+`pokeApiFetch.ts` from the PokéAPI species endpoint's `is_legendary` and
+`is_mythical` fields. Verified: Mewtwo has
 `isLegendary: true`, Mew has `isMythical: true`, Articuno/Rayquaza
 have `isLegendary: true`, and non-legendaries like Cinccino have
 both set to `false`.
@@ -323,9 +347,10 @@ for manual completion. The block is still imported.
   `src/utils/spriteUtils.ts`; never access `spriteHome`,
   `spriteArtwork`, or `spriteDefault` directly from components.
 - **Cache version.** If you add new fields to the cached payload
-  structure, increment `CACHE_VERSION` in `usePokemonData.ts` —
+  structure, increment `CACHE_VERSION` in `src/utils/pokeApiFetch.ts` —
   otherwise users with old caches will get runtime errors on missing
-  fields.
+  fields. A version mismatch is treated as "no cache" and silently
+  re-fetched, not an error.
 - **Batch fetching.** Do not increase the batch size above 50 without
   testing. GitHub's CDN rate limits are undocumented and can cause
   silent failures at higher concurrency.
@@ -441,17 +466,22 @@ installing the Android app does not surface a user's PWA teams, and vice
 versa. Any future cross-device sync feature is a deliberate, separate
 project — neither release should grow one implicitly.
 
-### PokéAPI download stays build-time only
+### PokéAPI download is identical on both platforms
 
-`scripts/generate-pokemon-data.mjs` is the only thing that ever talks to
-the PokéAPI/api-data mirror, and it runs at build time (`npm run
-generate-data`), writing `src/data/pokemon-data.json`. `usePokemonData.ts`
-does nothing but statically import that JSON — no runtime fetch, no
-`localStorage` cache, on either platform. `src/test/noRuntimePokeApiFetch.test.ts`
-guards this: it fails if the literal string `pokeapi.co` ever shows up
-anywhere under `src/` outside that test file itself (sprite `<img>` URLs
-point at `raw.githubusercontent.com/PokeAPI`, a static asset CDN, which is
-unrelated and unaffected).
+`usePokemonData`/`pokeApiFetch.ts` (see "Key Data Flows" and "Module
+Responsibilities" above) run the exact same way on the PWA and inside the
+Capacitor WebView — same mirror, same batching, same `localStorage` cache
+key. There is no Android-specific data step and no build-time generation
+script; the dataset is never bundled into either `dist/` or
+`dist-android/`. The Android WebView needs the standard Capacitor
+`android.permission.INTERNET` (already required for sprite `<img>` URLs,
+present in the generated `AndroidManifest.xml`) for this to work on
+device. `src/test/noRuntimePokeApiFetch.test.ts` guards against ever
+calling the **live** `pokeapi.co` REST API (as opposed to the static
+mirror) from either platform's runtime code — it fails if an actual
+`pokeapi.co` URL is constructed anywhere under `src/` outside the test
+itself; a comment merely *mentioning* the host (to explain why the mirror
+is used instead) does not trip it.
 
 ## Dev Commands
 
