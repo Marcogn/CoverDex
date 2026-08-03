@@ -358,19 +358,100 @@ operational/build detail lives in `docs/android/BUILD.md`.
   `npm run android:build`, CI) needs Node 22+, even though `deploy.yml`
   and `pr-check.yml` stay on Node 20 for the unrelated web pipeline.
 - `capacitor.config.ts`: `appId: "com.marcogn.coverdex"`,
-  `appName: "CoverDex"`, `webDir: "dist"`. `appId` is rename-sensitive —
-  same category as the `VITE_BASE_URL` in `deploy.yml` — because the repo
-  is still named `poke-team-builder` pending a rename to `coverdex`.
+  `appName: "CoverDex"`, `webDir: "dist-android"`. `appId` is
+  rename-sensitive — same category as the `VITE_BASE_URL` in `deploy.yml`
+  — because the repo is still named `poke-team-builder` pending a rename
+  to `coverdex`.
 - Run `npx cap sync android` (or `npm run android:build`, which also runs
-  the web build first) after every web build and before any native build —
-  it copies `dist/` into `android/app/src/main/assets/public`. A native
-  build against a stale sync serves an outdated WebView.
+  the Android web build first) after every change and before any native
+  build — it copies `dist-android/` into
+  `android/app/src/main/assets/public`. A native build against a stale
+  sync serves an outdated WebView.
 - The Workbox service worker must not register when
   `Capacitor.isNativePlatform()` is true (`src/utils/registerServiceWorker.ts`).
   Native assets are bundled locally, not served over the network there.
-- `.github/workflows/android-build.yml` requires four secrets, values never
-  documented here: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-  `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+- `.github/workflows/android-build.yml` requires GitHub Secrets, values
+  never documented here: `ANDROID_KEYSTORE_BASE64`,
+  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`,
+  `FIREBASE_APP_ID`, `FIREBASE_SERVICE_ACCOUNT`. Android build outputs
+  (debug and signed release alike) must never go through
+  `actions/upload-artifact` — this is a public repo, and Actions artifacts
+  are downloadable by any signed-in GitHub user. They go to Firebase App
+  Distribution instead, which only reaches explicitly invited testers.
+
+### Two build outputs: `dist/` (PWA) vs `dist-android/` (Android)
+
+`vite build` (plain, `npm run build`) produces `dist/` exactly as before —
+the PWA is untouched. `vite build --mode android` (`npm run build:android`)
+produces a separate `dist-android/`, built by `vite-plugins/androidPlatformResolve.ts`:
+a Vite plugin, active only in `--mode android`, that resolves any local
+import to its `<Name>.android.tsx`/`.android.ts` sibling when one exists,
+otherwise falls through to the default file. This is what lets the
+Material layer below exist only in the Android build — MUI/Emotion never
+appear in the `dist/` bundle (verified by grepping the built output; there
+is no automated bundle-size CI check, so re-verify by hand — `grep -c
+emotion dist/assets/*.js` should print `0` — after any change to
+`vite.config.ts` or the plugin). `vite-plugin-pwa` is also android-mode-only
+(the WebView never needs the service worker or its manifest).
+
+### Shared logic / platform-presentation file convention
+
+Every restyled component follows the same pattern: the default file
+(`Component.tsx`) holds the **shared** hooks/state/handlers and is also
+the **web** presentation (Tailwind), consumed unchanged by the PWA. A
+sibling `Component.android.tsx`, when present, is picked up automatically
+by the platform-resolve plugin and holds the **Android** presentation
+(MUI) — imported with the exact same props contract (exported from the
+default file, e.g. `TeamsPageProps`) and, wherever the component has
+non-trivial logic, driven by hooks pulled out of the default file (e.g.
+`useAppShell` in `src/hooks/useAppShell.ts`, consumed identically by
+`App.tsx` and `App.android.tsx`) or by pure helper functions re-exported
+from the default file (e.g. `collectAttackingTypes`, `multLabel` from
+`CoverageGrid.tsx`). Business logic is never forked between the two files.
+
+One subtlety worth knowing before touching the plugin: an `.android.tsx`
+file importing a *type* from its own base sibling (`import type { XProps }
+from './X'`) is invisible to the plugin — TypeScript strips type-only
+imports before Rollup ever resolves them. But a *value* import from the
+base sibling (a shared pure helper) is a real import the plugin sees, and
+naively redirecting it would loop the file back to itself; the plugin
+special-cases this (see its own comments and
+`src/test/androidPlatformResolve.test.ts`).
+
+Screens restyled for Android (all of them, as of this writing): top-level
+nav/shell (`App.android.tsx`), Teams list, Settings, Custom Pokémon
+roster, Team Builder (Pokémon tab — slots, moves, ability picker, export/
+delete dialogs), and the Analysis tab (including the offensive/defensive
+grids as MUI `Table`/`TableContainer` with a manually-sticky first column,
+and suggestion cards). The shared `SearchableDropdown`/`AbilityDropdown`
+Autocomplete implementations cover every picker (Pokémon, move, ability,
+and the Surprise Me anchor picker) from one file each. `SurpriseMeModal`
+and the roster's now-dead `CustomRoster.tsx` were not restyled (the latter
+isn't imported anywhere on either platform).
+
+### Storage isolation (PWA vs Android)
+
+The PWA's `localStorage` (both `teamdex_userdata` and, if present,
+`teamdex_pokeapi_cache`) lives in the mobile/desktop browser's storage
+partition for the GitHub Pages origin. The Capacitor Android app's WebView
+has its own OS-sandboxed, app-private storage, entirely disconnected from
+any browser — this is inherent to how Capacitor's WebView works, not
+something either build configures. **The two releases never share data**:
+installing the Android app does not surface a user's PWA teams, and vice
+versa. Any future cross-device sync feature is a deliberate, separate
+project — neither release should grow one implicitly.
+
+### PokéAPI download stays build-time only
+
+`scripts/generate-pokemon-data.mjs` is the only thing that ever talks to
+the PokéAPI/api-data mirror, and it runs at build time (`npm run
+generate-data`), writing `src/data/pokemon-data.json`. `usePokemonData.ts`
+does nothing but statically import that JSON — no runtime fetch, no
+`localStorage` cache, on either platform. `src/test/noRuntimePokeApiFetch.test.ts`
+guards this: it fails if the literal string `pokeapi.co` ever shows up
+anywhere under `src/` outside that test file itself (sprite `<img>` URLs
+point at `raw.githubusercontent.com/PokeAPI`, a static asset CDN, which is
+unrelated and unaffected).
 
 ## Dev Commands
 
@@ -381,9 +462,10 @@ npm run preview        # preview the production build locally
 npm run test           # run the Vitest suite once
 npm run test:coverage  # run the Vitest suite with coverage
 npm run generate-icons # generate PWA icons locally
-npm run cap:sync       # sync the web build into android/
+npm run build:android  # type-check then build the Android bundle to dist-android/
+npm run cap:sync       # sync dist-android/ into android/
 npm run android:open   # open the Android project in Android Studio
-npm run android:build  # web build + cap sync android
+npm run android:build  # build:android + cap sync android
 ```
 
 ### i18n
