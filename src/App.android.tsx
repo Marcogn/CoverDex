@@ -32,6 +32,7 @@ export default function App() {
     view,
     setView,
     settings,
+    userDataReady,
     includeCustomsAnalysis,
     setIncludeCustomsAnalysis,
     toastMsg,
@@ -63,11 +64,15 @@ export default function App() {
 
   const navValue = view.page === 'team' ? 'teams' : view.page;
 
-  if (data.loading || (data.error && data.pokemon.length === 0)) {
+  if (data.loading || !userDataReady || (data.error && data.pokemon.length === 0)) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <LoadingScreen progress={data.progress} error={data.pokemon.length === 0 ? data.error : null} onRetry={data.refresh} />
+        <LoadingScreen
+          progress={data.loading ? data.progress : null}
+          error={data.pokemon.length === 0 ? data.error : null}
+          onRetry={data.refresh}
+        />
       </ThemeProvider>
     );
   }

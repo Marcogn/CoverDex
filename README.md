@@ -12,7 +12,9 @@ implemented and what's still open, see [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Features
 
-- Multiple saved teams with six slots each, persisted in `localStorage`.
+- Multiple saved teams with six slots each, persisted locally on-device
+  (`localStorage` on the web app, native storage on Android — see
+  "Android App" below).
 - Searchable picker covering every PokéAPI species and alternate form.
   Results appear only after typing at least 1 character — no initial list
   shown on focus. All matching results are displayed (no pagination cap).
@@ -57,6 +59,8 @@ implemented and what's still open, see [`docs/STATUS.md`](docs/STATUS.md).
 - [PokéAPI](https://pokeapi.co) as the ultimate data source, consumed via
   the static `PokeAPI/api-data` mirror on GitHub (not the live REST API),
   cached in `localStorage` — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [Capacitor](https://capacitorjs.com/) + Material UI (MUI) for the native
+  Android shell — see "Android App" below
 
 ## Getting started
 
@@ -95,8 +99,9 @@ This takes approximately 30–90 seconds depending on connection speed.
 A progress bar shows the loading status. All data is cached in
 `localStorage` after the first load — subsequent loads are instant
 and work fully offline. Your teams and custom Pokémon are stored
-separately under `teamdex_userdata` and are never affected by cache
-resets.
+separately under `teamdex_userdata` (`localStorage` on the web app,
+native storage via `@capacitor/preferences` on Android) and are never
+affected by cache resets.
 
 The cache is never refreshed automatically. Use **Settings → Data →
 Redownload Pokémon data** to force a re-download (for example after a
@@ -231,7 +236,8 @@ A Pokémon does not need to exist in PokéAPI to be used in a team.
 1. In any slot, pick *Custom* (or edit the species name freely) and set
    its types and moves manually.
 2. Click **Save to custom roster** on the slot. The Pokémon is added to
-   your personal roster and persisted in `localStorage`.
+   your personal roster and persisted locally on-device (see "First run
+   behavior" above for where, per platform).
 3. From the picker, enable *Include custom roster* to reuse saved custom
    Pokémon in any team. They are also offered by the suggestion engine
    when the toggle is on.
@@ -276,8 +282,11 @@ correctly.
 
 - The move-aware suggestion engine evaluates candidates by their own
   type chart only; it does not attempt to infer movepools for candidates.
-- There is no backend. Teams, custom Pokémon and the PokéAPI cache live
-  in `localStorage` and are scoped per browser.
+- There is no backend. Teams and custom Pokémon are stored locally
+  on-device — `localStorage` on the web app, native storage via
+  `@capacitor/preferences` on Android — and the PokéAPI cache lives in
+  `localStorage` on both. Nothing is scoped across devices or shared
+  between the web and Android releases.
 - The PokéAPI cache is never refreshed automatically. Use the Settings
   panel to reset it.
 - Suggestion depth is shallow (top 5 candidates); the engine does not

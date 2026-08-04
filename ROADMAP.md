@@ -7,14 +7,6 @@ For a broader snapshot of what's implemented versus still open, see
 
 ## Android
 
-- **Migrate `teamdex_userdata` from `localStorage` to `@capacitor/preferences`.**
-  The Android WebView's `localStorage` is not guaranteed as durable as
-  native storage (can be cleared under storage pressure, isn't backed up
-  the same way). Capacitor's Preferences plugin would give native-backed
-  persistence on Android, at the cost of an async read/write API replacing
-  today's synchronous `localStorage` calls in `usePersistedState` and
-  friends — a real refactor, not a drop-in swap. Not implemented as part of
-  the initial Android build (see CLAUDE.md non-goals for that pass).
 - **Promote `.github/workflows/android-build.yml` from manual-dispatch to
   automatic on merge to `main`.** Currently triggers only on
   `workflow_dispatch` and pushes to the Android development branch, once

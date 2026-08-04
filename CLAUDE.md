@@ -23,14 +23,24 @@ a damage calculator.
 
 - Single page React app. No router, no nested route state.
 - All UI state lives in React. No Redux, no Zustand, no Recoil. The
-  top-level `AppState` (`src/types/index.ts`) is persisted to
-  `localStorage` and rehydrated on boot.
+  top-level `AppState` (`src/types/index.ts`) is persisted on-device and
+  rehydrated on boot — `localStorage` on the web build, native
+  `@capacitor/preferences` storage on Android (see `useUserDataStorage.ts`/
+  `.android.ts` and "Storage isolation" under "Android Platform").
 - PokéAPI data (Pokémon list, types, moves, evolution chain summaries)
   is fetched once on first load, cached in `localStorage`, and **never
   re-fetched** unless the user explicitly resets the cache from the
   Settings panel.
 - No backend. No authentication. No telemetry. Network is used only for
-  the initial PokéAPI fetch and for sprite URLs.
+  the initial PokéAPI fetch and for sprite URLs. This has been proposed
+  and turned down before — moving calculation/filtering into some kind of
+  backend (an embedded server, a native-code layer reached over a
+  Capacitor plugin bridge) wouldn't fix a real performance problem (the
+  coverage/suggestion math is trivial at this data scale, comfortably
+  microseconds in the WebView's JS engine) and would fork business logic
+  between platforms, which is exactly what the shared-engine architecture
+  below exists to avoid. Don't reopen this without a measured, reproduced
+  performance problem to point at.
 
 ## Key Data Flows
 
@@ -43,11 +53,15 @@ a damage calculator.
    a time, 50 ms between batches, one retry per resource). On completion
    it writes the cache with the current `CACHE_VERSION`. `teamdex_userdata`
    is never touched during this process. This first-launch download is
-   the only case where the whole UI blocks (`App.tsx`/`App.android.tsx`
+   the main case where the whole UI blocks (`App.tsx`/`App.android.tsx`
    render `LoadingScreen` while `usePokemonData().loading` is true); a
    manual re-download via Settings → Data (`refresh()`) keeps the
    existing data usable in the rest of the app until the new fetch
-   completes or fails.
+   completes or fails. On Android there's a second, usually much shorter
+   blocking wait on the same `LoadingScreen`: `App.android.tsx` also holds
+   it until `userDataReady` (from `useAppShell`, backed by
+   `useUserDataStorage.android.ts`) is `true` — see that module's entry
+   below.
 2. **Pokémon selection.** When the user picks a species in a slot, the
    slot reads the form's types from the cache, and pre-populates the
    ability field from `PokemonEntry.defaultAbility`. The user can
@@ -95,6 +109,34 @@ suggestion logic, or UI-only state. Invariants: the cache is either
 complete and versioned (`{ version: CACHE_VERSION, data: { … } }`) or
 fully absent — never partial. A stale-versioned cache is treated as
 absent and re-fetched.
+
+### `src/hooks/useUserDataStorage.ts` / `useUserDataStorage.android.ts`
+
+Owns reading and writing `teamdex_userdata` (the `AppState` — teams, custom
+Pokémon, settings) as a single hook, `useAppShell.ts`'s only source of
+`state`/`setState`. This is the one place the platform-resolve convention
+(see "Android Platform" below) is applied to a hook instead of a component:
+- **Web** (`useUserDataStorage.ts`, also the default/shared file): reads
+  `localStorage` synchronously on first render, writes back on every
+  `state` change. `ready` is always `true` — nothing to wait for.
+- **Android** (`useUserDataStorage.android.ts`): reads/writes through
+  `@capacitor/preferences` instead, which is async. `state` starts at the
+  same default (a single fresh team) the web version falls back to,
+  `ready` starts `false`, and the effect that persists `state` on change is
+  gated on `ready` so it can never fire with the default value before the
+  real persisted value has been read (that would silently overwrite it).
+  `useAppShell` exposes `ready` as `userDataReady`; `App.android.tsx` holds
+  `LoadingScreen` until it flips `true`, the same pattern already used for
+  `usePokemonData().loading`. **One-time migration:** if Preferences has
+  nothing yet but the WebView's `localStorage` does (a device that had the
+  app installed before this migration shipped), that legacy value is
+  adopted once, persisted into Preferences, and the old `localStorage` key
+  is cleared.
+- Must **not** contain team/coverage/suggestion logic — `useAppShell.ts`
+  still owns all of that, this hook only owns getting `AppState` in and out
+  of storage. `USER_DATA_KEY` (`'teamdex_userdata'`) is exported from the
+  web file; the Android file imports it from there rather than redeclaring
+  it, so the key can't drift between platforms.
 
 ### `src/utils/spriteUtils.ts`
 
@@ -319,7 +361,9 @@ for manual completion. The block is still imported.
 
 ## What NOT to Change Without Discussion
 
-- The `localStorage` cache schema. Breaking it requires a written
+- The persisted-data schema (`AppState`/`teamdex_userdata` and the
+  PokéAPI cache) on either storage backend — `localStorage` on the web,
+  `@capacitor/preferences` on Android. Breaking either requires a written
   migration plan and a version bump on the storage key.
 - The `coverageEngine.ts` pure-function signatures. They are consumed
   by both the analysis hook and the suggestion engine and by tests.
@@ -469,17 +513,37 @@ roster's old `CustomRoster.tsx` (superseded by `CustomPkmnPage.tsx`) and
 `ImportExport.tsx` (superseded by the Showdown import/export flow now
 living in `ExportModal.tsx`/`NewTeamModal.tsx`).
 
+The platform-resolve convention isn't limited to components: `useAppShell`
+imports `useUserDataStorage`, and on Android that resolves to
+`useUserDataStorage.android.ts` the same way any `Component.android.tsx`
+would resolve for a component import — see that module's entry above and
+"Storage isolation" below for why storage is the one place logic itself
+(not just presentation) is currently forked per platform.
+
 ### Storage isolation (PWA vs Android)
 
-The PWA's `localStorage` (both `teamdex_userdata` and, if present,
-`teamdex_pokeapi_cache`) lives in the mobile/desktop browser's storage
-partition for the GitHub Pages origin. The Capacitor Android app's WebView
-has its own OS-sandboxed, app-private storage, entirely disconnected from
-any browser — this is inherent to how Capacitor's WebView works, not
-something either build configures. **The two releases never share data**:
-installing the Android app does not surface a user's PWA teams, and vice
-versa. Any future cross-device sync feature is a deliberate, separate
-project — neither release should grow one implicitly.
+`teamdex_userdata` (teams, custom Pokémon, settings) is persisted
+differently per platform — see `useUserDataStorage.ts`/`.android.ts`
+above:
+- **PWA**: `localStorage`, in the mobile/desktop browser's storage
+  partition for the GitHub Pages origin.
+- **Android**: `@capacitor/preferences`, native SharedPreferences-backed
+  storage in the app's own OS-sandboxed, app-private storage — chosen
+  because WebView `localStorage` isn't guaranteed durable under storage
+  pressure the way native storage is. The WebView's `localStorage` is only
+  touched once more on Android, as a one-time migration source for devices
+  that had the app installed before this changed (see the module entry
+  above); once migrated, Android no longer reads or writes it for user
+  data.
+
+`teamdex_pokeapi_cache` is unaffected by any of this — see "PokéAPI
+download is identical on both platforms" below, it still uses
+`localStorage` on both platforms.
+
+Regardless of mechanism, **the two releases never share data**: installing
+the Android app does not surface a user's PWA teams, and vice versa. Any
+future cross-device sync feature is a deliberate, separate project —
+neither release should grow one implicitly.
 
 ### PokéAPI download is identical on both platforms
 
