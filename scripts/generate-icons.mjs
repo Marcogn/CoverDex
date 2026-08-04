@@ -23,10 +23,10 @@ function generateSvg(size = 512) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <!-- Background circle -->
   <circle cx="${cx}" cy="${cy}" r="${r}" fill="#5b21b6" stroke="#7c3aed" stroke-width="2"/>
-  <!-- Top half (white) -->
-  <path d="M ${cx - ballR} ${cy} A ${ballR} ${ballR} 0 0 1 ${cx + ballR} ${cy} L ${cx - ballR} ${cy} Z" fill="white"/>
-  <!-- Bottom half (dark) -->
-  <path d="M ${cx - ballR} ${cy} A ${ballR} ${ballR} 0 0 0 ${cx + ballR} ${cy} L ${cx - ballR} ${cy} Z" fill="#1a1a2e"/>
+  <!-- Top half (dark) -->
+  <path d="M ${cx - ballR} ${cy} A ${ballR} ${ballR} 0 0 1 ${cx + ballR} ${cy} L ${cx - ballR} ${cy} Z" fill="#1a1a2e"/>
+  <!-- Bottom half (white) -->
+  <path d="M ${cx - ballR} ${cy} A ${ballR} ${ballR} 0 0 0 ${cx + ballR} ${cy} L ${cx - ballR} ${cy} Z" fill="white"/>
   <!-- Dividing line -->
   <rect x="${cx - ballR}" y="${lineY - lineThick / 2}" width="${ballR * 2}" height="${lineThick}" fill="#1a1a2e"/>
   <!-- Outer center circle -->
@@ -43,7 +43,7 @@ async function generate() {
   await sharp(svg512).resize(192, 192).png().toFile(resolve(outDir, 'icon-192x192.png'));
   await sharp(svg512).resize(180, 180).png().toFile(resolve(outDir, 'apple-touch-icon.png'));
 
-  console.log('✅ Icons generated in public/icons/');
+  console.log('Icons generated in public/icons/');
 
   // Source assets consumed by `@capacitor/assets` (npx capacitor-assets generate)
   // to produce Android launcher icon densities and the splash screen. The SVG is
@@ -64,7 +64,7 @@ async function generate() {
     .png()
     .toFile(resolve(assetsDir, 'splash.png'));
 
-  console.log('✅ Capacitor asset sources generated in assets/');
+  console.log('Capacitor asset sources generated in assets/');
 }
 
 generate().catch((err) => {

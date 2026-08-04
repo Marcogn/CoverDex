@@ -5,7 +5,10 @@ working in this repository. Read this file in full before editing any
 code. For a narrative, human-facing walkthrough of how the app fits
 together (data flow, the two engines, import/export, the web/Android
 split), see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — this file
-stays focused on rules and invariants for agents.
+stays focused on rules and invariants for agents. Before starting a new
+session, also check [`docs/STATUS.md`](docs/STATUS.md) for a current
+snapshot of what's implemented and what's known to be missing or
+in progress.
 
 ## Project Identity
 
@@ -383,10 +386,14 @@ operational/build detail lives in `docs/android/BUILD.md`.
   `npm run android:build`, CI) needs Node 22+, even though `deploy.yml`
   and `pr-check.yml` stay on Node 20 for the unrelated web pipeline.
 - `capacitor.config.ts`: `appId: "com.marcogn.coverdex"`,
-  `appName: "CoverDex"`, `webDir: "dist-android"`. `appId` is
-  rename-sensitive — same category as the `VITE_BASE_URL` in `deploy.yml`
-  — because the repo is still named `poke-team-builder` pending a rename
-  to `coverdex`.
+  `appName: "CoverDex"`, `webDir: "dist-android"`. Never change `appId`
+  post-release — see "What NOT to Change Without Discussion" above. The
+  GitHub repository itself has already been renamed to `CoverDex`
+  (`deploy.yml`'s `VITE_BASE_URL` is `/CoverDex/`, matching the current
+  repo name). The one remaining leftover of the old `poke-team-builder`
+  name is `package.json`'s internal `name` field, which is cosmetic (it's
+  never read for the Pages base path or the Android `appId`) and can be
+  renamed opportunistically.
 - Run `npx cap sync android` (or `npm run android:build`, which also runs
   the Android web build first) after every change and before any native
   build — it copies `dist-android/` into
@@ -403,6 +410,10 @@ operational/build detail lives in `docs/android/BUILD.md`.
   `actions/upload-artifact` — this is a public repo, and Actions artifacts
   are downloadable by any signed-in GitHub user. They go to Firebase App
   Distribution instead, which only reaches explicitly invited testers.
+  `.github/workflows/android-debug-apk-artifact.yml` is a deliberate,
+  clearly-commented, temporary exception to this rule (manual-dispatch
+  only) — check whether it still exists before assuming the rule above is
+  absolute; see its header comment and `docs/STATUS.md`.
 
 ### Two build outputs: `dist/` (PWA) vs `dist-android/` (Android)
 
@@ -451,8 +462,12 @@ grids as MUI `Table`/`TableContainer` with a manually-sticky first column,
 and suggestion cards). The shared `SearchableDropdown`/`AbilityDropdown`
 Autocomplete implementations cover every picker (Pokémon, move, ability,
 and the Surprise Me anchor picker) from one file each. `SurpriseMeModal`
-and the roster's now-dead `CustomRoster.tsx` were not restyled (the latter
-isn't imported anywhere on either platform).
+was not restyled either — it renders the same Tailwind markup on Android,
+just without an MUI treatment. Two components are dead code, not imported
+anywhere on either platform, and were left alone rather than restyled: the
+roster's old `CustomRoster.tsx` (superseded by `CustomPkmnPage.tsx`) and
+`ImportExport.tsx` (superseded by the Showdown import/export flow now
+living in `ExportModal.tsx`/`NewTeamModal.tsx`).
 
 ### Storage isolation (PWA vs Android)
 
@@ -492,6 +507,7 @@ npm run preview        # preview the production build locally
 npm run test           # run the Vitest suite once
 npm run test:coverage  # run the Vitest suite with coverage
 npm run generate-icons # generate PWA icons locally
+npm run android:icons  # regenerate PWA + Android launcher icons and splash screens
 npm run build:android  # type-check then build the Android bundle to dist-android/
 npm run cap:sync       # sync dist-android/ into android/
 npm run android:open   # open the Android project in Android Studio
@@ -517,8 +533,35 @@ The same script also writes `assets/icon.png` and `assets/splash.png`
 (gitignored), the source images `@capacitor/assets` reads to generate the
 Android launcher icon densities and splash screens under
 `android/app/src/main/res/` (those generated `res/` files ARE committed —
-see "Android Platform" above). Regenerate with:
-`npm run generate-icons && npx capacitor-assets generate --android`.
+see "Android Platform" above). Regenerate both together with
+`npm run android:icons`, which chains three steps:
+
+1. `node scripts/generate-icons.mjs` — regenerates the PWA icons and the
+   `assets/` source images.
+2. `npx capacitor-assets generate --android --iconBackgroundColor '#5b21b6'
+   --iconBackgroundColorDark '#5b21b6'` — regenerates the Android launcher
+   icon and splash resources. The background color flags matter: without
+   them `@capacitor/assets` defaults the adaptive icon's background layer
+   to plain white.
+3. `node scripts/fix-android-adaptive-icon.mjs` — patches
+   `mipmap-anydpi-v26/ic_launcher.xml` and `ic_launcher_round.xml` after
+   every regeneration. `@capacitor/assets` hardcodes a 16.7% `<inset>`
+   around *both* adaptive-icon layers (see its own
+   `dist/platforms/android/index.js` template, no CLI flag controls this);
+   that's correct for the foreground safe zone but wrong for the
+   background, which needs to bleed to the full 108dp canvas. Left
+   unpatched, the inset background leaves a thin ring uncovered by any
+   layer at all, which showed up as a visible white/transparent border
+   around the installed app icon. The script rewrites just the
+   `<background>` element to a plain, uninset drawable reference; it
+   errors out loudly if `@capacitor/assets`'s generated XML no longer
+   matches the pattern it expects, so a future tool upgrade that changes
+   this template won't fail silently.
+
+Run `npm run android:icons` (not the three commands individually) whenever
+the icon or splash source changes — `capacitor-assets` writes straight into
+`android/app/src/main/res/`, so unlike `dist-android/` this doesn't also
+need a `cap sync` pass.
 
 ### Searchable Dropdowns
 

@@ -1,5 +1,5 @@
 {
-  "name": "poke-team-builder",
+  "name": "coverdex",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "generate-icons": "node scripts/generate-icons.mjs",
+    "android:icons": "node scripts/generate-icons.mjs && npx capacitor-assets generate --android --iconBackgroundColor '#5b21b6' --iconBackgroundColorDark '#5b21b6' && node scripts/fix-android-adaptive-icon.mjs",
     "build:android": "tsc && vite build --mode android",
     "cap:sync": "cap sync android",
     "android:open": "cap open android",

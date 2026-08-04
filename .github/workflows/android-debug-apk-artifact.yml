@@ -1,0 +1,53 @@
+name: Android Debug APK (temporary artifact download)
+
+# TEMPORARY WORKFLOW. Builds the unsigned debug APK and uploads it as a
+# GitHub Actions artifact so it can be downloaded directly from the run page,
+# without going through Firebase App Distribution.
+#
+# This is a deliberate, scoped exception to the rule in CLAUDE.md and
+# docs/android/BUILD.md ("never upload Android build output as a GitHub
+# Actions artifact — this repo is public, artifacts are downloadable by any
+# signed-in GitHub user"). It exists only because that's what was asked for,
+# for local testing convenience, and it is meant to be short-lived: delete
+# this file (and any workflow runs / artifacts it produced) once it's no
+# longer needed. Do not use this pattern for release builds or make it
+# automatic on push.
+#
+# Manual trigger only — never runs on push.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-apk-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build:android
+      - run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverdex-debug-apk-${{ github.sha }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7

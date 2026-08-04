@@ -2,6 +2,8 @@
 
 Deferred, intentionally-out-of-scope items from past work, tracked here so
 they aren't forgotten. Not a task tracker — see GitHub Issues for that.
+For a broader snapshot of what's implemented versus still open, see
+[`docs/STATUS.md`](docs/STATUS.md).
 
 ## Android
 

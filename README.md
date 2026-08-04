@@ -7,14 +7,8 @@ builders who want fast iteration over team composition without depending
 on a backend or an account system.
 
 For how the app is put together under the hood, see
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-## Screenshots
-
-<!-- add screenshots here -->
-
-_Add screenshots of the team builder, coverage grid, and suggestion panel
-in this section._
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). For a snapshot of what's
+implemented and what's still open, see [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Features
 
@@ -83,15 +77,14 @@ The dev server runs on `http://localhost:5173` by default.
 
 ### Environment variables
 
-| Variable         | Purpose                                                  |
-| ---------------- | -------------------------------------------------------- |
-| `VITE_BASE_URL`  | Base path for the build, e.g. `/poke-team-builder/` for  |
-|                  | GitHub Pages. Defaults to `/`.                           |
+| Variable        | Purpose                                                       |
+| --------------- | -------------------------------------------------------------- |
+| `VITE_BASE_URL` | Base path for the build, e.g. `/CoverDex/` for GitHub Pages. Defaults to `/`. |
 
 Set it in a `.env` file at the project root or inline at build time:
 
 ```bash
-VITE_BASE_URL=/poke-team-builder/ npm run build
+VITE_BASE_URL=/CoverDex/ npm run build
 ```
 
 ## First run behavior
@@ -172,14 +165,22 @@ on every push to the Android development branch, or on demand via
 automatically — it's a separate job that only runs when you manually
 trigger the workflow, so you get one exactly when you ask for it, and can
 delete that workflow run afterward from the Actions history if you don't
-want it kept. Because this repo is public, CI **never** publishes any
-Android build output as a GitHub Actions artifact — those are downloadable
-by any signed-in GitHub user with read access, debug builds included.
+want it kept. Because this repo is public, the regular pipeline **never**
+publishes Android build output as a GitHub Actions artifact — those are
+downloadable by any signed-in GitHub user with read access, debug builds
+included.
 Instead, both the debug and signed release APKs are pushed to **Firebase
 App Distribution**, which only reaches testers explicitly invited by
 email — no public link, no Play Store review. See
 [`docs/android/BUILD.md`](docs/android/BUILD.md) for
 Firebase project setup and tester-group management.
+
+There is currently also a second, temporary workflow,
+`.github/workflows/android-debug-apk-artifact.yml`, that builds the debug
+APK and uploads it as a plain GitHub Actions artifact instead — a
+deliberate, short-lived exception to the rule above, kept only for local
+testing convenience and meant to be deleted once it's no longer needed.
+See the comment at the top of that file before relying on it.
 
 ## Showdown import / export format
 
@@ -247,7 +248,7 @@ A Pokémon does not need to exist in PokéAPI to be used in a team.
 
 ### URL
 
-https://marcogn.github.io/poke-team-builder/
+https://marcogn.github.io/CoverDex/
 
 ### First Deploy Expected Behavior
 
@@ -264,7 +265,7 @@ npm run build && npm run preview
 ### Manual deployment
 
 ```bash
-VITE_BASE_URL=/poke-team-builder/ npm run build
+VITE_BASE_URL=/CoverDex/ npm run build
 # upload the contents of dist/ as a GitHub Pages artifact
 ```
 
@@ -296,4 +297,4 @@ contributor guide.
 
 ## License
 
-MIT
+[MIT](LICENSE)
