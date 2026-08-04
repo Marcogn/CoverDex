@@ -144,3 +144,5 @@ never touches `localStorage` or the network itself; `App.tsx`/
 - `docs/android/BUILD.md` — local Android build steps, signing, Firebase
   App Distribution setup, CI job structure.
 - `README.md` — end-user-facing feature list and setup instructions.
+- `docs/STATUS.md` — current implementation snapshot and known gaps,
+  meant as a starting point for the next work session.

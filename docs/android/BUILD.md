@@ -157,6 +157,22 @@ Firebase already distributed to testers; remove a release from testers'
 view in Firebase console → App Distribution if you don't want it
 reachable there either.
 
+### Temporary: debug APK without Firebase
+
+`.github/workflows/android-debug-apk-artifact.yml` is a separate,
+manual-only workflow that builds the debug APK and uploads it as a plain
+GitHub Actions artifact instead of routing it through Firebase. It exists
+purely for local testing convenience when Firebase distribution isn't set
+up or isn't worth the round-trip, and it's a deliberate, narrow exception
+to the "never `actions/upload-artifact` for Android output" rule this
+guide follows everywhere else — read the comment at the top of that file
+before using it. Trigger it from **Actions → Android Debug APK (temporary
+artifact download) → Run workflow**, then download the artifact from the
+run page — you need to be signed in to GitHub to do that, but since this
+repo is public, any signed-in GitHub account could do the same. It's meant
+to be short-lived: delete the workflow file, and the run itself if you
+don't want it kept, once you're done with it.
+
 ## Running the Espresso smoke test locally
 
 `android/app/src/androidTest/java/com/marcogn/coverdex/MainActivitySmokeTest.java`
