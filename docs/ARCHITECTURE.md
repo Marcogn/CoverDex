@@ -28,9 +28,13 @@ lives on-device.
    Pokémon, every move, the 18×18 type effectiveness chart). Downloaded
    once from a public data mirror and cached. See "Data acquisition"
    below.
-2. **User data** (`teamdex_userdata` in `localStorage`) — teams, custom
-   Pokémon, and app settings (theme, language, suggestion filters). The
-   only state a user would be upset to lose.
+2. **User data** (`teamdex_userdata`) — teams, custom Pokémon, and app
+   settings (theme, language, suggestion filters). The only state a user
+   would be upset to lose. Persisted in `localStorage` on the PWA; on
+   Android it's persisted through `@capacitor/preferences` (native
+   storage) instead — see `useUserDataStorage.ts`/`.android.ts` and
+   CLAUDE.md → "Storage isolation (PWA vs Android)" for why and how the
+   two diverge here even though almost nothing else does.
 3. **UI-only state** — which screen/tab is open, form inputs, modal open/
    closed. Lives in React state, never persisted.
 
@@ -117,15 +121,20 @@ JSX. The five screens:
 ## Android vs. web presentation
 
 Business logic (hooks, pure engines, state) is written once and shared.
-Only *presentation* diverges, through a build-time file convention: a
-component's default file (`Component.tsx`) is both the shared-logic owner
-and the web (Tailwind) presentation; an optional sibling
-`Component.android.tsx` holds the Android (MUI) presentation, picked up
-automatically by a Vite plugin (`vite-plugins/androidPlatformResolve.ts`)
-only when building with `--mode android`. The PWA build never sees MUI or
-Emotion code — verified by grepping the built `dist/` output. See
-`CLAUDE.md` → "Android Platform" for the full mechanics and the current
-list of restyled screens.
+Almost everywhere, only *presentation* diverges, through a build-time file
+convention: a component's default file (`Component.tsx`) is both the
+shared-logic owner and the web (Tailwind) presentation; an optional
+sibling `Component.android.tsx` holds the Android (MUI) presentation,
+picked up automatically by a Vite plugin
+(`vite-plugins/androidPlatformResolve.ts`) only when building with `--mode
+android`. The PWA build never sees MUI or Emotion code — verified by
+grepping the built `dist/` output. The one deliberate exception is
+persistence: `useUserDataStorage.ts`/`.android.ts` forks the actual
+read/write logic, not just presentation, because the two platforms use
+genuinely different storage APIs (`localStorage` vs `@capacitor/
+preferences`) — see "The three kinds of state" above. See `CLAUDE.md` →
+"Android Platform" for the full mechanics and the current list of
+restyled screens.
 
 ## Import/export
 

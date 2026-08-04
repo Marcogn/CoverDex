@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { v4 as uuid } from 'uuid';
-import { AppSettings, AppState, AppView, PokemonEntry, Team, TeamMember } from '../types';
+import { AppSettings, AppView, PokemonEntry, Team, TeamMember } from '../types';
 import { usePokemonData } from './usePokemonData';
+import { useUserDataStorage } from './useUserDataStorage';
 import { Suggestion } from './suggestionEngine';
 import { parseShowdownTeam } from '../utils/showdownParser';
 import { resolveSpriteUrl } from '../utils/spriteUtils';
-
-const STATE_KEY = 'teamdex_userdata';
+import { emptyTeam } from '../utils/teamFactory';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
@@ -17,26 +17,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
-function emptyTeam(name = 'New Team'): Team {
-  return {
-    id: uuid(),
-    name,
-    members: [null, null, null, null, null, null],
-    createdAt: Date.now(),
-  };
-}
-
-function loadAppState(): AppState {
-  try {
-    const raw = localStorage.getItem(STATE_KEY);
-    if (raw) return JSON.parse(raw) as AppState;
-  } catch {
-    // ignore
-  }
-  const t = emptyTeam('My First Team');
-  return { teams: [t], customPokemon: [], activeTeamId: t.id };
 }
 
 export function applyTheme(theme: AppSettings['theme']) {
@@ -62,7 +42,7 @@ export function applyTheme(theme: AppSettings['theme']) {
  */
 export function useAppShell() {
   const data = usePokemonData();
-  const [state, setState] = useState<AppState>(loadAppState);
+  const { state, setState, ready: userDataReady } = useUserDataStorage();
   const [view, setView] = useState<AppView>({ page: 'teams' });
   const [includeCustomsAnalysis, setIncludeCustomsAnalysis] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -85,10 +65,6 @@ export function useAppShell() {
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, [settings.theme]);
-
-  useEffect(() => {
-    localStorage.setItem(STATE_KEY, JSON.stringify(state));
-  }, [state]);
 
   useEffect(() => {
     function handler(e: Event) {
@@ -328,6 +304,7 @@ export function useAppShell() {
     view,
     setView,
     settings,
+    userDataReady,
     includeCustomsAnalysis,
     setIncludeCustomsAnalysis,
     toastMsg,
