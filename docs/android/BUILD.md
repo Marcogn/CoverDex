@@ -86,6 +86,25 @@ CI decodes the base64 secret to `android/release.keystore` and writes
 `android/keystore.properties` from the other three, both gitignored and
 deleted at the end of the job.
 
+**Set `ANDROID_KEYSTORE_BASE64` via the `gh` CLI, not copy-paste into the
+GitHub web UI.** Pasting a multi-KB base64 blob by hand is exactly the
+kind of thing that silently drops a character or picks up a shell prompt
+artifact (zsh's trailing `%` when output doesn't end in a newline is a
+classic one) — the result decodes to garbage or an empty file, and CI
+fails on "Decode release keystore" with `base64: invalid input`. Pipe it
+straight from the encoder into the secret instead, so nothing passes
+through a clipboard:
+
+```bash
+base64 -w0 coverdex-release.keystore | gh secret set ANDROID_KEYSTORE_BASE64 -R marcogn/CoverDex
+```
+
+If CI ever does fail with that error, the fix is to re-run the command
+above (against the same keystore file — never regenerate the keystore
+itself, see above) and re-run the workflow; both `android-build.yml` and
+`release.yml` fail fast with a pointer back to this section if the
+decoded file is invalid or empty.
+
 These secrets are optional at the workflow level: if `ANDROID_KEYSTORE_BASE64`
 is unset, the decode/write steps are skipped entirely and the build still
 succeeds, producing an **unsigned** release APK/AAB (with a CI warning
