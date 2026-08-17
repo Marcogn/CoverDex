@@ -44,13 +44,13 @@ short version plus what isn't obvious from a feature list.
   `version` field, shown in Settings → App (`__APP_VERSION__`, injected
   at build time by `vite.config.ts`). `.github/workflows/release.yml`
   (manual-dispatch only) is the single workflow that publishes anything
-  public: given a version, it bumps that field (and Android's
-  `versionName`/`versionCode`), builds and publishes a signed release APK
-  as a GitHub Release with `CHANGELOG.md`'s matching section as release
-  notes, and in the same run redeploys GitHub Pages — see
-  [`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a public
-  release" and [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) → "Keeping the web
-  and Android releases in sync".
+  public: it *reads* that field (bumping it is a normal PR, not something
+  the workflow does itself — see "Loose ends" below for why), builds and
+  publishes a signed release APK as a GitHub Release with `CHANGELOG.md`'s
+  matching section as release notes, and in the same run redeploys GitHub
+  Pages — see [`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a
+  public release" and [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) → "Keeping
+  the web and Android releases in sync".
 - Actions workflows were consolidated down to three this session:
   `ci.yml` (tests + build check on every PR/push to `main`, no
   publishing — replaces the old `pr-check.yml`), `release.yml` (the
@@ -88,28 +88,47 @@ reasoning before re-implementing it; it hasn't changed.
 
 ## Loose ends from this session (2026-08-17)
 
-- **`release.yml` has never actually been run.** It's been reviewed
-  carefully (version validation, tag-exists check, build-before-publish
-  ordering, signing required) and the repo's other workflows build fine
-  locally, but the workflow itself — the version bump commit landing on
-  `main`, the tag/release creation, the changelog extraction, the asset
-  upload, and the Pages deploy at the end — has not been exercised end to
-  end in CI. Trigger it once for the real `1.0.0` release and confirm:
-  the GitHub Release appears with the APK attached and installable, the
-  live site at `marcogn.github.io/CoverDex` shows the same version in
-  Settings → App, and the release notes match `CHANGELOG.md`'s `[1.0.0]`
-  section.
-- **`CHANGELOG.md` needs a new `## [X.Y.Z]` entry before every release
-  after `1.0.0`.** The workflow falls back to a generic "see CHANGELOG.md
-  / README.md" note if it can't find a matching heading — better than
-  failing the release, but not a substitute for real notes.
+- **`release.yml` still hasn't completed a successful end-to-end run.**
+  Three real attempts against `1.0.0` so far, each catching a real
+  problem: (1) failed on "Decode release keystore" — the
+  `ANDROID_KEYSTORE_BASE64` secret wasn't valid base64, fixed by
+  re-setting it via `gh secret set`, and the step now fails with an
+  actionable error instead of a bare `base64: invalid input`; (2) got
+  past the Android build but then failed pushing the version bump
+  straight to `main` (`GH006: Protected branch update failed`, "Require
+  a pull request before merging"); (3) the fix for that — opening and
+  auto-merging a small PR — worked but was more machinery than needed.
+  Comparing against `ThePatientGamerHelper`'s already-working
+  `release.yml` (same kind of branch protection on its `main`) showed the
+  actual fix: don't bump the version *in* the release workflow at all.
+  `release.yml` now only **reads** `package.json`'s version and refuses
+  to run if that version's release already exists — the maintainer bumps
+  `package.json` and adds the `CHANGELOG.md` entry via a normal PR first,
+  same as any other change, so the workflow never needs to write to
+  `main` and branch protection never comes up. See
+  `docs/android/BUILD.md` → "Why this workflow never writes to `main`".
+  **Before the next trigger**, `package.json`'s `"version"` needs to
+  already say `1.0.0` on `main` (it does, untouched since the project's
+  start) and `CHANGELOG.md` needs its `[1.0.0]` entry (it does). Trigger
+  it and confirm: the GitHub Release appears with the APK attached and
+  installable, the live site at `marcogn.github.io/CoverDex` shows the
+  same version in Settings → App, and the release notes match
+  `CHANGELOG.md`'s `[1.0.0]` section.
+- **`CHANGELOG.md` needs a new `## [X.Y.Z]` entry, and `package.json`'s
+  `"version"` needs bumping to match, via a normal PR before every
+  release after `1.0.0`.** `release.yml` refuses to run at all if the
+  version it reads has already been released (no silent duplicate/
+  overwritten release), and falls back to a generic "see CHANGELOG.md /
+  README.md" note if it can't find a matching `CHANGELOG.md` heading for
+  the version it did find — better than failing the release outright,
+  but not a substitute for real notes.
 - **GitHub Pages no longer redeploys on every push to `main`** — only
-  `release.yml` deploys it now (see "What's implemented" above). If a
-  docs-only or urgent web fix needs to go live without a full Android
-  release, either trigger `release.yml` anyway (it's a no-op version bump
-  if `package.json` is unchanged, still rebuilds and redeploys Pages) or
-  do a one-off manual deploy per `docs/DEVELOPMENT.md` → "Manual
-  deployment".
+  `release.yml` deploys it now (see "What's implemented" above), and
+  since that workflow now refuses to run for an already-released
+  version, it can no longer double as a "just redeploy Pages" trick
+  either. For a docs-only or urgent web fix that needs to go live without
+  a full Android release, use the one-off manual deploy in
+  `docs/DEVELOPMENT.md` → "Manual deployment" instead.
 
 ## Loose ends from the previous session (2026-08-04)
 

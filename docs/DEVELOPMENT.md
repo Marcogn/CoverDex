@@ -72,14 +72,17 @@ correctly.
 ## Keeping the web and Android releases in sync
 
 CoverDex ships from one `package.json` version, read by both build
-targets. `.github/workflows/release.yml` (manual-dispatch only — see
-[`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a public release")
-is the single workflow that publishes anything public: given a version,
-it bumps `package.json`/`android/app/build.gradle`, runs the test suite,
-builds and publishes the signed Android release as a GitHub Release, and
-in the same run redeploys GitHub Pages from the same checkout — so a
-new Android release and the GitHub Pages deploy always carry the same
-version number, published together, with nothing left to drift between
-them. `.github/workflows/ci.yml` is the separate, non-publishing workflow
-that just validates every PR and push to `main` (tests + a production
-build check).
+targets. To cut a release: bump `"version"` in `package.json` and add a
+matching `## [X.Y.Z]` entry to `CHANGELOG.md`, merge that through a
+normal PR, then trigger `.github/workflows/release.yml` (manual-dispatch
+only — see [`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a
+public release"). It's the single workflow that publishes anything
+public: it *reads* that version (never bumps it itself — see "Why this
+workflow never writes to `main`" in the doc above for why), runs the
+test suite, builds and publishes the signed Android release as a GitHub
+Release, and in the same run redeploys GitHub Pages from the same
+checkout — so the Android release and the GitHub Pages deploy always
+carry the same version number, published together, with nothing left to
+drift between them. `.github/workflows/ci.yml` is the separate,
+non-publishing workflow that just validates every PR and push to `main`
+(tests + a production build check).

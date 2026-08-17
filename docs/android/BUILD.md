@@ -181,37 +181,66 @@ reachable there either.
 `.github/workflows/release.yml` is the one workflow that publishes
 anywhere public — everything above (Firebase App Distribution) only ever
 reaches invited testers. It's manual-only (**Actions → Release → Run
-workflow**) and, given a version like `1.0.0` (or a blank input, which
-reuses whatever version is already in `package.json` — the right choice
-for the first release):
+workflow**), takes no inputs, and:
 
-1. Validates the version and checks a `vX.Y.Z` tag doesn't already exist.
-2. Writes that version into `package.json`, `package-lock.json`, and
-   `android/app/build.gradle`'s `versionName`/`versionCode` (derived
-   deterministically from the semver: `major*10000 + minor*100 + patch`).
+1. **Reads** the release version straight from `package.json`'s
+   `"version"` field — it never writes or bumps it. To cut a new
+   release: bump `"version"` in `package.json` yourself, add a matching
+   `## [X.Y.Z]` entry to [`CHANGELOG.md`](../../CHANGELOG.md), merge that
+   through a normal PR like any other change, then trigger this workflow.
+   This is the same pattern already proven out in
+   [`ThePatientGamerHelper`](https://github.com/Marcogn/ThePatientGamerHelper)'s
+   `release.yml`: the workflow that *publishes* a release should never
+   also be the one *deciding* the version, because publishing needs to
+   run non-interactively and version bumps are exactly the kind of
+   change `main`'s branch protection ("Require a pull request before
+   merging") exists to gate. A workflow that only ever reads already-
+   merged files never runs into that at all — see "Why this workflow
+   never writes to `main`" below for what didn't work first.
+2. Refuses to run if a GitHub Release tagged `vX.Y.Z` already exists —
+   re-running it before bumping `package.json` is a safe no-op failure,
+   not a duplicate or overwritten release.
 3. Runs the web test suite, builds the plain web app (for GitHub Pages)
-   and the Android bundle, and builds a **signed** release APK — signing
-   is required here (unlike `android-build.yml`'s optional signing for
-   internal testing), since an unsigned APK can't be installed at all and
-   this release is public.
-4. Only once both builds have actually succeeded, it publishes
-   everything: commits the version bump to `main` and pushes it, publishes
-   a GitHub Release tagged `vX.Y.Z` with the matching
-   [`CHANGELOG.md`](../../CHANGELOG.md) section (`## [X.Y.Z]` up to the
-   next version heading) as the release notes and the signed APK attached
-   directly (as a plain file, not zipped, not through
-   `actions/upload-artifact`), and redeploys GitHub Pages from the same
-   build — all in the same run, so the Android release and the live site
-   always carry the same version. See
+   and the Android bundle, patches `android/app/build.gradle`'s
+   `versionName`/`versionCode` to match (derived deterministically from
+   the semver: `major*10000 + minor*100 + patch` — this edit is never
+   committed, it only affects the build in this checkout), and builds a
+   **signed** release APK — signing is required here (unlike
+   `android-build.yml`'s optional signing for internal testing), since an
+   unsigned APK can't be installed at all and this release is public.
+4. Only once that build has actually succeeded, it publishes everything:
+   a GitHub Release tagged `vX.Y.Z` with the matching `CHANGELOG.md`
+   section (`## [X.Y.Z]` up to the next version heading) as the release
+   notes and the signed APK attached directly (as a plain file, not
+   zipped, not through `actions/upload-artifact`), and redeploys GitHub
+   Pages from the same build — all in the same run, so the Android
+   release and the live site always carry the same version. See
    [`docs/DEVELOPMENT.md`](../DEVELOPMENT.md) → "Keeping the web and
    Android releases in sync".
 
 Requires the same `ANDROID_KEYSTORE_BASE64`/`ANDROID_KEYSTORE_PASSWORD`/
 `ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD` secrets as `android-build.yml`
 (see above) — no Firebase secrets needed, this workflow never touches
-Firebase. Before running it for a version after `1.0.0`, add a new
-`## [X.Y.Z]` entry to `CHANGELOG.md` first so the release has real notes
-instead of the generic fallback text.
+Firebase.
+
+### Why this workflow never writes to `main`
+
+The first two real attempts at cutting `1.0.0` both had `release.yml`
+bump `package.json`/`android/app/build.gradle` itself and then either
+`git push` the commit straight to `main` (rejected outright: `GH006:
+Protected branch update failed for refs/heads/main`, since `main`
+requires pull requests) or open-and-auto-merge a small PR for it (worked,
+but added real complexity — a `pull-requests: write` permission, two
+extra repo settings to get right, an `if ! ... then warn` fallback for
+when auto-merge isn't configured or a status check is still pending).
+Comparing against a sibling project's already-working release pipeline
+showed a simpler way out: `release.yml` doesn't need to be able to write
+to `main` at all if it never tries to. Bumping the version is now a
+completely ordinary, human-reviewed PR like any other change to this
+repo — `release.yml` only ever reads what's already there, so it never
+touches branch protection in the first place. No bypass list, no PAT, no
+special repo settings beyond the signing secrets every release needs
+anyway.
 
 ## Running the Espresso smoke test locally
 
