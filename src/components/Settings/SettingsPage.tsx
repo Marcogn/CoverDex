@@ -149,18 +149,19 @@ export function SettingsPage({
         </button>
       </section>
 
-      {/* Install */}
-      {installAvailable && (
-        <section className="flex flex-col gap-3">
-          <h3 className="font-semibold text-sm text-gray-500 dark:text-slate-300 uppercase tracking-wide">{t('settings.app')}</h3>
+      {/* App */}
+      <section className="flex flex-col gap-3">
+        <h3 className="font-semibold text-sm text-gray-500 dark:text-slate-300 uppercase tracking-wide">{t('settings.app')}</h3>
+        <span className="text-xs text-gray-500 dark:text-slate-400">{t('settings.appVersion', { version: __APP_VERSION__ })}</span>
+        {installAvailable && (
           <button
             className="text-xs px-3 py-2 bg-accent rounded hover:bg-violet-500 self-start text-white"
             onClick={onInstall}
           >
             {t('settings.installApp')}
           </button>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 }

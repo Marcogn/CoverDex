@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -5,9 +6,17 @@ import { androidPlatformResolve } from './vite-plugins/androidPlatformResolve';
 
 /// <reference types="vitest" />
 
+// Single source of truth for the app version shown in Settings (see
+// __APP_VERSION__ below) — the release workflow bumps this field and
+// nothing else needs to change for the displayed version to follow.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
+
 // Base path is configurable via VITE_BASE_URL env var for GitHub Pages deploys.
 export default defineConfig(({ mode }) => ({
   base: process.env.VITE_BASE_URL ?? '/',
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   build: {
     outDir: mode === 'android' ? 'dist-android' : 'dist',
     sourcemap: true,

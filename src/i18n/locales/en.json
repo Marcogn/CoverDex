@@ -78,7 +78,8 @@
     "refreshing": "Downloading…",
     "dataError": "Last refresh failed:",
     "installApp": "Install App",
-    "app": "App"
+    "app": "App",
+    "appVersion": "CoverDex v{{version}}"
   },
   "customPkmn": {
     "title": "Custom Pokémon",

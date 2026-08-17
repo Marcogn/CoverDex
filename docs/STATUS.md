@@ -2,15 +2,14 @@
 
 A snapshot of what's implemented, what's known to be missing, and any
 loose ends — written for whoever (human or agent) picks this project up
-next. Last verified 2026-08-04, during an Android storage migration pass
-(second pass this date — an earlier documentation/APK-workflow/icon pass
-landed first, see git history around PR #21 for that one's detail). Re-
-verify anything here that actually matters before relying on it — this
-file goes stale the moment someone ships a change without updating it. It
-complements, not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for
-rules and invariants, [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the app
-fits together, [`ROADMAP.md`](../ROADMAP.md) for the intentionally-
-deferred backlog.
+next. Last verified 2026-08-17, during a docs/release-automation pass
+following the first release-worthy APK build (see "Loose ends from this
+session (2026-08-17)" below). Re-verify anything here that actually
+matters before relying on it — this file goes stale the moment someone
+ships a change without updating it. It complements, not replaces, the other docs:
+[`CLAUDE.md`](../CLAUDE.md) for rules and invariants,
+[`ARCHITECTURE.md`](ARCHITECTURE.md) for how the app fits together,
+[`ROADMAP.md`](../ROADMAP.md) for the intentionally-deferred backlog.
 
 ## What's implemented
 
@@ -33,10 +32,28 @@ short version plus what isn't obvious from a feature list.
   "Loose ends" below. It's sideload-only: no Play Store listing. As of
   this session, Android user data is persisted through
   `@capacitor/preferences` (native storage) instead of the WebView's
-  `localStorage` — see `useUserDataStorage.ts`/`.android.ts` and CLAUDE.md
-  → "Storage isolation (PWA vs Android)". Devices that had the app
+  `localStorage` — see `useUserDataStorage.ts`/`.android.ts` in
+  `docs/MODULES.md` and `docs/android/PLATFORM.md` → "Storage isolation
+  (PWA vs Android)". Devices that had the app
   installed before this change get their existing teams migrated
   automatically on next launch.
+- The app is versioned from a single source of truth: `package.json`'s
+  `version` field, shown in Settings → App (`__APP_VERSION__`, injected
+  at build time by `vite.config.ts`). `.github/workflows/release-android.yml`
+  (manual-dispatch only) bumps that field, builds a signed release APK,
+  and publishes it as a GitHub Release with `CHANGELOG.md`'s matching
+  section as release notes — see [`docs/android/BUILD.md`](android/BUILD.md)
+  → "Cutting a public release" and [`docs/DEVELOPMENT.md`](DEVELOPMENT.md)
+  → "Keeping the web and Android releases in sync" for why this also
+  keeps the GitHub Pages deploy on the same version.
+- Documentation was restructured this session: `CLAUDE.md` was cut from
+  ~34KB to ~16KB by moving per-file invariants to
+  [`docs/MODULES.md`](MODULES.md) and Android architectural invariants to
+  [`docs/android/PLATFORM.md`](android/PLATFORM.md); local dev setup and
+  GitHub Pages deployment moved to [`docs/DEVELOPMENT.md`](DEVELOPMENT.md).
+  `README.md` was rewritten as a market-facing product page (features,
+  "why CoverDex", how to get it) rather than a developer-first document.
+  `CHANGELOG.md` was added, starting at `[1.0.0]`.
 
 ## What's known to be missing or deferred
 
@@ -54,7 +71,24 @@ real performance problem to fix at this data scale, and it would fork
 business logic between platforms). If this comes up again, read that
 reasoning before re-implementing it; it hasn't changed.
 
-## Loose ends from this session (2026-08-04)
+## Loose ends from this session (2026-08-17)
+
+- **`release-android.yml` has never actually been run.** It's been
+  reviewed carefully (version validation, tag-exists check, build-before-
+  commit ordering, signing required) and the repo's other workflows build
+  fine locally, but the workflow itself — the version bump commit landing
+  on `main`, the tag/release creation, the changelog extraction, the
+  asset upload — has not been exercised end to end in CI. Trigger it once
+  for the real `1.0.0` release and confirm: the release appears at
+  `github.com/marcogn/CoverDex/releases`, the attached APK installs and
+  matches what's in Settings → App, and the release notes match
+  `CHANGELOG.md`'s `[1.0.0]` section.
+- **`CHANGELOG.md` needs a new `## [X.Y.Z]` entry before every release
+  after `1.0.0`.** The workflow falls back to a generic "see CHANGELOG.md
+  / README.md" note if it can't find a matching heading — better than
+  failing the release, but not a substitute for real notes.
+
+## Loose ends from the previous session (2026-08-04)
 
 - **`.github/workflows/android-debug-apk-artifact.yml` is still
   temporary**, unchanged from the earlier pass this date. It uploads the

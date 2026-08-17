@@ -2,13 +2,27 @@
 
 Instructions for AI coding agents (Claude Code, GitHub Copilot, etc.)
 working in this repository. Read this file in full before editing any
-code. For a narrative, human-facing walkthrough of how the app fits
-together (data flow, the two engines, import/export, the web/Android
-split), see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — this file
-stays focused on rules and invariants for agents. Before starting a new
-session, also check [`docs/STATUS.md`](docs/STATUS.md) for a current
-snapshot of what's implemented and what's known to be missing or
-in progress.
+code — it's kept short on purpose; the detail it summarizes lives in
+these companion docs, read on demand rather than up front:
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — narrative walkthrough
+  of how the app fits together (data flow, the two engines, import/
+  export, the web/Android split).
+- [`docs/MODULES.md`](docs/MODULES.md) — per-file invariants for
+  `src/utils`/`src/hooks`/`src/data` modules. Read the entry for a
+  module before changing it.
+- [`docs/android/PLATFORM.md`](docs/android/PLATFORM.md) — Android
+  architectural invariants (build outputs, the shared-logic/platform-
+  presentation convention, storage isolation).
+- [`docs/android/BUILD.md`](docs/android/BUILD.md) — operational Android
+  build detail: local builds, signing, CI, Firebase distribution, icon
+  generation, troubleshooting.
+- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — local dev setup,
+  environment variables, GitHub Pages deployment.
+- [`docs/STATUS.md`](docs/STATUS.md) — current snapshot of what's
+  implemented and what's known to be missing or in progress. Check this
+  before starting a new session.
+- [`CHANGELOG.md`](CHANGELOG.md) — one entry per release.
 
 ## Project Identity
 
@@ -26,7 +40,8 @@ a damage calculator.
   top-level `AppState` (`src/types/index.ts`) is persisted on-device and
   rehydrated on boot — `localStorage` on the web build, native
   `@capacitor/preferences` storage on Android (see `useUserDataStorage.ts`/
-  `.android.ts` and "Storage isolation" under "Android Platform").
+  `.android.ts` in [`docs/MODULES.md`](docs/MODULES.md) and "Storage
+  isolation" in [`docs/android/PLATFORM.md`](docs/android/PLATFORM.md)).
 - PokéAPI data (Pokémon list, types, moves, evolution chain summaries)
   is fetched once on first load, cached in `localStorage`, and **never
   re-fetched** unless the user explicitly resets the cache from the
@@ -39,7 +54,7 @@ a damage calculator.
   coverage/suggestion math is trivial at this data scale, comfortably
   microseconds in the WebView's JS engine) and would fork business logic
   between platforms, which is exactly what the shared-engine architecture
-  below exists to avoid. Don't reopen this without a measured, reproduced
+  exists to avoid. Don't reopen this without a measured, reproduced
   performance problem to point at.
 
 ## Key Data Flows
@@ -61,7 +76,7 @@ a damage calculator.
    blocking wait on the same `LoadingScreen`: `App.android.tsx` also holds
    it until `userDataReady` (from `useAppShell`, backed by
    `useUserDataStorage.android.ts`) is `true` — see that module's entry
-   below.
+   in [`docs/MODULES.md`](docs/MODULES.md).
 2. **Pokémon selection.** When the user picks a species in a slot, the
    slot reads the form's types from the cache, and pre-populates the
    ability field from `PokemonEntry.defaultAbility`. The user can
@@ -82,201 +97,10 @@ a damage calculator.
 
 ## Module Responsibilities
 
-### `src/utils/pokeApiFetch.ts`
-
-Pure (no React, no `localStorage`) fetch/assembly engine — the actual
-PokéAPI/api-data mirror client. Exports `fetchPokemonData(onProgress?,
-signal?)`, `CACHE_KEY`, `CACHE_VERSION`, and the `FetchProgress`/
-`FetchStage` types. The mirror only serves numeric-ID paths (e.g.
-`/pokemon/1/index.json`); name-based paths 404, so every resource type
-resolves its numeric ID from an index/list endpoint first. Batches 50
-requests at a time, 50 ms between batches, one retry per resource
-(`RETRY_DELAY_MS`), and throws rather than returning a partial result if
-zero final evolutions come back (a signal the evolution-chain fetches all
-failed). Must **not** import React or touch `localStorage` — that's
-`usePokemonData.ts`'s job.
-
-### `src/hooks/usePokemonData.ts`
-
-Thin React wrapper around `pokeApiFetch.ts`: reads/writes the
-`localStorage` cache under `teamdex_pokeapi_cache`, exposes `loading`
-(true only for a genuine first-launch fetch with nothing cached yet),
-`refreshing` (true for a background/manual re-fetch while old data is
-still usable), `progress`, `error`, and `refresh()` (clears the cache
-and re-fetches; wired to the Settings → Data "Redownload" button). Must
-**never** touch `teamdex_userdata`. Must **not** contain coverage logic,
-suggestion logic, or UI-only state. Invariants: the cache is either
-complete and versioned (`{ version: CACHE_VERSION, data: { … } }`) or
-fully absent — never partial. A stale-versioned cache is treated as
-absent and re-fetched.
-
-### `src/hooks/useUserDataStorage.ts` / `useUserDataStorage.android.ts`
-
-Owns reading and writing `teamdex_userdata` (the `AppState` — teams, custom
-Pokémon, settings) as a single hook, `useAppShell.ts`'s only source of
-`state`/`setState`. This is the one place the platform-resolve convention
-(see "Android Platform" below) is applied to a hook instead of a component:
-- **Web** (`useUserDataStorage.ts`, also the default/shared file): reads
-  `localStorage` synchronously on first render, writes back on every
-  `state` change. `ready` is always `true` — nothing to wait for.
-- **Android** (`useUserDataStorage.android.ts`): reads/writes through
-  `@capacitor/preferences` instead, which is async. `state` starts at the
-  same default (a single fresh team) the web version falls back to,
-  `ready` starts `false`, and the effect that persists `state` on change is
-  gated on `ready` so it can never fire with the default value before the
-  real persisted value has been read (that would silently overwrite it).
-  `useAppShell` exposes `ready` as `userDataReady`; `App.android.tsx` holds
-  `LoadingScreen` until it flips `true`, the same pattern already used for
-  `usePokemonData().loading`. **One-time migration:** if Preferences has
-  nothing yet but the WebView's `localStorage` does (a device that had the
-  app installed before this migration shipped), that legacy value is
-  adopted once, persisted into Preferences, and the old `localStorage` key
-  is cleared.
-- Must **not** contain team/coverage/suggestion logic — `useAppShell.ts`
-  still owns all of that, this hook only owns getting `AppState` in and out
-  of storage. `USER_DATA_KEY` (`'teamdex_userdata'`) is exported from the
-  web file; the Android file imports it from there rather than redeclaring
-  it, so the key can't drift between platforms.
-
-### `src/utils/spriteUtils.ts`
-
-Owns all sprite URL resolution logic via `resolveSpriteUrl(pokemon,
-context)`. Must **never** fetch images — only selects among the URL
-strings stored on a `PokemonEntry`. Invariant: always returns `null`
-rather than throwing when sprite data is missing or malformed.
-
-### Sprite Resolution
-
-- Sprites are never stored as binary data, only as URL strings on the
-  `PokemonEntry` (`spriteHome`, `spriteArtwork`, `spriteDefault`).
-- Card/slot context priority: HOME → official artwork → pixel sprite
-  → `null` (caller renders the placeholder).
-- Dropdown thumbnails always use the pixel sprite — HOME renders are
-  too heavy for list items.
-- Custom Pokémon saved to the roster never carry sprite URLs.
-- Resolution is centralised in `src/utils/spriteUtils.ts`. Do **not**
-  inline fallback logic in components.
-
-### `src/hooks/useTypeChart.ts`
-
-Thin selector that returns the cached type chart. Must **not** mutate
-the chart. The chart is read-only at runtime; per-slot type overrides
-live on `TeamMember`, never on the chart.
-
-### `src/hooks/useCoverageAnalysis.ts`
-
-Adapts `coverageEngine` to React: takes a team plus the chart and
-returns memoised `{ team, defense, shared }`. Must **not** fetch data,
-must **not** mutate inputs, must **not** include suggestion logic.
-Returns `null` for an empty team rather than partial structures.
-
-### `src/hooks/useSuggestions.ts`
-
-Wraps the pure suggestion ranking logic and memoises results. Hosts
-the policy switches (`includeCustoms`) but delegates ranking to a
-pure function so it can be unit-tested without React. Must **not**
-fetch data, must **not** mutate the team or roster.
-
-### `src/utils/coverageEngine.ts`
-
-Pure functions only. Owns the offensive coverage and defensive
-multiplier math used everywhere else. Must **not** import React,
-hooks, or anything from `src/hooks`. Invariant: every exported
-function is referentially transparent given a `TypeChart` and a list
-of `TeamMember`. The `defensiveMultiplier` function accepts an
-optional `ability?: string` parameter to apply ability-based
-immunities and multipliers (from `abilityEffects.ts`).
-
-### `src/data/typeSprites.ts`
-
-Hardcoded mapping of `PokemonType` → PokeAPI numeric type ID, plus a
-`getTypeSpriteUrl(type)` helper that returns the Scarlet/Violet small
-sprite URL. Used by `TypeBadge` for all type display. Do **not** fetch
-type IDs at runtime — they are stable constants.
-
-### `src/data/abilityEffects.ts`
-
-Typed map of ability slugs (lowercase, hyphenated, PokeAPI format) to
-coverage-relevant effects. Three effect kinds:
-- `immunity`: incoming attacks of that type deal 0 damage.
-- `multiplier`: modifies the type chart result by a factor (defensive side).
-- `badge-only`: UI-only indicator, no calculation change.
-
-Do **not** add or remove entries from this map without discussion.
-The map is consumed by `coverageEngine.ts` and by UI components for
-ability badges.
-
-`KNOWN_ABILITIES_WITH_EFFECTS` is an exported array of display-format
-ability names (lowercase, space-separated) used as the canonical list
-for the ability picker dropdown UI. It contains the same abilities
-whose slugs are keys in `ABILITY_EFFECTS`.
-
-### `src/hooks/teamGenerator.ts`
-
-Pure team generation algorithm used by the "Surprise Me" feature.
-Uses the same composite score formula as the suggestion engine
-(gain − 0.5×new_weaknesses − 1.0×aggravated_shared_weaknesses) with
-a ±0.01 random tie-breaking factor. Runs fully client-side.
-Exports: `generateTeam`, `regenerateSlot`, `buildEligiblePool`,
-`STARTER_FINALS`, `DEFAULT_CONSTRAINTS`.
-
-**Anchor inclusion:** Anchor (locked) Pokémon are included in the
-`currentTeam` from iteration step 0 of `generateTeam`. The composite
-score for each candidate is computed against the full partial team
-including anchors — never against an empty team. This ensures that
-`aggravated_shared_weaknesses` correctly counts weaknesses already
-present in the anchor set.
-
-**Slot budget constraint:** The constraints step uses +/- counters
-(no checkboxes). Each category (starters, legendaries/mythicals,
-mega, dynamax, custom) has a numeric counter starting at 0. The
-budget rule is: `anchorCount + sum(all counters) ≤ 6`, enforced by
-disabling the `+` button when the budget is full. No clamping — the
-`+` button simply becomes unavailable. Free slots (remainder after
-anchors + counters) are filled by the algorithm using composite score
-with no category filter.
-
-**Legendaries and Mythicals — merged counter:** A single counter
-`legendaryMythicalSlots` controls both legendary and mythical
-Pokémon. The pool includes any entry where `isLegendary === true ||
-isMythical === true`. The old separate `legendarySlots` and
-`mythicalSlots` fields have been removed.
-
-**"Exactly N" constraint semantics:** All constrained counters use
-"exactly N" semantics. The algorithm:
-1. Reserves N slots for each constrained category.
-2. Fills reserved slots first by running the composite score only
-   over the category sub-pool.
-3. Fills remaining free slots from the unconstrained pool, excluding
-   category members whose quota is already met.
-
-Categories and their filters:
-- **Starters:** `STARTER_FINALS` species set membership.
-- **Legendaries / Mythicals:** `isLegendary === true || isMythical === true`.
-- **Mega evolutions:** name includes `-mega`.
-- **Dynamax/Gmax:** name includes `-gmax`.
-
-**Data field audit (isLegendary / isMythical):** `PokemonEntry.isLegendary`
-and `PokemonEntry.isMythical` (both boolean) are populated by
-`pokeApiFetch.ts` from the PokéAPI species endpoint's `is_legendary` and
-`is_mythical` fields. Verified: Mewtwo has
-`isLegendary: true`, Mew has `isMythical: true`, Articuno/Rayquaza
-have `isLegendary: true`, and non-legendaries like Cinccino have
-both set to `false`.
-
-**Per-slot re-randomize:** `regenerateSlot` picks randomly among the
-top 5 scoring candidates from a pool that excludes only the other 5
-team members. Logs `console.error` and returns the existing member
-unchanged when the candidate pool is empty.
-
-### `src/utils/showdownParser.ts`
-
-Owns the Showdown format contract: serialisation (`exportMemberToShowdown`,
-`exportTeamToShowdown`) and parsing (`parseShowdownBlock`,
-`parseShowdownTeam`). Must **not** touch `localStorage`, must **not**
-fetch from PokéAPI, must **not** depend on React. All species/move
-resolution is injected via the `resolveMove` and `resolveTypes`
-callbacks so the parser stays pure.
+Per-file invariants for `src/utils`, `src/hooks`, and `src/data` modules
+(what each one owns, what it must never do) live in
+[`docs/MODULES.md`](docs/MODULES.md). Read the relevant entry before
+touching one of those files.
 
 ## Type Chart Rules
 
@@ -383,6 +207,11 @@ for manual completion. The block is still imported.
   `applicationId`/`namespace` in `android/app/build.gradle`, which must
   match it. Changing `appId` post-release changes the app's identity on
   any device that installed it under the old one.
+- `package.json`'s `version` field outside of the release workflow (see
+  [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) → "Keeping the web and
+  Android releases in sync"). It drives both the GitHub Release tag and
+  the Android `versionName`/`versionCode`; bumping it by hand outside
+  that workflow will desync the two.
 
 ## Common Pitfalls
 
@@ -417,150 +246,15 @@ for manual completion. The block is still imported.
 
 ## Android Platform
 
-CoverDex ships a native Android shell via Capacitor, additive to the PWA —
-it must never carry business logic of its own. Stable invariants only;
-operational/build detail lives in `docs/android/BUILD.md`.
-
-- `android/` is a **committed native project**, not build output. Its
-  `res/`, Gradle config, and Java sources are source of truth; only build
-  artifacts, local SDK paths, and signing secrets are gitignored (see
-  `.gitignore`).
-- `@capacitor/cli` requires **Node >=22** — stricter than the web app's
-  Node 18+. Any command that shells out to `cap` (`npx cap sync android`,
-  `npm run android:build`, CI) needs Node 22+, even though `deploy.yml`
-  and `pr-check.yml` stay on Node 20 for the unrelated web pipeline.
-- `capacitor.config.ts`: `appId: "com.marcogn.coverdex"`,
-  `appName: "CoverDex"`, `webDir: "dist-android"`. Never change `appId`
-  post-release — see "What NOT to Change Without Discussion" above. The
-  GitHub repository itself has already been renamed to `CoverDex`
-  (`deploy.yml`'s `VITE_BASE_URL` is `/CoverDex/`, matching the current
-  repo name). The one remaining leftover of the old `poke-team-builder`
-  name is `package.json`'s internal `name` field, which is cosmetic (it's
-  never read for the Pages base path or the Android `appId`) and can be
-  renamed opportunistically.
-- Run `npx cap sync android` (or `npm run android:build`, which also runs
-  the Android web build first) after every change and before any native
-  build — it copies `dist-android/` into
-  `android/app/src/main/assets/public`. A native build against a stale
-  sync serves an outdated WebView.
-- The Workbox service worker must not register when
-  `Capacitor.isNativePlatform()` is true (`src/utils/registerServiceWorker.ts`).
-  Native assets are bundled locally, not served over the network there.
-- `.github/workflows/android-build.yml` requires GitHub Secrets, values
-  never documented here: `ANDROID_KEYSTORE_BASE64`,
-  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`,
-  `FIREBASE_APP_ID`, `FIREBASE_SERVICE_ACCOUNT`. Android build outputs
-  (debug and signed release alike) must never go through
-  `actions/upload-artifact` — this is a public repo, and Actions artifacts
-  are downloadable by any signed-in GitHub user. They go to Firebase App
-  Distribution instead, which only reaches explicitly invited testers.
-  `.github/workflows/android-debug-apk-artifact.yml` is a deliberate,
-  clearly-commented, temporary exception to this rule (manual-dispatch
-  only) — check whether it still exists before assuming the rule above is
-  absolute; see its header comment and `docs/STATUS.md`.
-
-### Two build outputs: `dist/` (PWA) vs `dist-android/` (Android)
-
-`vite build` (plain, `npm run build`) produces `dist/` exactly as before —
-the PWA is untouched. `vite build --mode android` (`npm run build:android`)
-produces a separate `dist-android/`, built by `vite-plugins/androidPlatformResolve.ts`:
-a Vite plugin, active only in `--mode android`, that resolves any local
-import to its `<Name>.android.tsx`/`.android.ts` sibling when one exists,
-otherwise falls through to the default file. This is what lets the
-Material layer below exist only in the Android build — MUI/Emotion never
-appear in the `dist/` bundle (verified by grepping the built output; there
-is no automated bundle-size CI check, so re-verify by hand — `grep -c
-emotion dist/assets/*.js` should print `0` — after any change to
-`vite.config.ts` or the plugin). `vite-plugin-pwa` is also android-mode-only
-(the WebView never needs the service worker or its manifest).
-
-### Shared logic / platform-presentation file convention
-
-Every restyled component follows the same pattern: the default file
-(`Component.tsx`) holds the **shared** hooks/state/handlers and is also
-the **web** presentation (Tailwind), consumed unchanged by the PWA. A
-sibling `Component.android.tsx`, when present, is picked up automatically
-by the platform-resolve plugin and holds the **Android** presentation
-(MUI) — imported with the exact same props contract (exported from the
-default file, e.g. `TeamsPageProps`) and, wherever the component has
-non-trivial logic, driven by hooks pulled out of the default file (e.g.
-`useAppShell` in `src/hooks/useAppShell.ts`, consumed identically by
-`App.tsx` and `App.android.tsx`) or by pure helper functions re-exported
-from the default file (e.g. `collectAttackingTypes`, `multLabel` from
-`CoverageGrid.tsx`). Business logic is never forked between the two files.
-
-One subtlety worth knowing before touching the plugin: an `.android.tsx`
-file importing a *type* from its own base sibling (`import type { XProps }
-from './X'`) is invisible to the plugin — TypeScript strips type-only
-imports before Rollup ever resolves them. But a *value* import from the
-base sibling (a shared pure helper) is a real import the plugin sees, and
-naively redirecting it would loop the file back to itself; the plugin
-special-cases this (see its own comments and
-`src/test/androidPlatformResolve.test.ts`).
-
-Screens restyled for Android (all of them, as of this writing): top-level
-nav/shell (`App.android.tsx`), Teams list, Settings, Custom Pokémon
-roster, Team Builder (Pokémon tab — slots, moves, ability picker, export/
-delete dialogs), and the Analysis tab (including the offensive/defensive
-grids as MUI `Table`/`TableContainer` with a manually-sticky first column,
-and suggestion cards). The shared `SearchableDropdown`/`AbilityDropdown`
-Autocomplete implementations cover every picker (Pokémon, move, ability,
-and the Surprise Me anchor picker) from one file each. `SurpriseMeModal`
-was not restyled either — it renders the same Tailwind markup on Android,
-just without an MUI treatment. Two components are dead code, not imported
-anywhere on either platform, and were left alone rather than restyled: the
-roster's old `CustomRoster.tsx` (superseded by `CustomPkmnPage.tsx`) and
-`ImportExport.tsx` (superseded by the Showdown import/export flow now
-living in `ExportModal.tsx`/`NewTeamModal.tsx`).
-
-The platform-resolve convention isn't limited to components: `useAppShell`
-imports `useUserDataStorage`, and on Android that resolves to
-`useUserDataStorage.android.ts` the same way any `Component.android.tsx`
-would resolve for a component import — see that module's entry above and
-"Storage isolation" below for why storage is the one place logic itself
-(not just presentation) is currently forked per platform.
-
-### Storage isolation (PWA vs Android)
-
-`teamdex_userdata` (teams, custom Pokémon, settings) is persisted
-differently per platform — see `useUserDataStorage.ts`/`.android.ts`
-above:
-- **PWA**: `localStorage`, in the mobile/desktop browser's storage
-  partition for the GitHub Pages origin.
-- **Android**: `@capacitor/preferences`, native SharedPreferences-backed
-  storage in the app's own OS-sandboxed, app-private storage — chosen
-  because WebView `localStorage` isn't guaranteed durable under storage
-  pressure the way native storage is. The WebView's `localStorage` is only
-  touched once more on Android, as a one-time migration source for devices
-  that had the app installed before this changed (see the module entry
-  above); once migrated, Android no longer reads or writes it for user
-  data.
-
-`teamdex_pokeapi_cache` is unaffected by any of this — see "PokéAPI
-download is identical on both platforms" below, it still uses
-`localStorage` on both platforms.
-
-Regardless of mechanism, **the two releases never share data**: installing
-the Android app does not surface a user's PWA teams, and vice versa. Any
-future cross-device sync feature is a deliberate, separate project —
-neither release should grow one implicitly.
-
-### PokéAPI download is identical on both platforms
-
-`usePokemonData`/`pokeApiFetch.ts` (see "Key Data Flows" and "Module
-Responsibilities" above) run the exact same way on the PWA and inside the
-Capacitor WebView — same mirror, same batching, same `localStorage` cache
-key. There is no Android-specific data step and no build-time generation
-script; the dataset is never bundled into either `dist/` or
-`dist-android/`. The Android WebView needs the standard Capacitor
-`android.permission.INTERNET` (already required for sprite `<img>` URLs,
-present in the generated `AndroidManifest.xml`) for this to work on
-device. `src/test/noRuntimePokeApiFetch.test.ts` guards against ever
-calling the **live** `pokeapi.co` REST API (as opposed to the static
-mirror) from either platform's runtime code — it fails if an actual
-`pokeapi.co` URL is constructed anywhere under `src/` outside the test
-itself; a comment merely *mentioning* the host (to explain why the mirror
-is used instead) does not trip it.
+CoverDex ships a native Android shell via Capacitor, additive to the PWA
+— it must never carry business logic of its own. Architectural
+invariants (build outputs, the shared-logic/platform-presentation file
+convention, storage isolation) are in
+[`docs/android/PLATFORM.md`](docs/android/PLATFORM.md); operational
+build/CI/signing/distribution detail is in
+[`docs/android/BUILD.md`](docs/android/BUILD.md). Read both before
+touching anything under `android/` or an `.android.tsx`/`.android.ts`
+file.
 
 ## Dev Commands
 
@@ -578,6 +272,10 @@ npm run android:open   # open the Android project in Android Studio
 npm run android:build  # build:android + cap sync android
 ```
 
+See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for full local setup
+and [`docs/android/BUILD.md`](docs/android/BUILD.md) for icon
+regeneration detail.
+
 ### i18n
 
 Uses i18next + react-i18next.
@@ -585,47 +283,6 @@ Translation files: src/i18n/locales/en.json and it.json.
 All user-visible strings must use the useTranslation hook.
 Pokémon names and move names are NOT translated.
 Language persisted in localStorage key 'teamdex_lang'.
-
-### PWA Icons
-
-Icons are generated at build time by scripts/generate-icons.mjs
-using the sharp package. They are gitignored and regenerated
-on every deploy. Do not commit icon PNG files.
-To regenerate locally: npm run generate-icons
-
-The same script also writes `assets/icon.png` and `assets/splash.png`
-(gitignored), the source images `@capacitor/assets` reads to generate the
-Android launcher icon densities and splash screens under
-`android/app/src/main/res/` (those generated `res/` files ARE committed —
-see "Android Platform" above). Regenerate both together with
-`npm run android:icons`, which chains three steps:
-
-1. `node scripts/generate-icons.mjs` — regenerates the PWA icons and the
-   `assets/` source images.
-2. `npx capacitor-assets generate --android --iconBackgroundColor '#5b21b6'
-   --iconBackgroundColorDark '#5b21b6'` — regenerates the Android launcher
-   icon and splash resources. The background color flags matter: without
-   them `@capacitor/assets` defaults the adaptive icon's background layer
-   to plain white.
-3. `node scripts/fix-android-adaptive-icon.mjs` — patches
-   `mipmap-anydpi-v26/ic_launcher.xml` and `ic_launcher_round.xml` after
-   every regeneration. `@capacitor/assets` hardcodes a 16.7% `<inset>`
-   around *both* adaptive-icon layers (see its own
-   `dist/platforms/android/index.js` template, no CLI flag controls this);
-   that's correct for the foreground safe zone but wrong for the
-   background, which needs to bleed to the full 108dp canvas. Left
-   unpatched, the inset background leaves a thin ring uncovered by any
-   layer at all, which showed up as a visible white/transparent border
-   around the installed app icon. The script rewrites just the
-   `<background>` element to a plain, uninset drawable reference; it
-   errors out loudly if `@capacitor/assets`'s generated XML no longer
-   matches the pattern it expects, so a future tool upgrade that changes
-   this template won't fail silently.
-
-Run `npm run android:icons` (not the three commands individually) whenever
-the icon or splash source changes — `capacitor-assets` writes straight into
-`android/app/src/main/res/`, so unlike `dist-android/` this doesn't also
-need a `cap sync` pass.
 
 ### Searchable Dropdowns
 

@@ -138,14 +138,17 @@ export function SettingsPage({
         </Button>
       </Paper>
 
-      {installAvailable && (
-        <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'flex-start' }}>
-          <SectionHeading>{t('settings.app')}</SectionHeading>
+      <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'flex-start' }}>
+        <SectionHeading>{t('settings.app')}</SectionHeading>
+        <Typography variant="caption" color="text.secondary">
+          {t('settings.appVersion', { version: __APP_VERSION__ })}
+        </Typography>
+        {installAvailable && (
           <Button variant="contained" size="small" onClick={onInstall}>
             {t('settings.installApp')}
           </Button>
-        </Paper>
-      )}
+        )}
+      </Paper>
     </Box>
   );
 }
