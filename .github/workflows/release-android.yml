@@ -1,0 +1,192 @@
+name: Release
+
+# Cuts a public release: bumps the version, builds a signed release APK,
+# and publishes it as a GitHub Release with the CHANGELOG.md entry for
+# that version as the release notes. Manual-dispatch only — this pushes a
+# version-bump commit to `main` and publishes a public GitHub Release, so
+# it never runs on its own.
+#
+# Because the version bump lands on `main`, it also triggers deploy.yml
+# (push to main -> GitHub Pages redeploy), so the web app and the Android
+# release always end up on the same version — see
+# docs/DEVELOPMENT.md -> "Keeping the web and Android releases in sync".
+#
+# Like android-build.yml, this never uploads Android build output via
+# actions/upload-artifact — the APK here is instead attached directly to
+# a GitHub Release, which is meant to be public, so that's the intended
+# distribution channel for this workflow specifically.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Version to release, e.g. 1.0.0 (no "v" prefix). Leave blank to
+          release the version already in package.json as-is — this is
+          what the first release (1.0.0) should do, since nothing needs
+          bumping yet.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # @capacitor/cli 8.x requires Node >=22, same as android-build.yml.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Determine release version
+        id: version
+        run: |
+          INPUT_VERSION="${{ inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$VERSION' is not a plain X.Y.Z semantic version."
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION already exists. Pass a new 'version' input (or bump package.json first) and re-run."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Sync version into package.json and Android build.gradle
+        id: bump
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run web test suite
+        run: npm run test
+
+      - name: Build Android web bundle
+        run: npm run build:android
+
+      - name: Sync Android web bundle into Android project
+        run: npx cap sync android
+
+      - name: Ensure signing secrets are present
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 (and the other ANDROID_KEY* secrets) must be set to cut a public release — an unsigned APK can't be installed on a device. See docs/android/BUILD.md."
+            exit 1
+          fi
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      # JDK 21 matches the AGP 8.13 / Gradle 8.14 toolchain, same pin as
+      # android-build.yml.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Decode release keystore
+        working-directory: android
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+
+      - name: Write keystore.properties
+        working-directory: android
+        run: |
+          cat > keystore.properties <<EOF
+          storeFile=${{ github.workspace }}/android/release.keystore
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Gradle lint + unit tests
+        working-directory: android
+        run: ./gradlew lint testDebugUnitTest
+
+      - name: Build signed release APK
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Clean up keystore secrets
+        if: always()
+        working-directory: android
+        run: rm -f release.keystore keystore.properties
+
+      # Only commit/push now that the signed build has actually succeeded —
+      # a failed build should never leave a version bump stranded on main.
+      - name: Commit version bump
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json android/app/build.gradle
+          git commit -m "chore(release): v${{ steps.version.outputs.version }}"
+          git push origin HEAD:main
+
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+
+          awk -v prefix="## [$VERSION]" '
+            index($0, "## [") == 1 {
+              if (found) exit
+              if (index($0, prefix) == 1) { found = 1; next }
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) and [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for what's in this release." > "$NOTES_FILE"
+          fi
+
+          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release asset
+        run: cp android/app/build/outputs/apk/release/app-release.apk "CoverDex-v${{ steps.version.outputs.version }}.apk"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          gh release create "v$VERSION" \
+            "CoverDex-v${VERSION}.apk" \
+            --target main \
+            --title "CoverDex v$VERSION" \
+            --notes-file "${{ steps.changelog.outputs.notes_file }}"

@@ -32,9 +32,10 @@ lives on-device.
    settings (theme, language, suggestion filters). The only state a user
    would be upset to lose. Persisted in `localStorage` on the PWA; on
    Android it's persisted through `@capacitor/preferences` (native
-   storage) instead — see `useUserDataStorage.ts`/`.android.ts` and
-   CLAUDE.md → "Storage isolation (PWA vs Android)" for why and how the
-   two diverge here even though almost nothing else does.
+   storage) instead — see `useUserDataStorage.ts`/`.android.ts` in
+   `docs/MODULES.md` and `docs/android/PLATFORM.md` → "Storage isolation
+   (PWA vs Android)" for why and how the two diverge here even though
+   almost nothing else does.
 3. **UI-only state** — which screen/tab is open, form inputs, modal open/
    closed. Lives in React state, never persisted.
 
@@ -132,9 +133,9 @@ grepping the built `dist/` output. The one deliberate exception is
 persistence: `useUserDataStorage.ts`/`.android.ts` forks the actual
 read/write logic, not just presentation, because the two platforms use
 genuinely different storage APIs (`localStorage` vs `@capacitor/
-preferences`) — see "The three kinds of state" above. See `CLAUDE.md` →
-"Android Platform" for the full mechanics and the current list of
-restyled screens.
+preferences`) — see "The three kinds of state" above. See
+`docs/android/PLATFORM.md` for the full mechanics and the current list
+of restyled screens.
 
 ## Import/export
 
@@ -148,10 +149,17 @@ never touches `localStorage` or the network itself; `App.tsx`/
 
 ## Where to look next
 
-- `CLAUDE.md` — module-by-module invariants, "what not to change without
-  discussion," and the Android platform mechanics in detail.
+- `CLAUDE.md` — cross-cutting rules and "what not to change without
+  discussion," with pointers into the files below for detail.
+- `docs/MODULES.md` — module-by-module invariants for `src/utils`/
+  `src/hooks`/`src/data`.
+- `docs/android/PLATFORM.md` — Android architectural invariants (build
+  outputs, the shared-logic/platform-presentation convention, storage
+  isolation).
 - `docs/android/BUILD.md` — local Android build steps, signing, Firebase
   App Distribution setup, CI job structure.
-- `README.md` — end-user-facing feature list and setup instructions.
+- `docs/DEVELOPMENT.md` — local dev setup and GitHub Pages deployment.
+- `README.md` — end-user-facing feature list and how to get the app.
 - `docs/STATUS.md` — current implementation snapshot and known gaps,
   meant as a starting point for the next work session.
+- `CHANGELOG.md` — one entry per release.

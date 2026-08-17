@@ -78,7 +78,8 @@
     "refreshing": "Download in corso…",
     "dataError": "Ultimo aggiornamento fallito:",
     "installApp": "Installa App",
-    "app": "App"
+    "app": "App",
+    "appVersion": "CoverDex v{{version}}"
   },
   "customPkmn": {
     "title": "Pokémon Custom",

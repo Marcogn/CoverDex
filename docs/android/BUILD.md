@@ -173,6 +173,42 @@ repo is public, any signed-in GitHub account could do the same. It's meant
 to be short-lived: delete the workflow file, and the run itself if you
 don't want it kept, once you're done with it.
 
+## Cutting a public release
+
+`.github/workflows/release-android.yml` is the one workflow that
+publishes anywhere public — everything above (Firebase App Distribution,
+the temporary artifact workflow) only ever reaches invited testers or a
+signed-in GitHub account digging through Actions runs. It's manual-only
+(**Actions → Release → Run workflow**) and, given a version like `1.0.0`
+(or a blank input, which reuses whatever version is already in
+`package.json` — the right choice for the first release):
+
+1. Validates the version and checks a `vX.Y.Z` tag doesn't already exist.
+2. Writes that version into `package.json`, `package-lock.json`, and
+   `android/app/build.gradle`'s `versionName`/`versionCode` (derived
+   deterministically from the semver: `major*10000 + minor*100 + patch`).
+3. Runs the web test suite, builds the Android bundle, and builds a
+   **signed** release APK — signing is required here (unlike
+   `android-build.yml`'s optional signing for internal testing), since an
+   unsigned APK can't be installed at all and this release is public.
+4. Only once that build has actually succeeded, commits the version bump
+   to `main` and pushes it. This also triggers `deploy.yml` (push to
+   `main`), so the next GitHub Pages deploy carries the same version — see
+   [`docs/DEVELOPMENT.md`](../DEVELOPMENT.md) → "Keeping the web and
+   Android releases in sync".
+5. Publishes a GitHub Release tagged `vX.Y.Z` with the matching
+   [`CHANGELOG.md`](../../CHANGELOG.md) section (`## [X.Y.Z]` up to the
+   next version heading) as the release notes, and the signed APK
+   attached directly — as a plain file, not zipped, not through
+   `actions/upload-artifact`.
+
+Requires the same `ANDROID_KEYSTORE_BASE64`/`ANDROID_KEYSTORE_PASSWORD`/
+`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD` secrets as `android-build.yml`
+(see above) — no Firebase secrets needed, this workflow never touches
+Firebase. Before running it for a version after `1.0.0`, add a new
+`## [X.Y.Z]` entry to `CHANGELOG.md` first so the release has real notes
+instead of the generic fallback text.
+
 ## Running the Espresso smoke test locally
 
 `android/app/src/androidTest/java/com/marcogn/coverdex/MainActivitySmokeTest.java`
@@ -188,6 +224,47 @@ cd android
 This test is **not** part of the required `build` job in CI — see
 `ROADMAP.md` and the `instrumented-test` job in `android-build.yml`, which
 runs it on an emulator only via manual `workflow_dispatch`.
+
+## Icon and splash generation
+
+PWA icons are generated at build time by `scripts/generate-icons.mjs`
+using the `sharp` package. They're gitignored and regenerated on every
+deploy — don't commit icon PNG files. To regenerate locally:
+`npm run generate-icons`.
+
+The same script also writes `assets/icon.png` and `assets/splash.png`
+(gitignored), the source images `@capacitor/assets` reads to generate the
+Android launcher icon densities and splash screens under
+`android/app/src/main/res/` (those generated `res/` files **are**
+committed — see [`PLATFORM.md`](PLATFORM.md)). Regenerate both together
+with `npm run android:icons`, which chains three steps:
+
+1. `node scripts/generate-icons.mjs` — regenerates the PWA icons and the
+   `assets/` source images.
+2. `npx capacitor-assets generate --android --iconBackgroundColor '#5b21b6'
+   --iconBackgroundColorDark '#5b21b6'` — regenerates the Android launcher
+   icon and splash resources. The background color flags matter: without
+   them `@capacitor/assets` defaults the adaptive icon's background layer
+   to plain white.
+3. `node scripts/fix-android-adaptive-icon.mjs` — patches
+   `mipmap-anydpi-v26/ic_launcher.xml` and `ic_launcher_round.xml` after
+   every regeneration. `@capacitor/assets` hardcodes a 16.7% `<inset>`
+   around *both* adaptive-icon layers (see its own
+   `dist/platforms/android/index.js` template, no CLI flag controls this);
+   that's correct for the foreground safe zone but wrong for the
+   background, which needs to bleed to the full 108dp canvas. Left
+   unpatched, the inset background leaves a thin ring uncovered by any
+   layer at all, which showed up as a visible white/transparent border
+   around the installed app icon. The script rewrites just the
+   `<background>` element to a plain, uninset drawable reference; it
+   errors out loudly if `@capacitor/assets`'s generated XML no longer
+   matches the pattern it expects, so a future tool upgrade that changes
+   this template won't fail silently.
+
+Run `npm run android:icons` (not the three commands individually) whenever
+the icon or splash source changes — `capacitor-assets` writes straight into
+`android/app/src/main/res/`, so unlike `dist-android/` this doesn't also
+need a `cap sync` pass.
 
 ## Common Capacitor / Gradle / AGP troubleshooting
 
