@@ -1,24 +1,26 @@
 name: Release
 
-# Cuts a public release, end to end: bumps the version, builds a signed
-# Android release APK, publishes it as a GitHub Release with the
-# CHANGELOG.md entry for that version as the release notes, AND deploys
-# the same version of the web app to GitHub Pages — all in one run, so
-# the Android release and the live site are always on the same version.
-# Manual-dispatch only: this opens and merges a version-bump PR against
-# `main`, publishes a public GitHub Release, and redeploys the public
-# site, so it never runs on its own. See ci.yml for the workflow that
-# runs on every PR/push instead (tests only, no publishing).
+# Cuts a public release, end to end: builds a signed Android release APK,
+# publishes it as a GitHub Release with the CHANGELOG.md entry for that
+# version as the release notes, AND deploys the same version of the web
+# app to GitHub Pages — all in one run, so the Android release and the
+# live site are always on the same version. Manual-dispatch only.
 #
-# `main` requires pull requests (see repo Settings -> Branches), so the
-# version bump goes through a small PR opened and merged by this
-# workflow rather than a direct push — no branch-protection bypass
-# needed, just the "Allow GitHub Actions to create and approve pull
-# requests" repo setting (Settings -> Actions -> General). If that PR
-# can't be auto-merged (e.g. required status checks still pending and
-# repo-wide auto-merge isn't enabled), the job only warns and moves on —
-# the GitHub Release, APK, and Pages deploy below don't depend on it
-# having landed yet, only on the local build.
+# The release version is READ from package.json's "version" field, never
+# written by this workflow — `main` requires pull requests (see repo
+# Settings -> Branches), and a workflow that never needs to commit
+# anything to `main` never has to deal with that at all, unlike a
+# workflow that tries to bump-and-push its own version first (see the
+# commit that replaced that approach, and docs/STATUS.md's loose ends,
+# for what didn't work and why). Same pattern already proven out in
+# github.com/Marcogn/ThePatientGamerHelper's release.yml: bump the
+# version yourself in a normal PR (and add the matching CHANGELOG.md
+# entry) before triggering this workflow — it refuses to overwrite a
+# release/tag that already exists, so re-running it before bumping
+# anything is a safe no-op failure, not a duplicate release.
+#
+# See ci.yml for the workflow that runs on every PR/push instead (tests
+# only, no publishing).
 #
 # Like android-build.yml, this never uploads Android build output via
 # actions/upload-artifact — the APK here is instead attached directly to
@@ -27,19 +29,9 @@ name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: >-
-          Version to release, e.g. 1.0.0 (no "v" prefix). Leave blank to
-          release the version already in package.json as-is — this is
-          what the first release (1.0.0) should do, since nothing needs
-          bumping yet.
-        required: false
-        type: string
 
 permissions:
   contents: write
-  pull-requests: write
   pages: write
   id-token: write
 
@@ -68,44 +60,24 @@ jobs:
 
       - run: npm ci
 
-      - name: Determine release version
+      - name: Read release version and refuse to overwrite an existing one
         id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          INPUT_VERSION="${{ inputs.version }}"
-          if [ -n "$INPUT_VERSION" ]; then
-            VERSION="$INPUT_VERSION"
-          else
-            VERSION=$(node -p "require('./package.json').version")
-          fi
+          VERSION=$(node -p "require('./package.json').version")
 
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::'$VERSION' is not a plain X.Y.Z semantic version."
+            echo "::error::package.json's version ('$VERSION') is not a plain X.Y.Z semantic version."
             exit 1
           fi
 
-          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
-            echo "::error::Tag v$VERSION already exists. Pass a new 'version' input (or bump package.json first) and re-run."
+          if gh release view "v$VERSION" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "::error::Release v$VERSION already exists. Bump \"version\" in package.json (and add a matching CHANGELOG.md entry) via a normal PR, merge it, then re-run this workflow."
             exit 1
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Sync version into package.json and Android build.gradle
-        id: bump
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
-
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
-          sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android/app/build.gradle
-          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
-
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Run web test suite
         run: npm run test
@@ -123,6 +95,18 @@ jobs:
 
       - name: Sync Android web bundle into Android project
         run: npx cap sync android
+
+      # Only the build in this checkout needs Android's versionName/
+      # versionCode to match package.json's version — never committed
+      # back, since package.json is the only file anyone needs to bump.
+      - name: Sync Android version from package.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+
+          sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
 
       - name: Ensure signing secrets are present
         run: |
@@ -175,36 +159,6 @@ jobs:
         if: always()
         working-directory: android
         run: rm -f release.keystore keystore.properties
-
-      # Only publish anything now that both builds have actually succeeded —
-      # a failed build should never leave a version-bump PR opened against
-      # main, a half-published release, or a stale site deploy.
-      - name: Open and merge version-bump PR
-        if: steps.bump.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          BRANCH="release/v$VERSION"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
-          git add package.json package-lock.json android/app/build.gradle
-          git commit -m "chore(release): v$VERSION"
-          git push origin "$BRANCH"
-
-          PR_URL=$(gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "chore(release): v$VERSION" \
-            --body "Automated version bump for the v$VERSION release. Opened and merged by \`release.yml\` — see the matching GitHub Release for what shipped.")
-
-          gh pr review "$PR_URL" --approve --body "Automated release version bump." || true
-
-          if ! gh pr merge "$PR_URL" --squash --auto; then
-            echo "::warning::Could not auto-merge the version-bump PR ($PR_URL) — merge it manually. The GitHub Release, APK, and Pages deploy below don't depend on it and will still publish."
-          fi
 
       - name: Extract changelog section
         id: changelog

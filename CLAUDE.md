@@ -207,11 +207,12 @@ for manual completion. The block is still imported.
   `applicationId`/`namespace` in `android/app/build.gradle`, which must
   match it. Changing `appId` post-release changes the app's identity on
   any device that installed it under the old one.
-- `package.json`'s `version` field outside of the release workflow (see
+- `package.json`'s `version` field without also adding a matching
+  `## [X.Y.Z]` entry to `CHANGELOG.md` in the same change (see
   [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) → "Keeping the web and
-  Android releases in sync"). It drives both the GitHub Release tag and
-  the Android `versionName`/`versionCode`; bumping it by hand outside
-  that workflow will desync the two.
+  Android releases in sync"). The release workflow reads this field
+  directly — it's the trigger for the next `Release` run, not just a
+  cosmetic number.
 
 ## Common Pitfalls
 
