@@ -5,10 +5,20 @@ name: Release
 # CHANGELOG.md entry for that version as the release notes, AND deploys
 # the same version of the web app to GitHub Pages — all in one run, so
 # the Android release and the live site are always on the same version.
-# Manual-dispatch only: this pushes a version-bump commit to `main`,
-# publishes a public GitHub Release, and redeploys the public site, so it
-# never runs on its own. See ci.yml for the workflow that runs on every
-# PR/push instead (tests only, no publishing).
+# Manual-dispatch only: this opens and merges a version-bump PR against
+# `main`, publishes a public GitHub Release, and redeploys the public
+# site, so it never runs on its own. See ci.yml for the workflow that
+# runs on every PR/push instead (tests only, no publishing).
+#
+# `main` requires pull requests (see repo Settings -> Branches), so the
+# version bump goes through a small PR opened and merged by this
+# workflow rather than a direct push — no branch-protection bypass
+# needed, just the "Allow GitHub Actions to create and approve pull
+# requests" repo setting (Settings -> Actions -> General). If that PR
+# can't be auto-merged (e.g. required status checks still pending and
+# repo-wide auto-merge isn't enabled), the job only warns and moves on —
+# the GitHub Release, APK, and Pages deploy below don't depend on it
+# having landed yet, only on the local build.
 #
 # Like android-build.yml, this never uploads Android build output via
 # actions/upload-artifact — the APK here is instead attached directly to
@@ -29,6 +39,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
   pages: write
   id-token: write
 
@@ -166,16 +177,34 @@ jobs:
         run: rm -f release.keystore keystore.properties
 
       # Only publish anything now that both builds have actually succeeded —
-      # a failed build should never leave a version bump stranded on main,
-      # a half-published release, or a stale site deploy.
-      - name: Commit version bump
+      # a failed build should never leave a version-bump PR opened against
+      # main, a half-published release, or a stale site deploy.
+      - name: Open and merge version-bump PR
         if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BRANCH="release/v$VERSION"
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add package.json package-lock.json android/app/build.gradle
-          git commit -m "chore(release): v${{ steps.version.outputs.version }}"
-          git push origin HEAD:main
+          git commit -m "chore(release): v$VERSION"
+          git push origin "$BRANCH"
+
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(release): v$VERSION" \
+            --body "Automated version bump for the v$VERSION release. Opened and merged by \`release.yml\` — see the matching GitHub Release for what shipped.")
+
+          gh pr review "$PR_URL" --approve --body "Automated release version bump." || true
+
+          if ! gh pr merge "$PR_URL" --squash --auto; then
+            echo "::warning::Could not auto-merge the version-bump PR ($PR_URL) — merge it manually. The GitHub Release, APK, and Pages deploy below don't depend on it and will still publish."
+          fi
 
       - name: Extract changelog section
         id: changelog

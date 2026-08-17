@@ -195,8 +195,10 @@ for the first release):
    internal testing), since an unsigned APK can't be installed at all and
    this release is public.
 4. Only once both builds have actually succeeded, it publishes
-   everything: commits the version bump to `main` and pushes it, publishes
-   a GitHub Release tagged `vX.Y.Z` with the matching
+   everything: opens a small `chore(release): vX.Y.Z` PR against `main`
+   with the version bump and merges it (`main` requires pull requests —
+   see "Branch protection and the version-bump PR" below), publishes a
+   GitHub Release tagged `vX.Y.Z` with the matching
    [`CHANGELOG.md`](../../CHANGELOG.md) section (`## [X.Y.Z]` up to the
    next version heading) as the release notes and the signed APK attached
    directly (as a plain file, not zipped, not through
@@ -212,6 +214,32 @@ Requires the same `ANDROID_KEYSTORE_BASE64`/`ANDROID_KEYSTORE_PASSWORD`/
 Firebase. Before running it for a version after `1.0.0`, add a new
 `## [X.Y.Z]` entry to `CHANGELOG.md` first so the release has real notes
 instead of the generic fallback text.
+
+### Branch protection and the version-bump PR
+
+`main` has "Require a pull request before merging" turned on (repo
+Settings → Branches), so `release.yml` can't just `git push` the version
+bump directly — a straight push gets rejected with `GH006: Protected
+branch update failed`. Instead it opens a real PR (`release/vX.Y.Z` →
+`main`), approves it, and merges it with `gh pr merge --squash --auto`,
+all as the workflow's own `GITHUB_TOKEN`. Two repo settings make this
+possible without weakening branch protection at all:
+
+- **Settings → Actions → General → Workflow permissions**: "Read and
+  write permissions", plus "Allow GitHub Actions to create and approve
+  pull requests" — without the second one, `gh pr review --approve`
+  fails with "GitHub Actions is not permitted to approve pull requests".
+- **Settings → General → Pull Requests → "Allow auto-merge"** — without
+  this, `gh pr merge --auto` errors out. This isn't strictly required:
+  the step only emits a `::warning::` and moves on if the merge can't be
+  automated (e.g. auto-merge is off, or a required status check is still
+  pending), since the GitHub Release, APK, and Pages deploy don't depend
+  on the PR having landed yet — only on the files already built on disk.
+  A stray unmerged `release/vX.Y.Z` PR just needs a manual merge
+  afterward if that happens.
+
+No bypass list, no PAT, no loosening of "require pull request" — the
+workflow follows the same rule everyone else does.
 
 ## Running the Espresso smoke test locally
 

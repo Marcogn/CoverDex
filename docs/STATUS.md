@@ -88,15 +88,26 @@ reasoning before re-implementing it; it hasn't changed.
 
 ## Loose ends from this session (2026-08-17)
 
-- **`release.yml` has never actually been run.** It's been reviewed
-  carefully (version validation, tag-exists check, build-before-publish
-  ordering, signing required) and the repo's other workflows build fine
-  locally, but the workflow itself — the version bump commit landing on
-  `main`, the tag/release creation, the changelog extraction, the asset
-  upload, and the Pages deploy at the end — has not been exercised end to
-  end in CI. Trigger it once for the real `1.0.0` release and confirm:
-  the GitHub Release appears with the APK attached and installable, the
-  live site at `marcogn.github.io/CoverDex` shows the same version in
+- **`release.yml` still hasn't completed a successful end-to-end run.**
+  Two real attempts against `1.0.0` so far, each catching a real problem:
+  the first failed on "Decode release keystore" (`ANDROID_KEYSTORE_BASE64`
+  secret wasn't valid base64 — fixed by re-setting it via `gh secret set`,
+  and the step now fails with an actionable error instead of a bare
+  `base64: invalid input`, see the commit that did that). The second got
+  past the Android build entirely but then failed pushing the version
+  bump straight to `main`, which turned out to be protected (`GH006:
+  Protected branch update failed`, "Require a pull request before
+  merging") — `release.yml` now opens and merges a small
+  `chore(release): vX.Y.Z` PR instead of pushing directly (see
+  `docs/android/BUILD.md` → "Branch protection and the version-bump
+  PR"), which needed two repo settings the maintainer enabled: Workflow
+  permissions → read/write + "Allow GitHub Actions to create and approve
+  pull requests", and (optionally, for a fully unattended merge) "Allow
+  auto-merge" under Settings → General. Trigger it once more for the
+  real `1.0.0` release and confirm: the version-bump PR merges (or, if
+  auto-merge isn't enabled, merge it manually when the run warns about
+  it), the GitHub Release appears with the APK attached and installable,
+  the live site at `marcogn.github.io/CoverDex` shows the same version in
   Settings → App, and the release notes match `CHANGELOG.md`'s `[1.0.0]`
   section.
 - **`CHANGELOG.md` needs a new `## [X.Y.Z]` entry before every release
