@@ -1,15 +1,14 @@
 name: Release
 
-# Cuts a public release: bumps the version, builds a signed release APK,
-# and publishes it as a GitHub Release with the CHANGELOG.md entry for
-# that version as the release notes. Manual-dispatch only — this pushes a
-# version-bump commit to `main` and publishes a public GitHub Release, so
-# it never runs on its own.
-#
-# Because the version bump lands on `main`, it also triggers deploy.yml
-# (push to main -> GitHub Pages redeploy), so the web app and the Android
-# release always end up on the same version — see
-# docs/DEVELOPMENT.md -> "Keeping the web and Android releases in sync".
+# Cuts a public release, end to end: bumps the version, builds a signed
+# Android release APK, publishes it as a GitHub Release with the
+# CHANGELOG.md entry for that version as the release notes, AND deploys
+# the same version of the web app to GitHub Pages — all in one run, so
+# the Android release and the live site are always on the same version.
+# Manual-dispatch only: this pushes a version-bump commit to `main`,
+# publishes a public GitHub Release, and redeploys the public site, so it
+# never runs on its own. See ci.yml for the workflow that runs on every
+# PR/push instead (tests only, no publishing).
 #
 # Like android-build.yml, this never uploads Android build output via
 # actions/upload-artifact — the APK here is instead attached directly to
@@ -30,18 +29,27 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
-  group: release-android
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/configure-pages@v4
+
       # @capacitor/cli 8.x requires Node >=22, same as android-build.yml.
+      # Building the plain web app (for Pages) on the same Node version is
+      # fine — only the Capacitor CLI actually needs 22+.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -90,6 +98,14 @@ jobs:
 
       - name: Run web test suite
         run: npm run test
+
+      - name: Generate PWA icons
+        run: node scripts/generate-icons.mjs
+
+      - name: Build web app (GitHub Pages)
+        run: npm run build
+        env:
+          VITE_BASE_URL: /CoverDex/
 
       - name: Build Android web bundle
         run: npm run build:android
@@ -145,8 +161,9 @@ jobs:
         working-directory: android
         run: rm -f release.keystore keystore.properties
 
-      # Only commit/push now that the signed build has actually succeeded —
-      # a failed build should never leave a version bump stranded on main.
+      # Only publish anything now that both builds have actually succeeded —
+      # a failed build should never leave a version bump stranded on main,
+      # a half-published release, or a stale site deploy.
       - name: Commit version bump
         if: steps.bump.outputs.changed == 'true'
         run: |
@@ -190,3 +207,10 @@ jobs:
             --target main \
             --title "CoverDex v$VERSION" \
             --notes-file "${{ steps.changelog.outputs.notes_file }}"
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+      - uses: actions/deploy-pages@v4
+        id: deployment

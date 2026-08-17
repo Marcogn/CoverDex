@@ -20,16 +20,19 @@ short version plus what isn't obvious from a feature list.
   generator, the custom roster, Showdown import/export, and i18n (English/
   Italian) are all shipped and covered by tests — 23 test files, 175 tests
   as of this session (`npm run test`).
-- The PWA is installable and works offline after the first PokéAPI fetch,
-  deployed to GitHub Pages on every push to `main` via `deploy.yml`. User
-  data (`teamdex_userdata`) is persisted in `localStorage`, unchanged.
+- The PWA is installable and works offline after the first PokéAPI fetch.
+  GitHub Pages deploys only as part of `release.yml` (see below), not on
+  every push to `main` — deliberate, so the live site always matches a
+  tagged release. User data (`teamdex_userdata`) is persisted in
+  `localStorage`, unchanged.
 - The Android app is a native Capacitor shell wrapping the same React
   code, MUI-restyled for every screen except `SurpriseMeModal` (left
   intentionally unrestyled — same Tailwind markup on both platforms). CI
   builds a signed release APK/AAB automatically on the Android dev branch;
-  the debug APK is manual-only. Distribution is normally through Firebase
-  App Distribution, plus a temporary Actions-artifact workflow — see
-  "Loose ends" below. It's sideload-only: no Play Store listing. As of
+  the debug APK is manual-only. Distribution is through Firebase App
+  Distribution only (the old temporary Actions-artifact workflow was
+  deleted this session — see "Loose ends" below). It's sideload-only: no
+  Play Store listing. As of
   this session, Android user data is persisted through
   `@capacitor/preferences` (native storage) instead of the WebView's
   `localStorage` — see `useUserDataStorage.ts`/`.android.ts` in
@@ -39,13 +42,25 @@ short version plus what isn't obvious from a feature list.
   automatically on next launch.
 - The app is versioned from a single source of truth: `package.json`'s
   `version` field, shown in Settings → App (`__APP_VERSION__`, injected
-  at build time by `vite.config.ts`). `.github/workflows/release-android.yml`
-  (manual-dispatch only) bumps that field, builds a signed release APK,
-  and publishes it as a GitHub Release with `CHANGELOG.md`'s matching
-  section as release notes — see [`docs/android/BUILD.md`](android/BUILD.md)
-  → "Cutting a public release" and [`docs/DEVELOPMENT.md`](DEVELOPMENT.md)
-  → "Keeping the web and Android releases in sync" for why this also
-  keeps the GitHub Pages deploy on the same version.
+  at build time by `vite.config.ts`). `.github/workflows/release.yml`
+  (manual-dispatch only) is the single workflow that publishes anything
+  public: given a version, it bumps that field (and Android's
+  `versionName`/`versionCode`), builds and publishes a signed release APK
+  as a GitHub Release with `CHANGELOG.md`'s matching section as release
+  notes, and in the same run redeploys GitHub Pages — see
+  [`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a public
+  release" and [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) → "Keeping the web
+  and Android releases in sync".
+- Actions workflows were consolidated down to three this session:
+  `ci.yml` (tests + build check on every PR/push to `main`, no
+  publishing — replaces the old `pr-check.yml`), `release.yml` (the
+  public-release workflow above — replaces `deploy.yml` and
+  `release-android.yml`, folding the GitHub Pages deploy that used to be
+  its own always-on workflow into the manual release), and
+  `android-build.yml` (unchanged: internal test builds via Firebase App
+  Distribution, kept separate from the public release path). The
+  temporary `android-debug-apk-artifact.yml` was deleted, resolving the
+  "still temporary" loose end from the previous session.
 - Documentation was restructured this session: `CLAUDE.md` was cut from
   ~34KB to ~16KB by moving per-file invariants to
   [`docs/MODULES.md`](MODULES.md) and Android architectural invariants to
@@ -73,31 +88,31 @@ reasoning before re-implementing it; it hasn't changed.
 
 ## Loose ends from this session (2026-08-17)
 
-- **`release-android.yml` has never actually been run.** It's been
-  reviewed carefully (version validation, tag-exists check, build-before-
-  commit ordering, signing required) and the repo's other workflows build
-  fine locally, but the workflow itself — the version bump commit landing
-  on `main`, the tag/release creation, the changelog extraction, the
-  asset upload — has not been exercised end to end in CI. Trigger it once
-  for the real `1.0.0` release and confirm: the release appears at
-  `github.com/marcogn/CoverDex/releases`, the attached APK installs and
-  matches what's in Settings → App, and the release notes match
-  `CHANGELOG.md`'s `[1.0.0]` section.
+- **`release.yml` has never actually been run.** It's been reviewed
+  carefully (version validation, tag-exists check, build-before-publish
+  ordering, signing required) and the repo's other workflows build fine
+  locally, but the workflow itself — the version bump commit landing on
+  `main`, the tag/release creation, the changelog extraction, the asset
+  upload, and the Pages deploy at the end — has not been exercised end to
+  end in CI. Trigger it once for the real `1.0.0` release and confirm:
+  the GitHub Release appears with the APK attached and installable, the
+  live site at `marcogn.github.io/CoverDex` shows the same version in
+  Settings → App, and the release notes match `CHANGELOG.md`'s `[1.0.0]`
+  section.
 - **`CHANGELOG.md` needs a new `## [X.Y.Z]` entry before every release
   after `1.0.0`.** The workflow falls back to a generic "see CHANGELOG.md
   / README.md" note if it can't find a matching heading — better than
   failing the release, but not a substitute for real notes.
+- **GitHub Pages no longer redeploys on every push to `main`** — only
+  `release.yml` deploys it now (see "What's implemented" above). If a
+  docs-only or urgent web fix needs to go live without a full Android
+  release, either trigger `release.yml` anyway (it's a no-op version bump
+  if `package.json` is unchanged, still rebuilds and redeploys Pages) or
+  do a one-off manual deploy per `docs/DEVELOPMENT.md` → "Manual
+  deployment".
 
 ## Loose ends from the previous session (2026-08-04)
 
-- **`.github/workflows/android-debug-apk-artifact.yml` is still
-  temporary**, unchanged from the earlier pass this date. It uploads the
-  debug APK as a plain GitHub Actions artifact — a deliberate, narrow,
-  explicitly-approved exception to the "never `actions/upload-artifact`
-  for Android output" rule (this repo is public), meant to be deleted once
-  no longer needed. If it's gone by the time you read this, the exception
-  is resolved — delete the matching notes in `CLAUDE.md`, `README.md`, and
-  `docs/android/BUILD.md` too.
 - **The Android storage migration needs a real-device/emulator check
   before it can be fully trusted.** Everything here was verified by unit
   tests against a mocked `@capacitor/preferences` (see

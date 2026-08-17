@@ -16,14 +16,14 @@ CoverDex ships a native Android shell via Capacitor, additive to the PWA
   `.gitignore`).
 - `@capacitor/cli` requires **Node >=22** — stricter than the web app's
   Node 18+. Any command that shells out to `cap` (`npx cap sync android`,
-  `npm run android:build`, CI) needs Node 22+, even though `deploy.yml`
-  and `pr-check.yml` stay on Node 20 for the unrelated web pipeline.
+  `npm run android:build`, CI) needs Node 22+, even though `ci.yml` stays
+  on Node 20 for the unrelated web-only pipeline.
 - `capacitor.config.ts`: `appId: "com.marcogn.coverdex"`,
   `appName: "CoverDex"`, `webDir: "dist-android"`. Never change `appId`
   post-release — see `CLAUDE.md` → "What NOT to Change Without
   Discussion". The GitHub repository itself has already been renamed to
-  `CoverDex` (`deploy.yml`'s `VITE_BASE_URL` is `/CoverDex/`, matching the
-  current repo name). The one remaining leftover of the old
+  `CoverDex` (`release.yml`'s `VITE_BASE_URL` is `/CoverDex/`, matching
+  the current repo name). The one remaining leftover of the old
   `poke-team-builder` name is `package.json`'s internal `name` field,
   which is cosmetic (it's never read for the Pages base path or the
   Android `appId`) and can be renamed opportunistically.
@@ -35,19 +35,17 @@ CoverDex ships a native Android shell via Capacitor, additive to the PWA
 - The Workbox service worker must not register when
   `Capacitor.isNativePlatform()` is true (`src/utils/registerServiceWorker.ts`).
   Native assets are bundled locally, not served over the network there.
-- `.github/workflows/android-build.yml` and `release-android.yml` require
-  GitHub Secrets, values never documented here: `ANDROID_KEYSTORE_BASE64`,
+- `.github/workflows/android-build.yml` and `release.yml` require GitHub
+  Secrets, values never documented here: `ANDROID_KEYSTORE_BASE64`,
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`,
-  `FIREBASE_APP_ID`, `FIREBASE_SERVICE_ACCOUNT`. Android build outputs
-  (debug and signed release alike) must never go through
-  `actions/upload-artifact` — this is a public repo, and Actions artifacts
-  are downloadable by any signed-in GitHub user. They go to Firebase App
-  Distribution (or, for a tagged release, a GitHub Release, which is
-  meant to be public) instead.
-  `.github/workflows/android-debug-apk-artifact.yml` is a deliberate,
-  clearly-commented, temporary exception to this rule (manual-dispatch
-  only) — check whether it still exists before assuming the rule above is
-  absolute; see its header comment and `docs/STATUS.md`.
+  `FIREBASE_APP_ID`, `FIREBASE_SERVICE_ACCOUNT` (the last two only for
+  `android-build.yml`'s internal testing distribution — `release.yml`
+  never touches Firebase). Android build outputs (debug and signed
+  release alike) must never go through `actions/upload-artifact` — this
+  is a public repo, and Actions artifacts are downloadable by any
+  signed-in GitHub user. They go to Firebase App Distribution (internal
+  testing) or, for a tagged release, a GitHub Release, which is meant to
+  be public.
 
 ## Two build outputs: `dist/` (PWA) vs `dist-android/` (Android)
 
