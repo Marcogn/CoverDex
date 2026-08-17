@@ -134,7 +134,11 @@ jobs:
 
       - name: Decode release keystore
         working-directory: android
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+        run: |
+          if ! echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore || [ ! -s release.keystore ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 isn't valid base64 (or decoded to an empty file). This is almost always copy-paste corruption of the secret's value — stray whitespace/newlines, a shell prompt artifact (e.g. zsh's trailing '%'), or the raw .keystore file pasted instead of its base64 encoding. Regenerate it without copy-paste: base64 -w0 android/coverdex-release.keystore | gh secret set ANDROID_KEYSTORE_BASE64 -R marcogn/CoverDex. See docs/android/BUILD.md."
+            exit 1
+          fi
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
