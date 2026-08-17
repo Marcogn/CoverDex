@@ -157,50 +157,35 @@ Firebase already distributed to testers; remove a release from testers'
 view in Firebase console → App Distribution if you don't want it
 reachable there either.
 
-### Temporary: debug APK without Firebase
-
-`.github/workflows/android-debug-apk-artifact.yml` is a separate,
-manual-only workflow that builds the debug APK and uploads it as a plain
-GitHub Actions artifact instead of routing it through Firebase. It exists
-purely for local testing convenience when Firebase distribution isn't set
-up or isn't worth the round-trip, and it's a deliberate, narrow exception
-to the "never `actions/upload-artifact` for Android output" rule this
-guide follows everywhere else — read the comment at the top of that file
-before using it. Trigger it from **Actions → Android Debug APK (temporary
-artifact download) → Run workflow**, then download the artifact from the
-run page — you need to be signed in to GitHub to do that, but since this
-repo is public, any signed-in GitHub account could do the same. It's meant
-to be short-lived: delete the workflow file, and the run itself if you
-don't want it kept, once you're done with it.
-
 ## Cutting a public release
 
-`.github/workflows/release-android.yml` is the one workflow that
-publishes anywhere public — everything above (Firebase App Distribution,
-the temporary artifact workflow) only ever reaches invited testers or a
-signed-in GitHub account digging through Actions runs. It's manual-only
-(**Actions → Release → Run workflow**) and, given a version like `1.0.0`
-(or a blank input, which reuses whatever version is already in
-`package.json` — the right choice for the first release):
+`.github/workflows/release.yml` is the one workflow that publishes
+anywhere public — everything above (Firebase App Distribution) only ever
+reaches invited testers. It's manual-only (**Actions → Release → Run
+workflow**) and, given a version like `1.0.0` (or a blank input, which
+reuses whatever version is already in `package.json` — the right choice
+for the first release):
 
 1. Validates the version and checks a `vX.Y.Z` tag doesn't already exist.
 2. Writes that version into `package.json`, `package-lock.json`, and
    `android/app/build.gradle`'s `versionName`/`versionCode` (derived
    deterministically from the semver: `major*10000 + minor*100 + patch`).
-3. Runs the web test suite, builds the Android bundle, and builds a
-   **signed** release APK — signing is required here (unlike
-   `android-build.yml`'s optional signing for internal testing), since an
-   unsigned APK can't be installed at all and this release is public.
-4. Only once that build has actually succeeded, commits the version bump
-   to `main` and pushes it. This also triggers `deploy.yml` (push to
-   `main`), so the next GitHub Pages deploy carries the same version — see
+3. Runs the web test suite, builds the plain web app (for GitHub Pages)
+   and the Android bundle, and builds a **signed** release APK — signing
+   is required here (unlike `android-build.yml`'s optional signing for
+   internal testing), since an unsigned APK can't be installed at all and
+   this release is public.
+4. Only once both builds have actually succeeded, it publishes
+   everything: commits the version bump to `main` and pushes it, publishes
+   a GitHub Release tagged `vX.Y.Z` with the matching
+   [`CHANGELOG.md`](../../CHANGELOG.md) section (`## [X.Y.Z]` up to the
+   next version heading) as the release notes and the signed APK attached
+   directly (as a plain file, not zipped, not through
+   `actions/upload-artifact`), and redeploys GitHub Pages from the same
+   build — all in the same run, so the Android release and the live site
+   always carry the same version. See
    [`docs/DEVELOPMENT.md`](../DEVELOPMENT.md) → "Keeping the web and
    Android releases in sync".
-5. Publishes a GitHub Release tagged `vX.Y.Z` with the matching
-   [`CHANGELOG.md`](../../CHANGELOG.md) section (`## [X.Y.Z]` up to the
-   next version heading) as the release notes, and the signed APK
-   attached directly — as a plain file, not zipped, not through
-   `actions/upload-artifact`.
 
 Requires the same `ANDROID_KEYSTORE_BASE64`/`ANDROID_KEYSTORE_PASSWORD`/
 `ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD` secrets as `android-build.yml`

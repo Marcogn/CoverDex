@@ -1,7 +1,15 @@
-name: PR Check
+name: CI
+
+# Validation only — no deployment, no publishing. Runs the web test suite
+# and a production build check on every pull request against `main`, and
+# on pushes to `main` itself (including the version-bump commit that
+# release.yml pushes there). See release.yml for the workflow that
+# actually ships anything.
 
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 
 jobs:

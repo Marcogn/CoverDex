@@ -9,10 +9,11 @@ For a broader snapshot of what's implemented versus still open, see
 
 - **Promote `.github/workflows/android-build.yml` from manual-dispatch to
   automatic on merge to `main`.** Currently triggers only on
-  `workflow_dispatch` and pushes to the Android development branch, once
+  `workflow_dispatch` and pushes to the Android development branch; once
   the Android build has proven stable over a few iterations (no flaky
   Gradle/signing failures) this should switch to running on every push to
-  `main`, mirroring `deploy.yml`.
+  `main`, so an internal test build via Firebase App Distribution is
+  always available without waiting for a manual trigger.
 - **Play Store submission.** Explicitly out of scope for the initial
   Capacitor integration — CI produces a signed APK/AAB and distributes the
   APK only to invited testers via Firebase App Distribution (see

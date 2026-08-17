@@ -37,25 +37,21 @@ VITE_BASE_URL=/CoverDex/ npm run build
 
 ## GitHub Pages deployment
 
+GitHub Pages is **not** deployed automatically on every push to `main`.
+It deploys only as part of cutting a release — see "Keeping the web and
+Android releases in sync" below. This is a deliberate choice: it keeps
+the live site's version number meaningful (it always matches a tagged
+release, web and Android alike) instead of drifting on every merge.
+
 ### One-time setup
 
-1. Go to repo Settings → Pages → Source: GitHub Actions.
-2. Push to `main` — `.github/workflows/deploy.yml` handles everything
-   automatically. No variables, no branch configuration needed.
+Go to repo Settings → Pages → Source: GitHub Actions. No variables, no
+branch configuration needed — `.github/workflows/release.yml` (see below)
+handles the rest.
 
 ### URL
 
 https://marcogn.github.io/CoverDex/
-
-### What happens on deploy
-
-- The workflow runs: `test` → `build` → `deploy`.
-- GitHub Pages may take 1–2 minutes to become live after the first deploy.
-- The PWA cache populates on first browser visit (the PokéAPI data fetch
-  described in `ARCHITECTURE.md`).
-- Every push to `main` redeploys automatically, so Pages always reflects
-  the latest `main` — including any version bump that lands there (see
-  "Keeping the web and Android releases in sync" below).
 
 ### Local preview of a production build
 
@@ -76,10 +72,14 @@ correctly.
 ## Keeping the web and Android releases in sync
 
 CoverDex ships from one `package.json` version, read by both build
-targets. `.github/workflows/release-android.yml` (manual-dispatch only —
-see [`docs/android/BUILD.md`](android/BUILD.md)) bumps that version,
-commits the bump to `main`, tags it, and builds/publishes the signed
-APK as a GitHub Release. Because that commit lands on `main`, it also
-triggers `deploy.yml` automatically — so a new Android release and the
-next GitHub Pages deploy always carry the same version number, without
-a separate manual step.
+targets. `.github/workflows/release.yml` (manual-dispatch only — see
+[`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a public release")
+is the single workflow that publishes anything public: given a version,
+it bumps `package.json`/`android/app/build.gradle`, runs the test suite,
+builds and publishes the signed Android release as a GitHub Release, and
+in the same run redeploys GitHub Pages from the same checkout — so a
+new Android release and the GitHub Pages deploy always carry the same
+version number, published together, with nothing left to drift between
+them. `.github/workflows/ci.yml` is the separate, non-publishing workflow
+that just validates every PR and push to `main` (tests + a production
+build check).

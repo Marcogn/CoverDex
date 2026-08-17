@@ -1,11 +1,15 @@
 name: Android Build
 
-# Builds the Capacitor Android app (signed release APK + AAB on every push
-# to the Android dev branch or on demand; a debug APK only ever on-demand,
-# see the debug-build job below). Separate from deploy.yml (web PWA) on
-# purpose — see CLAUDE.md "Android platform". Not enabled on `main` pushes
-# yet: this is a manual/iterative pipeline until the Android build has
-# proven stable (see ROADMAP.md).
+# Internal-testing pipeline: builds the Capacitor Android app (signed
+# release APK + AAB on every push to the Android dev branch or on demand;
+# a debug APK only ever on-demand, see the debug-build job below) and
+# distributes both to invited testers via Firebase App Distribution. This
+# is deliberately separate from release.yml, which is the path to a
+# *public* release (GitHub Release + Pages deploy) — use this workflow to
+# validate a build with testers first, then release.yml to actually ship
+# it. See CLAUDE.md "Android platform" and docs/android/BUILD.md. Not
+# enabled on `main` pushes yet: this is a manual/iterative pipeline until
+# the Android build has proven stable (see ROADMAP.md).
 #
 # This repo is public. actions/upload-artifact is NEVER used for any
 # APK/AAB here — Actions artifacts are downloadable by any signed-in GitHub
@@ -25,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # @capacitor/cli 8.x requires Node >=22 (`cap sync` fails on 20, which
-      # is what deploy.yml/pr-check.yml still use for the web-only pipeline).
+      # is what ci.yml still uses for the web-only pipeline).
       - uses: actions/setup-node@v4
         with:
           node-version: 22
