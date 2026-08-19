@@ -1,10 +1,12 @@
 name: Release
 
 # Cuts a public release, end to end: builds a signed Android release APK,
-# publishes it as a GitHub Release with the CHANGELOG.md entry for that
-# version as the release notes, AND deploys the same version of the web
-# app to GitHub Pages — all in one run, so the Android release and the
-# live site are always on the same version. Manual-dispatch only.
+# publishes it as a GitHub Release with the CHANGELOG.md entry's
+# significant-change highlights for that version as the release notes
+# (never the full entry — see CLAUDE.md's "Changelog Entries" section for
+# the bullet convention this depends on), AND deploys the same version of
+# the web app to GitHub Pages — all in one run, so the Android release and
+# the live site are always on the same version. Manual-dispatch only.
 #
 # The release version is READ from package.json's "version" field, never
 # written by this workflow — `main` requires pull requests (see repo
@@ -160,11 +162,30 @@ jobs:
         working-directory: android
         run: rm -f release.keystore keystore.properties
 
-      - name: Extract changelog section
+      # Release notes are always just the significant-change highlights for
+      # this version, never the full changelog text. CLAUDE.md's
+      # "Changelog Entries" convention requires every version section to
+      # lead with flat "- **One-line summary.** ..." bullets, so this is a
+      # straight pull of those bold lead-ins (or, for a bullet with no bold
+      # lead-in, its first sentence) — there is no length-based judgment
+      # call. A section written with no bulleted highlights at all (only
+      # this project's initial [1.0.0] prose entry, predating the
+      # convention) falls back to publishing the whole section as-is — a
+      # structural fallback for a section with nothing to extract, not a
+      # size cutoff. Either way a link back to this file's matching section
+      # is always appended, using GitHub's own heading-anchor slug
+      # algorithm (lowercase; drop anything that isn't a-z/0-9/space/
+      # underscore/hyphen; spaces to hyphens — this is what turns "[1.0.0]"
+      # into "100", dropping the brackets and periods rather than hyphenating
+      # them).
+      - name: Extract changelog highlights
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          SECTION_FILE="$RUNNER_TEMP/changelog-section.md"
+          REPO_URL="https://github.com/${{ github.repository }}"
+          CHANGELOG_URL="$REPO_URL/blob/main/CHANGELOG.md"
 
           awk -v prefix="## [$VERSION]" '
             index($0, "## [") == 1 {
@@ -173,10 +194,53 @@ jobs:
               next
             }
             found { print }
-          ' CHANGELOG.md > "$NOTES_FILE"
+          ' CHANGELOG.md > "$SECTION_FILE"
 
-          if [ ! -s "$NOTES_FILE" ]; then
-            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) and [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for what's in this release." > "$NOTES_FILE"
+          if [ ! -s "$SECTION_FILE" ]; then
+            echo "See [CHANGELOG.md]($CHANGELOG_URL) and [README.md]($REPO_URL/blob/main/README.md) for what's in this release." > "$NOTES_FILE"
+          else
+            SLUG=$(printf '[%s]' "$VERSION" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9 _-]//g' | tr ' ' '-')
+            SECTION_LINK="$CHANGELOG_URL#$SLUG"
+
+            HIGHLIGHTS=$(awk '
+              function flush() {
+                if (buf == "") return
+                if (buf ~ /^\*\*/) {
+                  match(buf, /^\*\*[^*]+\*\*/)
+                  out = substr(buf, RSTART, RLENGTH)
+                } else {
+                  out = buf
+                  n = length(buf)
+                  for (i = 1; i <= n - 2; i++) {
+                    if (substr(buf, i, 1) == "." && substr(buf, i + 1, 1) == " " && substr(buf, i + 2, 1) ~ /[A-Z]/) {
+                      out = substr(buf, 1, i)
+                      break
+                    }
+                  }
+                }
+                print "- " out
+                buf = ""
+              }
+              /^- / { flush(); sub(/^- /, "", $0); buf = $0; next }
+              /^[[:space:]]*$/ { flush(); next }
+              /^  - / { next }
+              /^  / { line = $0; sub(/^  +/, "", line); if (buf != "") buf = buf " " line; next }
+              { flush() }
+              END { flush() }
+            ' "$SECTION_FILE")
+
+            if [ -n "$HIGHLIGHTS" ]; then
+              {
+                printf '%s\n\n' "$HIGHLIGHTS"
+                printf 'See [CHANGELOG.md](%s) for the full write-up.\n' "$SECTION_LINK"
+              } > "$NOTES_FILE"
+            else
+              {
+                cat "$SECTION_FILE"
+                echo
+                printf 'See [CHANGELOG.md](%s) for the full write-up.\n' "$SECTION_LINK"
+              } > "$NOTES_FILE"
+            fi
           fi
 
           echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"

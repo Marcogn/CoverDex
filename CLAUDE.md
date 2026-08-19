@@ -183,6 +183,28 @@ placeholder move with `isCustom: true`, `damageClass: 'status'`,
 the returned `unknownMoveNames` list so the caller can flag the slot
 for manual completion. The block is still imported.
 
+## Changelog Entries
+
+`CHANGELOG.md` is one entry per release, added in the same PR that
+bumps `package.json`'s `version` (see "What NOT to Change Without
+Discussion" below). Every version section leads with a flat list of
+top-level bullets — one bold lead-in per significant, user-facing
+change, e.g. `- **One-line summary.** further detail...` — before any
+other prose. Keep the bold span itself short and skimmable; put
+elaboration after it, not inside it.
+
+This isn't just style: `.github/workflows/release.yml`'s "Extract
+changelog highlights" step pulls exactly those bold lead-ins (or, for a
+bullet with no bold lead-in, its first sentence) straight into the
+GitHub Release body, followed by a link back to this file's matching
+section — never the full section text, and never trimmed by an
+arbitrary character/line-count cutoff. A version written with no
+bulleted highlights at all falls back to publishing the whole section
+verbatim instead (a structural fallback for a section with nothing to
+extract from, not a size-based judgment call) — the only entry that
+currently hits this fallback is the initial `[1.0.0]` prose entry,
+written before this convention existed.
+
 ## What NOT to Change Without Discussion
 
 - The persisted-data schema (`AppState`/`teamdex_userdata` and the
