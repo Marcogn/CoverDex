@@ -6,6 +6,14 @@ name: Release
 # app to GitHub Pages — all in one run, so the Android release and the
 # live site are always on the same version. Manual-dispatch only.
 #
+# The release notes come from that CHANGELOG.md section verbatim only
+# when it's short. Past a size threshold (see "Extract changelog section"
+# below) the full text is replaced with just its "### " subsection
+# headings (or top-level "- **bold**" bullets, for a version with no
+# subsections) plus a link back to CHANGELOG.md — a huge release body is
+# unreadable on the GitHub Releases page, and the full write-up is
+# already versioned in the repo.
+#
 # The release version is READ from package.json's "version" field, never
 # written by this workflow — `main` requires pull requests (see repo
 # Settings -> Branches), and a workflow that never needs to commit
@@ -165,6 +173,8 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          SECTION_FILE="$RUNNER_TEMP/changelog-section.md"
+          CHANGELOG_URL="https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md"
 
           awk -v prefix="## [$VERSION]" '
             index($0, "## [") == 1 {
@@ -173,10 +183,25 @@ jobs:
               next
             }
             found { print }
-          ' CHANGELOG.md > "$NOTES_FILE"
+          ' CHANGELOG.md > "$SECTION_FILE"
 
-          if [ ! -s "$NOTES_FILE" ]; then
-            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) and [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for what's in this release." > "$NOTES_FILE"
+          if [ ! -s "$SECTION_FILE" ]; then
+            echo "See [CHANGELOG.md]($CHANGELOG_URL) and [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for what's in this release." > "$NOTES_FILE"
+          elif [ "$(wc -c < "$SECTION_FILE")" -le 1500 ]; then
+            cp "$SECTION_FILE" "$NOTES_FILE"
+          else
+            # Too long for a release body: keep only the highlight lines
+            # (Keep-a-Changelog-style "### Added"/"### Fixed" subsection
+            # headings, or top-level "- **bold**" bullets when a version
+            # has no subsections) and point to CHANGELOG.md for the rest.
+            HIGHLIGHTS=$(grep -E '^(### |- \*\*)' "$SECTION_FILE" | sed -E 's/^### (.*)$/- \1/')
+            if [ -z "$HIGHLIGHTS" ]; then
+              HIGHLIGHTS=$(awk 'BEGIN{p=0} /^[[:space:]]*$/{if(p)exit; next} {print; p=1}' "$SECTION_FILE")
+            fi
+            {
+              printf '%s\n\n' "$HIGHLIGHTS"
+              printf 'See [CHANGELOG.md](%s) for the full write-up.\n' "$CHANGELOG_URL"
+            } > "$NOTES_FILE"
           fi
 
           echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
