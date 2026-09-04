@@ -4,6 +4,7 @@ import com.marcogn.coverdex.domain.coverage.TeamCoverage
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.model.TypeChart
+import com.marcogn.coverdex.domain.suggestion.Suggestion
 
 data class AnalysisUiState(
     /** The team's filled slots, with moves cleared when [showMoves] is off — `analyseTeam` and
@@ -16,12 +17,16 @@ data class AnalysisUiState(
     val sharedWeaknesses: List<Pair<PokemonType, Int>> = emptyList(),
     val showMoves: Boolean = false,
     val roster: List<TeamMember> = emptyList(),
-    /** Unused by anything in this phase — the Suggestions section is a placeholder until Phase 4
-     * wires the actual computation — but combined into state now per
-     * `phase-3-analysis.md`'s own description of `AnalysisViewModel`, so Phase 4 only adds a
-     * computation, not a state-shape change. */
+    /** Every ranked suggestion from `computeSuggestions` — the screen displays only the first
+     * five (`phase-4-suggestions-and-generator.md` §4), kept unsliced here so a future caller
+     * (e.g. a "show more" affordance) is not blocked on a state-shape change. */
+    val suggestions: List<Suggestion> = emptyList(),
     val includeCustomsAnalysis: Boolean = false,
-    val generationFilter: String = "all",
+    val excludeLegendaries: Boolean = false,
+    /** `null` means "all generations" — a real generation number (1-9) otherwise. See
+     * `domain/suggestion/SuggestionEngine.kt`'s doc comment for why this is a number, not the
+     * TypeScript's id-range key. */
+    val generationFilter: Int? = null,
 ) {
     val canAnalyse: Boolean get() = members.isNotEmpty()
 }

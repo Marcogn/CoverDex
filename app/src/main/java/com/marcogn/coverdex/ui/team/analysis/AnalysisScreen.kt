@@ -135,14 +135,30 @@ fun AnalysisScreen(modifier: Modifier = Modifier, viewModel: AnalysisViewModel =
             }
         }
 
-        // Section 7 — suggestions (Phase 4).
+        // Section 7 — suggestions.
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionTitle(stringResource(R.string.analysis_suggestions))
-            Text(
-                stringResource(R.string.analysis_suggestions_placeholder),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            SuggestionFilters(
+                generation = state.generationFilter,
+                onGenerationChange = viewModel::setGenerationFilter,
+                includeCustoms = state.includeCustomsAnalysis,
+                onIncludeCustomsChange = viewModel::setIncludeCustomsAnalysis,
+                excludeLegendaries = state.excludeLegendaries,
+                onExcludeLegendariesChange = viewModel::setExcludeLegendaries,
             )
+            if (state.suggestions.isEmpty()) {
+                Text(
+                    stringResource(R.string.suggestions_no_suggestions),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.suggestions.take(5).forEach { suggestion ->
+                        SuggestionCard(suggestion = suggestion, onApply = viewModel::applySuggestion)
+                    }
+                }
+            }
         }
     }
 }

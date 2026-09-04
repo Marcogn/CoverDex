@@ -9,10 +9,13 @@ import com.marcogn.coverdex.data.repository.CustomPokemonRepositoryImpl
 import com.marcogn.coverdex.data.repository.TeamRepositoryImpl
 import com.marcogn.coverdex.data.settings.ThemePreferences
 import com.marcogn.coverdex.domain.model.DamageClass
+import com.marcogn.coverdex.domain.model.PokemonEntry
 import com.marcogn.coverdex.domain.model.PokemonMove
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
+import com.marcogn.coverdex.domain.mockPokemonList
 import com.marcogn.coverdex.domain.mockTypeChart
+import com.marcogn.coverdex.domain.suggestion.Suggestion
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -59,10 +62,10 @@ class AnalysisViewModelTest {
         database.close()
     }
 
-    private fun viewModel(teamId: String) = AnalysisViewModel(
+    private fun viewModel(teamId: String, pool: List<PokemonEntry> = emptyList()) = AnalysisViewModel(
         savedStateHandle = SavedStateHandle(mapOf("teamId" to teamId)),
         teamRepository = teamRepository,
-        pokedexRepository = FakePokedexRepository(chart),
+        pokedexRepository = FakePokedexRepository(chart, pool = pool),
         customPokemonRepository = customPokemonRepository,
         themePreferences = themePreferences,
     )
@@ -120,5 +123,47 @@ class AnalysisViewModelTest {
         teamRepository.saveMember(teamId, 0, waterFlyingWithElectricMove())
         val filled = viewModel(teamId).uiState.first { it.members.isNotEmpty() }
         assertTrue(filled.canAnalyse)
+    }
+
+    @Test
+    fun `suggestions are computed from the catalogue and respect the generation filter`() = runTest(mainDispatcherRule.dispatcher) {
+        themePreferences.setShowMoves(false)
+        val teamId = teamRepository.createTeam("T4")
+        val pikachu = TeamMember(
+            id = "m1", pokedexId = 25, speciesName = "Pikachu",
+            types = PokemonType.ELECTRIC to null, ability = null,
+            moves = List(4) { null }, isCustomSaved = false,
+        )
+        teamRepository.saveMember(teamId, 0, pikachu)
+
+        val vm = viewModel(teamId, pool = mockPokemonList())
+        val unfiltered = vm.uiState.first { it.suggestions.isNotEmpty() }
+        assertTrue(unfiltered.suggestions.all { it.kind == Suggestion.Kind.ADD })
+
+        vm.setGenerationFilter(4)
+        val gen4 = vm.uiState.first { it.generationFilter == 4 }
+        assertEquals(listOf("Garchomp"), gen4.suggestions.map { it.candidateLabel })
+    }
+
+    @Test
+    fun `applySuggestion in addition mode writes the candidate into the first empty slot`() = runTest(mainDispatcherRule.dispatcher) {
+        themePreferences.setShowMoves(false)
+        val teamId = teamRepository.createTeam("T5")
+        val pikachu = TeamMember(
+            id = "m1", pokedexId = 25, speciesName = "Pikachu",
+            types = PokemonType.ELECTRIC to null, ability = null,
+            moves = List(4) { null }, isCustomSaved = false,
+        )
+        teamRepository.saveMember(teamId, 0, pikachu)
+
+        val vm = viewModel(teamId, pool = mockPokemonList())
+        val state = vm.uiState.first { it.suggestions.isNotEmpty() }
+        val top = state.suggestions.first()
+
+        vm.applySuggestion(top)
+
+        val updatedTeam = teamRepository.team(teamId).first { it?.members?.getOrNull(1) != null }!!
+        assertEquals(top.candidateLabel, updatedTeam.members[1]?.speciesName)
+        assertEquals(top.types, updatedTeam.members[1]?.types)
     }
 }

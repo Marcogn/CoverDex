@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.flowOf
 class FakePokedexRepository(
     private val chart: TypeChart,
     isUsable: Boolean = true,
+    private val pool: List<PokemonEntry> = emptyList(),
 ) : PokedexRepository {
 
     override val cacheStatus: Flow<CacheStatus> = MutableStateFlow(
@@ -31,8 +32,8 @@ class FakePokedexRepository(
     override fun searchSpecies(query: String, limit: Int?): Flow<List<PokemonEntry>> = flowOf(emptyList())
     override fun searchMoves(query: String): Flow<List<MoveEntry>> = flowOf(emptyList())
     override fun searchAbilities(query: String): Flow<List<AbilityEntry>> = flowOf(emptyList())
-    override suspend fun speciesById(id: Int): PokemonEntry? = null
-    override suspend fun speciesByName(name: String): PokemonEntry? = null
-    override suspend fun allSpecies(): List<PokemonEntry> = emptyList()
+    override suspend fun speciesById(id: Int): PokemonEntry? = pool.find { it.id == id }
+    override suspend fun speciesByName(name: String): PokemonEntry? = pool.find { it.name == name }
+    override suspend fun allSpecies(): List<PokemonEntry> = pool
     override suspend fun typeChart(): TypeChart = chart
 }
