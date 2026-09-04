@@ -281,3 +281,44 @@ the way this session briefly did:
   factory)`), which is required anyway once a future phase introduces an
   `@AutoMigration`. `Migration1To2Test` uses the class-based constructor
   from the start rather than deferring the fix.
+- **A new custom move defaults to `type = NORMAL`, `damageClass = PHYSICAL`,
+  not `damageClass = STATUS`** as `phase-2-teams-and-roster.md`'s own prose
+  says ("becomes `isCustom = true`, `damageClass = STATUS`, `power = null`").
+  That line does not match `legacy-web`'s actual, executable behaviour:
+  `MoveSlot.tsx`'s custom-move `onChange` builds
+  `{ type: move?.type ?? 'normal', power: move?.power ?? null, damageClass:
+  move?.damageClass ?? 'physical', isCustom: true }` — for a brand-new
+  custom move, `move` is `null`, so every one of those `??` fallbacks
+  fires: `'normal'`, `null`, `'physical'`. Per `docs/plan/README.md`'s own
+  rule ("when the Kotlin and the TypeScript disagree ... the TypeScript is
+  right unless this plan explicitly says otherwise" — and this is a
+  paraphrase slip, not a stated intentional deviation), the code wins. Only
+  `power = null` from the plan's prose survives; `type` and `damageClass`
+  follow `legacy-web` instead. There is nowhere in the domain model to
+  encode "no move yet" versus "a move with defaults" separately from
+  `PokemonMove` itself, so this only matters at the moment a slot's
+  move-picker text field goes from empty to non-empty with no cached match
+  — precisely the case `MoveSlot.tsx` handles this way.
+- **Team and roster entity mappers (`TeamMappers.kt`) fall back to a
+  default value on an unrecognized `type`/`damageClass` string instead of
+  returning `null` and dropping the row**, unlike `PokedexRepositoryImpl`'s
+  cache mappers (`Mappers.kt`), which do drop a bad cache row. The cache is
+  re-downloadable — a corrupt row is just re-synced away — but a team or a
+  roster entry is the user's own irreplaceable data, written exclusively by
+  this app's own code (never parsed from an external, occasionally-bad
+  source like PokéAPI's CSVs). `parseType`/`parseDamageClass` should never
+  actually hit their fallback branch in practice; the fallback exists so a
+  future bug in the write path degrades a slot's display rather than
+  silently deleting the user's team. Asserted directly in
+  `TeamMappersTest`.
+- **`TeamDao`/`CustomPokemonDao` get a real column-list `UPDATE` for rename
+  (`TeamDao.renameTeam`) and edit (`CustomPokemonDao.updateFields`)**,
+  instead of reusing the generic `@Update`-on-the-whole-entity that
+  `upsertTeam`/`upsert` already had. Both `TeamEntity.position` (list
+  order) and `CustomPokemonEntity.createdAtEpochMillis` (roster sort order)
+  must survive an edit unchanged, and the repository has no reason to read
+  the existing row first just to copy those two columns forward — a
+  column-list `UPDATE` that never mentions them is simpler and cannot
+  regress by a future caller forgetting to carry them over. Asserted
+  directly: `CustomPokemonDaoTest`'s "editing an entry's name does not
+  reset its creation time".

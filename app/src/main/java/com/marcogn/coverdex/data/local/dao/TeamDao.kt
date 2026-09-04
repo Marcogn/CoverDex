@@ -34,6 +34,11 @@ interface TeamDao {
     @Update
     suspend fun updateTeam(team: TeamEntity)
 
+    /** A column-list `UPDATE`, not `@Update` on the whole entity — renaming a team must never
+     * disturb its `position` (list order) or `createdAtEpochMillis`. */
+    @Query("UPDATE team SET name = :name WHERE id = :id")
+    suspend fun renameTeam(id: String, name: String)
+
     /**
      * `@Insert(onConflict = REPLACE)` here would delete-then-reinsert an existing row, cascading
      * through `team_member`'s `ON DELETE CASCADE` and wiping every member (and their moves) on

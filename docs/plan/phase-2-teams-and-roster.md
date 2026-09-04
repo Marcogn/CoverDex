@@ -113,9 +113,13 @@ Editing a slot opens a slot editor with:
   accepted.
 - **Move slots** — four searchable move pickers. Selecting a cached move
   fills type, power and damage class. A move the user types that is not in
-  the cache becomes `isCustom = true`, `damageClass = STATUS`, `power = null`,
-  and the editor exposes type / power / damage-class fields so the user can
-  complete it — same as the PWA's `MoveSlot`.
+  the cache becomes `isCustom = true`, `type = NORMAL`, `damageClass =
+  PHYSICAL`, `power = null` — matching the PWA's `MoveSlot` exactly (its
+  custom-move handler is `type: move?.type ?? 'normal', damageClass:
+  move?.damageClass ?? 'physical'`; an earlier draft of this line said
+  `STATUS`, which was a paraphrase error — see
+  `docs/implementation-decisions.md`, "Phase 2"), and the editor exposes
+  type / power / damage-class fields so the user can complete it.
 - **Save to roster** — writes the slot's Pokémon into `custom_pokemon` and
   sets `isCustomSaved`.
 

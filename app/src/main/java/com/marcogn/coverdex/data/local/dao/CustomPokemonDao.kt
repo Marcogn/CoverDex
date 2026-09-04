@@ -24,8 +24,14 @@ interface CustomPokemonDao {
     @Insert
     suspend fun insert(entity: CustomPokemonEntity)
 
-    @Update
-    suspend fun update(entity: CustomPokemonEntity)
+    /** A real column-list `UPDATE`, not `@Update` on the whole entity — `entity.createdAtEpochMillis`
+     * is deliberately never part of it, so editing a roster entry can never reset its creation
+     * time (and so its place in `observeRoster()`'s `ORDER BY createdAtEpochMillis`). */
+    @Query(
+        "UPDATE custom_pokemon SET name = :name, type1 = :type1, type2 = :type2, ability = :ability " +
+            "WHERE id = :id",
+    )
+    suspend fun updateFields(id: String, name: String, type1: String, type2: String?, ability: String?)
 
     @Query("DELETE FROM custom_pokemon_move WHERE customId = :customId")
     suspend fun deleteMovesForCustom(customId: String)
@@ -39,7 +45,11 @@ interface CustomPokemonDao {
      * never reintroduce the cascade-wipe bug by forgetting to rewrite them. */
     @Transaction
     suspend fun upsert(entity: CustomPokemonEntity, moves: List<CustomPokemonMoveEntity>) {
-        if (exists(entity.id)) update(entity) else insert(entity)
+        if (exists(entity.id)) {
+            updateFields(entity.id, entity.name, entity.type1, entity.type2, entity.ability)
+        } else {
+            insert(entity)
+        }
         deleteMovesForCustom(entity.id)
         insertMoves(moves)
     }
