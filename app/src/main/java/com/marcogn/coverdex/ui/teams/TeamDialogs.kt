@@ -32,7 +32,7 @@ fun TeamNameDialog(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.teams_team_name_label)) },
+                label = { Text(stringResource(R.string.common_name_label)) },
                 singleLine = true,
             )
         },

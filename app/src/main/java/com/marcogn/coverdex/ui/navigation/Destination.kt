@@ -17,6 +17,10 @@ sealed interface Destination {
     @Serializable
     data object Roster : Destination
 
+    /** [customId] is `null` for creating a brand-new roster entry. */
+    @Serializable
+    data class RosterEditor(val customId: String?) : Destination
+
     @Serializable
     data object Settings : Destination
 }

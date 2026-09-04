@@ -5,6 +5,7 @@
     <!-- Comuni / condivise fra più schermate -->
     <string name="cd_menu">Menu</string>
     <string name="cd_back">Indietro</string>
+    <string name="common_name_label">Nome</string>
     <string name="action_cancel">Annulla</string>
     <string name="action_confirm">Conferma</string>
 
@@ -50,7 +51,6 @@
     <string name="teams_member_count">%1$d/6</string>
     <string name="teams_new_team_title">Nuovo team</string>
     <string name="teams_rename_team_title">Rinomina team</string>
-    <string name="teams_team_name_label">Nome</string>
     <string name="teams_action_rename">Rinomina</string>
     <string name="teams_action_delete">Elimina</string>
     <string name="teams_more_actions">Altre azioni</string>
@@ -85,6 +85,9 @@
     <string name="roster_title">Pokémon Custom</string>
     <string name="roster_empty_title">Nessun Pokémon custom</string>
     <string name="roster_empty_subtitle">Nessun Pokémon custom salvato.</string>
+    <string name="roster_new_title">Aggiungi Pokémon custom</string>
+    <string name="roster_edit_title">Modifica Pokémon custom</string>
+    <string name="roster_action_delete">Elimina</string>
 
     <!-- Impostazioni -->
     <string name="settings_title">Impostazioni</string>

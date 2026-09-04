@@ -5,6 +5,7 @@
     <!-- Shared across multiple screens -->
     <string name="cd_menu">Menu</string>
     <string name="cd_back">Back</string>
+    <string name="common_name_label">Name</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_confirm">Confirm</string>
 
@@ -50,7 +51,6 @@
     <string name="teams_member_count">%1$d/6</string>
     <string name="teams_new_team_title">New team</string>
     <string name="teams_rename_team_title">Rename team</string>
-    <string name="teams_team_name_label">Name</string>
     <string name="teams_action_rename">Rename</string>
     <string name="teams_action_delete">Delete</string>
     <string name="teams_more_actions">More actions</string>
@@ -85,6 +85,9 @@
     <string name="roster_title">Custom Pokémon</string>
     <string name="roster_empty_title">No custom Pokémon</string>
     <string name="roster_empty_subtitle">No custom Pokémon saved yet.</string>
+    <string name="roster_new_title">Add custom Pokémon</string>
+    <string name="roster_edit_title">Edit custom Pokémon</string>
+    <string name="roster_action_delete">Delete</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
