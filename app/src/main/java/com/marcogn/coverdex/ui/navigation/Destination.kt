@@ -23,4 +23,7 @@ sealed interface Destination {
 
     @Serializable
     data object Settings : Destination
+
+    @Serializable
+    data object SurpriseMe : Destination
 }
