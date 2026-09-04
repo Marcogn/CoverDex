@@ -4,6 +4,40 @@
 
     <!-- Shared across multiple screens -->
     <string name="cd_menu">Menu</string>
+    <string name="cd_back">Back</string>
+    <string name="common_name_label">Name</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+
+    <!-- SearchableDropdown -->
+    <string name="common_search_placeholder">Start typing to search…</string>
+    <string name="common_no_matches">No matches</string>
+    <string name="common_clear_selection">Clear selection</string>
+
+    <!-- Pokémon types -->
+    <string name="type_normal">Normal</string>
+    <string name="type_fighting">Fighting</string>
+    <string name="type_flying">Flying</string>
+    <string name="type_poison">Poison</string>
+    <string name="type_ground">Ground</string>
+    <string name="type_rock">Rock</string>
+    <string name="type_bug">Bug</string>
+    <string name="type_ghost">Ghost</string>
+    <string name="type_steel">Steel</string>
+    <string name="type_fire">Fire</string>
+    <string name="type_water">Water</string>
+    <string name="type_grass">Grass</string>
+    <string name="type_electric">Electric</string>
+    <string name="type_psychic">Psychic</string>
+    <string name="type_ice">Ice</string>
+    <string name="type_dragon">Dragon</string>
+    <string name="type_dark">Dark</string>
+    <string name="type_fairy">Fairy</string>
+
+    <!-- Move damage categories -->
+    <string name="damage_class_physical">Physical</string>
+    <string name="damage_class_special">Special</string>
+    <string name="damage_class_status">Status</string>
 
     <!-- Navigation drawer -->
     <string name="drawer_teams">Your Teams</string>
@@ -14,11 +48,46 @@
     <string name="teams_title">Your Teams</string>
     <string name="teams_empty_title">No teams yet</string>
     <string name="teams_empty_subtitle">Your teams will appear here once you start building them.</string>
+    <string name="teams_member_count">%1$d/6</string>
+    <string name="teams_new_team_title">New team</string>
+    <string name="teams_rename_team_title">Rename team</string>
+    <string name="teams_action_rename">Rename</string>
+    <string name="teams_action_delete">Delete</string>
+    <string name="teams_more_actions">More actions</string>
+    <string name="teams_delete_title">Delete team</string>
+    <string name="teams_delete_message">The team \"%1$s\" will be deleted and cannot be recovered.</string>
+
+    <!-- Team detail -->
+    <string name="team_detail_pokemon_tab">Pokémon</string>
+    <string name="team_detail_analysis_tab">Analysis</string>
+    <string name="team_detail_enable_moves">Enable move slots</string>
+    <string name="team_detail_analysis_placeholder_title">Coming soon</string>
+    <string name="team_detail_analysis_placeholder_subtitle">Coverage analysis arrives in a later phase.</string>
+
+    <!-- Slot editor -->
+    <string name="slot_editor_title">Slot %1$d</string>
+    <string name="slot_species_placeholder">Choose Pokémon…</string>
+    <string name="slot_empty">Empty slot</string>
+    <string name="slot_type1_label">Type 1</string>
+    <string name="slot_type2_label">Type 2</string>
+    <string name="slot_type_none">None</string>
+    <string name="slot_ability_label">Ability</string>
+    <string name="slot_moves_title">Moves</string>
+    <string name="slot_move_pick_placeholder">Pick or type a move…</string>
+    <string name="slot_move_custom_name_placeholder">Custom move name</string>
+    <string name="slot_move_type_label">Type</string>
+    <string name="slot_move_power_label">Power</string>
+    <string name="slot_move_damage_class_label">Category</string>
+    <string name="slot_save_to_roster">Save as custom</string>
+    <string name="slot_clear">Clear slot</string>
 
     <!-- Custom Pokémon -->
     <string name="roster_title">Custom Pokémon</string>
     <string name="roster_empty_title">No custom Pokémon</string>
     <string name="roster_empty_subtitle">No custom Pokémon saved yet.</string>
+    <string name="roster_new_title">Add custom Pokémon</string>
+    <string name="roster_edit_title">Edit custom Pokémon</string>
+    <string name="roster_action_delete">Delete</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -30,4 +99,26 @@
     <string name="settings_language_system">System default</string>
     <string name="settings_language_italian">Italian</string>
     <string name="settings_language_english">English</string>
+
+    <!-- Settings > Data -->
+    <string name="settings_section_data">Data</string>
+    <string name="settings_data_not_synced">Data not downloaded yet.</string>
+    <!-- "Pokémon" is invariant in both languages; only the move count pluralizes. -->
+    <string name="settings_data_summary_one">%1$d Pokémon, %2$d move</string>
+    <string name="settings_data_summary_other">%1$d Pokémon, %2$d moves</string>
+    <string name="settings_data_synced_at">Synced: %1$s</string>
+    <string name="settings_data_revision">Dataset version: %1$s</string>
+    <string name="settings_data_sync_now">Redownload Pokémon data</string>
+    <string name="settings_data_clear">Clear cached data</string>
+    <string name="settings_data_clear_confirm_title">Clear Pokémon data?</string>
+    <string name="settings_data_clear_confirm_message">Data will be re-downloaded on the next sync. Your teams are not affected.</string>
+    <string name="settings_data_syncing">Downloading… (%1$s)</string>
+    <string name="settings_data_sync_failed">Last refresh failed: %1$s</string>
+    <string name="settings_data_retry">Retry</string>
+
+    <string name="sync_stage_downloading">Downloading</string>
+    <string name="sync_stage_parsing">Processing</string>
+    <string name="sync_stage_writing">Saving</string>
+
+    <string name="sync_banner_message">Syncing Pokémon data…</string>
 </resources>

@@ -1,0 +1,6 @@
+id,identifier,generation_id,evolves_from_species_id,evolution_chain_id,color_id,shape_id,habitat_id,gender_rate,capture_rate,base_happiness,is_baby,hatch_counter,has_gender_differences,growth_rate_id,forms_switchable,is_legendary,is_mythical,order,conquest_order
+1,bulbasaur,1,,1,5,8,3,1,45,70,0,20,0,4,0,0,0,1,
+2,ivysaur,1,1,1,5,8,3,1,45,70,0,20,0,4,0,0,0,2,
+144,articuno,1,,73,2,9,5,-1,3,35,0,80,0,1,0,1,0,176,192
+718,zygarde,6,,370,5,2,,-1,3,0,0,120,0,1,0,1,0,718,
+386,deoxys,3,,202,8,12,5,-1,3,0,0,120,0,1,1,0,1,416,

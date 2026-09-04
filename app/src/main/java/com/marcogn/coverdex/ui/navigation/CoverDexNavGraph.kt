@@ -25,9 +25,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.marcogn.coverdex.R
+import com.marcogn.coverdex.ui.roster.RosterEditorScreen
 import com.marcogn.coverdex.ui.roster.RosterScreen
 import com.marcogn.coverdex.ui.settings.SettingsScreen
+import com.marcogn.coverdex.ui.team.SlotEditorScreen
+import com.marcogn.coverdex.ui.team.TeamDetailScreen
 import com.marcogn.coverdex.ui.teams.TeamsScreen
 import kotlinx.coroutines.launch
 
@@ -100,17 +104,33 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
             startDestination = Destination.Teams,
         ) {
             composable<Destination.Teams> {
-                TeamsScreen(onMenuClick = onMenuClick)
+                TeamsScreen(
+                    onMenuClick = onMenuClick,
+                    onTeamSelected = { teamId -> navController.navigate(Destination.TeamDetail(teamId)) },
+                )
+            }
+            composable<Destination.TeamDetail> { backStackEntry ->
+                val route = backStackEntry.toRoute<Destination.TeamDetail>()
+                TeamDetailScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onSlotClick = { slotIndex -> navController.navigate(Destination.SlotEditor(route.teamId, slotIndex)) },
+                )
+            }
+            composable<Destination.SlotEditor> {
+                SlotEditorScreen(onBackClick = { navController.popBackStack() })
             }
             composable<Destination.Roster> {
-                RosterScreen(onMenuClick = onMenuClick)
+                RosterScreen(
+                    onMenuClick = onMenuClick,
+                    onEntrySelected = { customId -> navController.navigate(Destination.RosterEditor(customId)) },
+                )
+            }
+            composable<Destination.RosterEditor> {
+                RosterEditorScreen(onBackClick = { navController.popBackStack() })
             }
             composable<Destination.Settings> {
                 SettingsScreen(onMenuClick = onMenuClick)
             }
-            // Destination.TeamDetail has no route registered yet: nothing navigates to it until
-            // Phase 2 gives Teams real CRUD and a screen to show. The route type exists now so
-            // Phase 2 doesn't have to touch this graph's shape (docs/plan/phase-0-foundation.md).
         }
     }
 }

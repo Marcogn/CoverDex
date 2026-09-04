@@ -4,6 +4,40 @@
 
     <!-- Comuni / condivise fra più schermate -->
     <string name="cd_menu">Menu</string>
+    <string name="cd_back">Indietro</string>
+    <string name="common_name_label">Nome</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_confirm">Conferma</string>
+
+    <!-- SearchableDropdown -->
+    <string name="common_search_placeholder">Inizia a digitare per cercare…</string>
+    <string name="common_no_matches">Nessun risultato</string>
+    <string name="common_clear_selection">Rimuovi selezione</string>
+
+    <!-- Pokémon types (official Italian names, verified against Bulbapedia) -->
+    <string name="type_normal">Normale</string>
+    <string name="type_fighting">Lotta</string>
+    <string name="type_flying">Volante</string>
+    <string name="type_poison">Veleno</string>
+    <string name="type_ground">Terra</string>
+    <string name="type_rock">Roccia</string>
+    <string name="type_bug">Coleottero</string>
+    <string name="type_ghost">Spettro</string>
+    <string name="type_steel">Acciaio</string>
+    <string name="type_fire">Fuoco</string>
+    <string name="type_water">Acqua</string>
+    <string name="type_grass">Erba</string>
+    <string name="type_electric">Elettro</string>
+    <string name="type_psychic">Psico</string>
+    <string name="type_ice">Ghiaccio</string>
+    <string name="type_dragon">Drago</string>
+    <string name="type_dark">Buio</string>
+    <string name="type_fairy">Folletto</string>
+
+    <!-- Move damage categories -->
+    <string name="damage_class_physical">Fisica</string>
+    <string name="damage_class_special">Speciale</string>
+    <string name="damage_class_status">Stato</string>
 
     <!-- Cassetto di navigazione -->
     <string name="drawer_teams">I tuoi Team</string>
@@ -14,11 +48,46 @@
     <string name="teams_title">I tuoi Team</string>
     <string name="teams_empty_title">Nessun team ancora</string>
     <string name="teams_empty_subtitle">I tuoi team compariranno qui quando inizierai a costruirli.</string>
+    <string name="teams_member_count">%1$d/6</string>
+    <string name="teams_new_team_title">Nuovo team</string>
+    <string name="teams_rename_team_title">Rinomina team</string>
+    <string name="teams_action_rename">Rinomina</string>
+    <string name="teams_action_delete">Elimina</string>
+    <string name="teams_more_actions">Altre azioni</string>
+    <string name="teams_delete_title">Elimina team</string>
+    <string name="teams_delete_message">Il team «%1$s» verrà eliminato e non potrà essere recuperato.</string>
+
+    <!-- Team detail -->
+    <string name="team_detail_pokemon_tab">Pokémon</string>
+    <string name="team_detail_analysis_tab">Analisi</string>
+    <string name="team_detail_enable_moves">Abilita slot mosse</string>
+    <string name="team_detail_analysis_placeholder_title">In arrivo</string>
+    <string name="team_detail_analysis_placeholder_subtitle">L\'analisi di copertura arriverà con una fase successiva.</string>
+
+    <!-- Slot editor -->
+    <string name="slot_editor_title">Slot %1$d</string>
+    <string name="slot_species_placeholder">Scegli Pokémon…</string>
+    <string name="slot_empty">Slot vuoto</string>
+    <string name="slot_type1_label">Tipo 1</string>
+    <string name="slot_type2_label">Tipo 2</string>
+    <string name="slot_type_none">Nessuno</string>
+    <string name="slot_ability_label">Abilità</string>
+    <string name="slot_moves_title">Mosse</string>
+    <string name="slot_move_pick_placeholder">Scegli o digita una mossa…</string>
+    <string name="slot_move_custom_name_placeholder">Nome mossa personalizzata</string>
+    <string name="slot_move_type_label">Tipo</string>
+    <string name="slot_move_power_label">Potenza</string>
+    <string name="slot_move_damage_class_label">Categoria</string>
+    <string name="slot_save_to_roster">Salva come custom</string>
+    <string name="slot_clear">Svuota slot</string>
 
     <!-- Pokémon custom -->
     <string name="roster_title">Pokémon Custom</string>
     <string name="roster_empty_title">Nessun Pokémon custom</string>
     <string name="roster_empty_subtitle">Nessun Pokémon custom salvato.</string>
+    <string name="roster_new_title">Aggiungi Pokémon custom</string>
+    <string name="roster_edit_title">Modifica Pokémon custom</string>
+    <string name="roster_action_delete">Elimina</string>
 
     <!-- Impostazioni -->
     <string name="settings_title">Impostazioni</string>
@@ -30,4 +99,26 @@
     <string name="settings_language_system">Predefinito sistema</string>
     <string name="settings_language_italian">Italiano</string>
     <string name="settings_language_english">Inglese</string>
+
+    <!-- Impostazioni > Dati -->
+    <string name="settings_section_data">Dati</string>
+    <string name="settings_data_not_synced">Dati non ancora scaricati.</string>
+    <!-- "Pokémon" is invariant in both languages; only the move count pluralizes. -->
+    <string name="settings_data_summary_one">%1$d Pokémon, %2$d mossa</string>
+    <string name="settings_data_summary_other">%1$d Pokémon, %2$d mosse</string>
+    <string name="settings_data_synced_at">Sincronizzato: %1$s</string>
+    <string name="settings_data_revision">Versione dataset: %1$s</string>
+    <string name="settings_data_sync_now">Riscarica dati Pokémon</string>
+    <string name="settings_data_clear">Cancella dati salvati</string>
+    <string name="settings_data_clear_confirm_title">Cancellare i dati Pokémon?</string>
+    <string name="settings_data_clear_confirm_message">I dati verranno riscaricati alla prossima sincronizzazione. I tuoi team non saranno interessati.</string>
+    <string name="settings_data_syncing">Download in corso… (%1$s)</string>
+    <string name="settings_data_sync_failed">Ultimo aggiornamento fallito: %1$s</string>
+    <string name="settings_data_retry">Riprova</string>
+
+    <string name="sync_stage_downloading">Download</string>
+    <string name="sync_stage_parsing">Elaborazione</string>
+    <string name="sync_stage_writing">Salvataggio</string>
+
+    <string name="sync_banner_message">Sincronizzazione dati Pokémon in corso…</string>
 </resources>

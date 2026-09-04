@@ -2,7 +2,7 @@
 
 A snapshot of what's implemented, what's known to be missing, and any loose
 ends — written for whoever (human or agent) picks this project up next.
-Last verified 2026-09-04, at the end of Phase 0 of the native Android
+Last verified 2026-09-04, at the end of Phase 2 of the native Android
 migration. Re-verify anything here before relying on it — this file goes
 stale the moment someone ships a change without updating it. It complements,
 not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for rules and
@@ -13,67 +13,81 @@ backlog.
 
 ## What CoverDex is right now
 
-A native Android skeleton: a themed, empty Teams screen behind a
-three-item navigation drawer (Your Teams / Custom Pokémon / Settings), a
-working theme picker (System/Light/Dark, persisted) and a working language
-picker (System/Italiano/English, persisted, switches every visible string
-immediately). No team can be created yet, there is no Pokémon data, and
-there is no network activity anywhere in the app.
-
-That is the intended state at the end of Phase 0 of
-[`docs/plan/README.md`](plan/README.md) — not a partial feature, a
-completed one. The functional app (teams, analysis, suggestions, the
-generator, import/export, backup) does not exist yet; it is built out
-phase by phase starting with Phase 1.
+A native Android app that downloads and caches the full Pokémon catalogue in
+the background, and lets the user build real teams: create/rename/delete a
+team, fill its six slots from the synced catalogue (or type a ROM-hack-only
+species/ability/move by hand), override a slot's types, and save any slot's
+Pokémon into a reusable custom roster with its own full CRUD screen. Nothing
+analyses a team yet — the Analysis tab on a team's own screen is a visible
+placeholder, and that is the intended state at the end of Phase 2 of
+[`docs/plan/README.md`](plan/README.md), not a partial feature.
 
 ## What's implemented
 
-- **The Gradle project.** Single-module (`:app`), Kotlin DSL, the version
-  catalogue and Gradle wrapper copied verbatim from Hall of Memories (agp
-  8.13.0, kotlin 2.0.21, compose BOM 2024.12.01, room 2.6.1, hilt 2.52,
-  …). `./gradlew assembleDebug`, `lintDebug` and `testDebugUnitTest` are
-  all green (verified locally with a temporary SDK this session — see
-  `docs/implementation-decisions.md`).
-- **App identity.** `applicationId com.marcogn.coverdex`, `minSdk 24`,
-  `targetSdk`/`compileSdk 36`, `versionCode 2` / `versionName "2.0.0"` —
-  chosen so the native APK can install *over* the old Capacitor build (same
-  applicationId, higher versionCode), even though no user data carries
-  over (see "Known regressions" below, and
-  `docs/implementation-decisions.md`).
-- **Theme.** Material 3, seeded from the app's existing brand purple
-  (`#5B21B6`), Material You dynamic colour on API 31+. Persisted via a
-  Preferences DataStore (`settings_prefs`) that every later setting will
-  share.
-- **Language.** `AppCompatDelegate.setApplicationLocales()`-based picker,
-  System/Italian/English, persisted automatically
-  (`AppLocalesMetadataHolderService`).
-- **Navigation.** Type-safe Navigation-Compose routes behind a
-  `ModalNavigationDrawer`. `Destination.TeamDetail`'s route type exists
-  (Phase 2 needs it) but nothing navigates to it yet.
-- **The launcher icon** is the Capacitor build's own icon, ported
-  unchanged.
-- **CI.** `.github/workflows/android-ci.yml`: JDK 17 + Android SDK, lint +
-  unit tests + `assembleDebug` on every push/PR to `main`.
-- **`legacy-web/`** — the parked React/Capacitor PWA, kept as the
-  behavioural reference for the rest of the migration. `npm test` is green
-  (23 files, 175 tests) as of the move. It is not part of CI and is deleted
-  in Phase 6.
+- **Everything from Phase 1** — the dataset sync, the Room v1 cache, the
+  Settings → Data section, the non-blocking sync banner. See git history;
+  not repeated here.
+- **Room schema v2** (`team`, `team_member`, `team_member_move`,
+  `custom_pokemon`, `custom_pokemon_move`), reached from v1 by a hand-written
+  `MIGRATION_1_2`, verified byte-for-byte against Room's own exported schema
+  and exercised by `Migration1To2Test` (Robolectric + `MigrationTestHelper`).
+  Getting that test running at all surfaced a real AGP/Robolectric gap — see
+  `docs/implementation-decisions.md`, "Phase 2".
+- **`TeamRepository` and `CustomPokemonRepository`**, both transactional,
+  both built on `Team`/`TeamMember`/`PokemonMove` domain models that mirror
+  `legacy-web`'s fixed-size nullable-slot shapes exactly (`Team.members`:
+  length 6; `TeamMember.moves`: length 4). Species/type/ability/move data on
+  every slot is a denormalized snapshot — wiping the Pokédex cache never
+  touches a saved team or roster entry (asserted directly in
+  `TeamRepositoryTest`).
+- **The Teams screen** — real CRUD: create (a name dialog), rename, delete
+  (a confirmation dialog), tap to open. A new team opens immediately after
+  creation.
+- **The team detail screen** — two tabs (Pokémon / Analysis, the latter a
+  placeholder), a six-slot grid, and the persisted, app-wide "Enable move
+  slots" toggle.
+- **The slot editor** — a real navigation destination (not a dialog): a
+  species picker (`SearchableDropdown`, backed by `PokedexRepository`), two
+  type-override dropdowns, a free-text ability field
+  (`EditableComboBox`, ported from Hall of Memories — a materially
+  different contract from `SearchableDropdown`, see
+  `docs/implementation-decisions.md`), four move slots (each accepting a
+  cached move or a typed custom one, defaulting to Normal/Physical per the
+  verified `legacy-web` behaviour), "Save as custom" and "Clear slot".
+  Nothing is written until an explicit Save; back (system gesture or the
+  top bar) always discards the in-progress draft.
+- **The custom roster** — its own screen (list, create, edit, delete) and
+  its own editor, "the same editor as a slot, minus the species picker."
+- **`PokemonType.displayName()`/`DamageClass.displayName()`** — the first
+  time either enum renders as text rather than a sprite; all 18 type names
+  and the three damage-category names were checked individually against
+  Bulbapedia rather than assumed.
+- **`DebugSeeder`** now seeds two teams (one partial, one full six) and two
+  custom roster entries behind `BuildConfig.SEED_DEBUG_DATA`, wired from
+  `CoverDexApplication.onCreate`; a no-op once any real team exists, so it
+  never re-seeds over real user data or duplicates itself on relaunch.
+- **`./gradlew testDebugUnitTest lintDebug assembleDebug`** all green in one
+  invocation — 95 unit tests, 0 failures (verified locally with a temporary,
+  non-persistent SDK this session, same as Phases 0-1).
 
 ## What's known to be missing
 
-Everything the app is supposed to do. In order, per
-[`docs/plan/README.md`](plan/README.md):
+Everything the app is supposed to do beyond teams and the roster. In order,
+per [`docs/plan/README.md`](plan/README.md):
 
-- **Phase 1** — the dataset sync (species/moves/abilities/types from
-  PokéAPI's CSV source data, ~208 KB total — see
-  [`reference-pokedata.md`](plan/reference-pokedata.md)), the Room cache,
-  sprite rendering.
-- **Phase 2** — actual teams: creating one, the six-slot editor, type
-  overrides, abilities, moves, the custom roster.
-- **Phase 3** — the coverage analysis screen (the ported coverage engine).
+- **Phase 3** — the coverage analysis screen (the ported coverage engine),
+  replacing the Analysis tab's current placeholder.
 - **Phase 4** — suggestions and the "Surprise Me" generator.
 - **Phase 5** — Showdown import/export, the rest of Settings, local backup.
 - **Phase 6** — signing, the release pipeline, `legacy-web/` deleted.
+
+Also deliberately deferred (not a bug, see
+`docs/implementation-decisions.md`, "Phase 2"): the slot editor's species
+picker never offers the custom roster as a search source, unlike
+`legacy-web`'s own "Include saved custom Pokémon in search" checkbox —
+`phase-2-teams-and-roster.md`'s own description of the species picker never
+mentions it. "Save as custom" (writing a slot *into* the roster) is
+unaffected.
 
 [`ROADMAP.md`](../ROADMAP.md) points at
 [`docs/plan/native-spec.md`](plan/native-spec.md)'s "Explicitly out of
@@ -82,24 +96,25 @@ a backend).
 
 ## Known regressions
 
-None yet — nothing user-facing has shipped to regress. The one
-deliberate, non-regression gap: **upgrading from the old Capacitor build
-loses saved teams and the custom roster.** This is a decided trade-off
-(see `docs/implementation-decisions.md`), not a bug, but it will read as
-one to a real user with existing data unless Phase 6's release notes
+None yet. The one deliberate, non-regression gap: **upgrading from the old
+Capacitor build loses saved teams and the custom roster.** This is a decided
+trade-off (see `docs/implementation-decisions.md`), not a bug, but it will
+read as one to a real user with existing data unless Phase 6's release notes
 say so plainly before they update.
 
 ## Verifying project health
 
 ```bash
 export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
-./gradlew testDebugUnitTest   # 6 tests as of Phase 0
+./gradlew testDebugUnitTest   # 95 tests as of Phase 2
 ./gradlew lintDebug
 ./gradlew assembleDebug
 ```
 
 `docs/test-plan.md` has the on-device manual steps this doesn't cover —
-locale switching, dynamic colour, the launcher icon, install-over-upgrade.
+locale switching, dynamic colour, the launcher icon, install-over-upgrade,
+the real first-launch sync, and (new this phase) team/slot/roster CRUD, the
+slot editor's discard-on-back behaviour, and the debug seed data.
 
 `legacy-web/` has its own, separate health check:
 
