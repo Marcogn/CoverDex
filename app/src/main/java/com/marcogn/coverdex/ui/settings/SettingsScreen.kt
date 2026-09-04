@@ -34,9 +34,11 @@ fun SettingsScreen(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeMode by themeViewModel.themeMode.collectAsState()
     var language by remember { mutableStateOf(currentAppLanguage()) }
+    val uiState by settingsViewModel.uiState.collectAsState()
 
     Scaffold(
         modifier = modifier,
@@ -62,6 +64,12 @@ fun SettingsScreen(
                     applyAppLanguage(it)
                 }
             }
+            DataSectionRow(
+                cacheStatus = uiState.cacheStatus,
+                syncState = uiState.syncState,
+                onSyncNow = settingsViewModel::syncNow,
+                onClearCache = settingsViewModel::clearCache,
+            )
         }
     }
 }

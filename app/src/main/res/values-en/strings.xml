@@ -4,6 +4,8 @@
 
     <!-- Shared across multiple screens -->
     <string name="cd_menu">Menu</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
 
     <!-- Navigation drawer -->
     <string name="drawer_teams">Your Teams</string>
@@ -30,4 +32,26 @@
     <string name="settings_language_system">System default</string>
     <string name="settings_language_italian">Italian</string>
     <string name="settings_language_english">English</string>
+
+    <!-- Settings > Data -->
+    <string name="settings_section_data">Data</string>
+    <string name="settings_data_not_synced">Data not downloaded yet.</string>
+    <!-- "Pokémon" is invariant in both languages; only the move count pluralizes. -->
+    <string name="settings_data_summary_one">%1$d Pokémon, %2$d move</string>
+    <string name="settings_data_summary_other">%1$d Pokémon, %2$d moves</string>
+    <string name="settings_data_synced_at">Synced: %1$s</string>
+    <string name="settings_data_revision">Dataset version: %1$s</string>
+    <string name="settings_data_sync_now">Redownload Pokémon data</string>
+    <string name="settings_data_clear">Clear cached data</string>
+    <string name="settings_data_clear_confirm_title">Clear Pokémon data?</string>
+    <string name="settings_data_clear_confirm_message">Data will be re-downloaded on the next sync. Your teams are not affected.</string>
+    <string name="settings_data_syncing">Downloading… (%1$s)</string>
+    <string name="settings_data_sync_failed">Last refresh failed: %1$s</string>
+    <string name="settings_data_retry">Retry</string>
+
+    <string name="sync_stage_downloading">Downloading</string>
+    <string name="sync_stage_parsing">Processing</string>
+    <string name="sync_stage_writing">Saving</string>
+
+    <string name="sync_banner_message">Syncing Pokémon data…</string>
 </resources>
