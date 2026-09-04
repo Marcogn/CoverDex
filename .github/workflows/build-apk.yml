@@ -1,0 +1,65 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # A debug build's keystore is freshly generated per run, so its SHA-1 would drift on every
+      # single run. Decoding a persistent release keystore (generated once, stored as a repo
+      # secret — see docs/release-signing.md) keeps the same signature across every signed build,
+      # which is what lets an installed build ever be upgraded in place.
+      - name: Decode release keystore
+        run: echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+
+      # Not sensitive (size/hash only, never the secret values themselves) — printed so a signing
+      # failure ("Given final block not properly padded", "Invalid keystore format", etc.) can be
+      # told apart from a corrupted/truncated RELEASE_KEYSTORE_BASE64 secret without guessing.
+      - name: Verify decoded keystore integrity
+        run: |
+          echo "Decoded keystore size (bytes):"
+          wc -c < "$RUNNER_TEMP/release.keystore"
+          echo "Decoded keystore SHA-256:"
+          sha256sum "$RUNNER_TEMP/release.keystore"
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      # Useful even without any Google API integration in v1 — see docs/release-signing.md.
+      - name: Print release keystore SHA-1
+        run: ./gradlew signingReport --no-daemon
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
