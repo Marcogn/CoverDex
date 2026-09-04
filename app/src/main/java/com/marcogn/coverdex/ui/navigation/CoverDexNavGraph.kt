@@ -25,9 +25,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.marcogn.coverdex.R
 import com.marcogn.coverdex.ui.roster.RosterScreen
 import com.marcogn.coverdex.ui.settings.SettingsScreen
+import com.marcogn.coverdex.ui.team.SlotEditorScreen
 import com.marcogn.coverdex.ui.team.TeamDetailScreen
 import com.marcogn.coverdex.ui.teams.TeamsScreen
 import kotlinx.coroutines.launch
@@ -106,8 +108,15 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
                     onTeamSelected = { teamId -> navController.navigate(Destination.TeamDetail(teamId)) },
                 )
             }
-            composable<Destination.TeamDetail> {
-                TeamDetailScreen(onBackClick = { navController.popBackStack() })
+            composable<Destination.TeamDetail> { backStackEntry ->
+                val route = backStackEntry.toRoute<Destination.TeamDetail>()
+                TeamDetailScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onSlotClick = { slotIndex -> navController.navigate(Destination.SlotEditor(route.teamId, slotIndex)) },
+                )
+            }
+            composable<Destination.SlotEditor> {
+                SlotEditorScreen(onBackClick = { navController.popBackStack() })
             }
             composable<Destination.Roster> {
                 RosterScreen(onMenuClick = onMenuClick)

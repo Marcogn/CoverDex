@@ -13,6 +13,31 @@
     <string name="common_no_matches">No matches</string>
     <string name="common_clear_selection">Clear selection</string>
 
+    <!-- Pokémon types -->
+    <string name="type_normal">Normal</string>
+    <string name="type_fighting">Fighting</string>
+    <string name="type_flying">Flying</string>
+    <string name="type_poison">Poison</string>
+    <string name="type_ground">Ground</string>
+    <string name="type_rock">Rock</string>
+    <string name="type_bug">Bug</string>
+    <string name="type_ghost">Ghost</string>
+    <string name="type_steel">Steel</string>
+    <string name="type_fire">Fire</string>
+    <string name="type_water">Water</string>
+    <string name="type_grass">Grass</string>
+    <string name="type_electric">Electric</string>
+    <string name="type_psychic">Psychic</string>
+    <string name="type_ice">Ice</string>
+    <string name="type_dragon">Dragon</string>
+    <string name="type_dark">Dark</string>
+    <string name="type_fairy">Fairy</string>
+
+    <!-- Move damage categories -->
+    <string name="damage_class_physical">Physical</string>
+    <string name="damage_class_special">Special</string>
+    <string name="damage_class_status">Status</string>
+
     <!-- Navigation drawer -->
     <string name="drawer_teams">Your Teams</string>
     <string name="drawer_roster">Custom Pokémon</string>
@@ -33,8 +58,28 @@
     <string name="teams_delete_message">The team \"%1$s\" will be deleted and cannot be recovered.</string>
 
     <!-- Team detail -->
-    <string name="team_detail_placeholder_title">Coming soon</string>
-    <string name="team_detail_placeholder_subtitle">The slot editor and analysis are coming shortly.</string>
+    <string name="team_detail_pokemon_tab">Pokémon</string>
+    <string name="team_detail_analysis_tab">Analysis</string>
+    <string name="team_detail_enable_moves">Enable move slots</string>
+    <string name="team_detail_analysis_placeholder_title">Coming soon</string>
+    <string name="team_detail_analysis_placeholder_subtitle">Coverage analysis arrives in a later phase.</string>
+
+    <!-- Slot editor -->
+    <string name="slot_editor_title">Slot %1$d</string>
+    <string name="slot_species_placeholder">Choose Pokémon…</string>
+    <string name="slot_empty">Empty slot</string>
+    <string name="slot_type1_label">Type 1</string>
+    <string name="slot_type2_label">Type 2</string>
+    <string name="slot_type_none">None</string>
+    <string name="slot_ability_label">Ability</string>
+    <string name="slot_moves_title">Moves</string>
+    <string name="slot_move_pick_placeholder">Pick or type a move…</string>
+    <string name="slot_move_custom_name_placeholder">Custom move name</string>
+    <string name="slot_move_type_label">Type</string>
+    <string name="slot_move_power_label">Power</string>
+    <string name="slot_move_damage_class_label">Category</string>
+    <string name="slot_save_to_roster">Save as custom</string>
+    <string name="slot_clear">Clear slot</string>
 
     <!-- Custom Pokémon -->
     <string name="roster_title">Custom Pokémon</string>

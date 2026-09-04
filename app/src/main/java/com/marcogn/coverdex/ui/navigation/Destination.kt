@@ -12,6 +12,9 @@ sealed interface Destination {
     data class TeamDetail(val teamId: String) : Destination
 
     @Serializable
+    data class SlotEditor(val teamId: String, val slotIndex: Int) : Destination
+
+    @Serializable
     data object Roster : Destination
 
     @Serializable

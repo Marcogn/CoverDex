@@ -337,6 +337,58 @@ the way this session briefly did:
   already does elsewhere in this app) rather than left English-only. This is
   the same class of gap as `SearchableDropdown`'s "No matches"/"Clear
   selection" (see above).
+- **The slot editor's species picker never offers the custom roster as a
+  search source** — `legacy-web`'s `PokemonSlot.tsx` has an "Include saved
+  custom Pokémon in search" checkbox that merges `customs` into the
+  dropdown's options; `phase-2-teams-and-roster.md`'s own "Species picker"
+  bullet describes only `PokedexRepository.searchSpecies`-backed search,
+  with no mention of the roster at all. Treated as a deliberate scope cut
+  by the plan (the bullet is fully specified, not an ambiguous paraphrase),
+  not a bug to port — it also sidesteps a real modeling cost: the picker's
+  option values would otherwise need to be `PokemonEntry | TeamMember`
+  (as they literally are in the TypeScript), forcing a sealed wrapper type
+  through `DropdownOption<T>`. "Save as custom" (writing a slot *into* the
+  roster) is unaffected and fully implemented; only the reverse direction
+  (picking *from* the roster into a slot) is deferred.
+- **The ability field is `EditableComboBox` (ported from Hall of
+  Memories), not `SearchableDropdown`**, despite
+  `native-spec.md`'s "Searchable dropdowns" section listing "ability"
+  alongside species/move/generator-anchor as if all four shared one
+  contract. `legacy-web`'s actual ability picker,
+  `AbilityDropdown.tsx`, is a different component from
+  `SearchableDropdown.tsx` entirely: it commits whatever is typed on every
+  keystroke (`onChange(val)`) and only *offers* cached abilities as
+  clickable shortcuts — never rejecting free text, matching this app's own
+  product decision (abilities accept free text, for ROM-hack
+  compatibility). That is exactly Hall of Memories' `EditableComboBox`
+  contract, so it was copied from there (`docs/plan/README.md`, "Copy Hall
+  of Memories, don't invent") rather than force-fitting the strict,
+  pick-only-from-a-list `SearchableDropdown` onto a field the behavioural
+  reference treats differently.
+- **`PokemonType.displayName()` and `DamageClass.displayName()`'s wording
+  was verified, not assumed.** `legacy-web` has no full localized type
+  names anywhere (its `types.*` i18n keys are three-letter abbreviations
+  used for compact badges elsewhere; `PokemonSlot.tsx`'s own type
+  `<select>` renders the raw English slug unlocalized) and no localized
+  damage-category names at all (`<option value="physical">physical</option>`,
+  literal). All 18 Italian type names and the three damage-category names
+  were looked up individually against Bulbapedia (an international,
+  English-language wiki, cross-referenced to its Italian-wiki
+  interlanguage links) rather than recalled from memory and asserted —
+  see the `PokemonType.displayName()`/`DamageClassDropdown` commits for
+  the full list. "Fisica"/"Speciale"/"Stato" (rather than "Fisico") is a
+  minor grammatical judgment call, not a sourced fact: the feminine
+  adjective form agreeing with "mossa" ("move"), matching Bulbapedia's own
+  "Mossa speciale" phrasing, kept consistent across all three labels.
+- **The slot editor's own copy (species placeholder, "Empty slot", "Type
+  1"/"Type 2"/"None", "Save as custom"/"Clear slot", the move picker's
+  placeholders) has no `legacy-web` i18n coverage at all** —
+  `PokemonSlot.tsx` and `MoveSlot.tsx` hardcode every one of these in
+  English with no `t()` call. Only `slot.ability` ("Abilità"/"Ability") and
+  `teamDetail.pokemonTab`/`analysisTab`/`enableMoves` had a real source to
+  port; everything else under `slot_*`/`team_detail_*` is freshly phrased
+  to match this app's existing wording style, the same treatment already
+  given to `SearchableDropdown` and the Teams screen's dialogs above.
 - **Creating a team asks for a name up front**, unlike `legacy-web`'s
   `createEmptyTeam`, which auto-names it `Team ${teams.length + 1}` with no
   prompt at all. This is not a paraphrase disagreement (contrast the
