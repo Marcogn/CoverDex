@@ -1,6 +1,7 @@
 package com.marcogn.coverdex.domain
 
 import com.marcogn.coverdex.domain.model.DamageClass
+import com.marcogn.coverdex.domain.model.PokemonEntry
 import com.marcogn.coverdex.domain.model.PokemonMove
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
@@ -197,3 +198,68 @@ fun buildMember(
         isCustomSaved = false,
     )
 }
+
+/**
+ * Ported from the TS fixtures' `mockPokemonList` (10 entries) field-for-field, for
+ * `SuggestionEngineTest`/`TeamGeneratorTest`. `generationIntroduced` and `speciesId` have no TS
+ * equivalent (Kotlin's [PokemonEntry] stores the real generation and species id Phase 1 syncs,
+ * where the TS mock only ever carried an `id`); real Pokédex generations are used for every real
+ * species, and Spectraform — the mock's one fictional, alternate-form-like entry
+ * (`id = 9301`, `> 10000`-style id used to model an alt form for suggestion tests) — is
+ * deliberately given `generationIntroduced = 1` despite its high id, to exercise the one
+ * intentional deviation from `suggestionEngine.ts` this phase makes: filtering by the real
+ * generation instead of `GEN_RANGES` id buckets (`docs/plan/phase-4-suggestions-and-generator.md`
+ * §2). Under the old id-bucket scheme Spectraform would have wrongly landed in "Generation 9".
+ */
+fun mockPokemonList(): List<PokemonEntry> = listOf(
+    PokemonEntry(
+        id = 143, name = "snorlax", displayName = "Snorlax", speciesId = 143, speciesName = "snorlax",
+        types = PokemonType.NORMAL to null, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 130, name = "gyarados", displayName = "Gyarados", speciesId = 130, speciesName = "gyarados",
+        types = PokemonType.WATER to PokemonType.FLYING, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 92, name = "gastly", displayName = "Gastly", speciesId = 92, speciesName = "gastly",
+        types = PokemonType.GHOST to null, isLegendary = false, isMythical = false, isFinalEvolution = false,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 9301, name = "spectraform", displayName = "Spectraform", speciesId = 9301, speciesName = "spectraform",
+        types = PokemonType.GHOST to null, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 303, name = "mawile", displayName = "Mawile", speciesId = 303, speciesName = "mawile",
+        types = PokemonType.STEEL to PokemonType.FAIRY, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 3, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 6, name = "charizard", displayName = "Charizard", speciesId = 6, speciesName = "charizard",
+        types = PokemonType.FIRE to PokemonType.FLYING, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 25, name = "pikachu", displayName = "Pikachu", speciesId = 25, speciesName = "pikachu",
+        types = PokemonType.ELECTRIC to null, isLegendary = false, isMythical = false, isFinalEvolution = false,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 445, name = "garchomp", displayName = "Garchomp", speciesId = 445, speciesName = "garchomp",
+        types = PokemonType.DRAGON to PokemonType.GROUND, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 4, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 700, name = "sylveon", displayName = "Sylveon", speciesId = 700, speciesName = "sylveon",
+        types = PokemonType.FAIRY to null, isLegendary = false, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 6, defaultAbility = null, isDefaultForm = true,
+    ),
+    PokemonEntry(
+        id = 150, name = "mewtwo", displayName = "Mewtwo", speciesId = 150, speciesName = "mewtwo",
+        types = PokemonType.PSYCHIC to null, isLegendary = true, isMythical = false, isFinalEvolution = true,
+        generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+    ),
+)
