@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CoverDex</string>
+
+    <!-- Shared across multiple screens -->
+    <string name="cd_menu">Menu</string>
+
+    <!-- Navigation drawer -->
+    <string name="drawer_teams">Your Teams</string>
+    <string name="drawer_roster">Custom Pokémon</string>
+    <string name="drawer_settings">Settings</string>
+
+    <!-- Teams -->
+    <string name="teams_title">Your Teams</string>
+    <string name="teams_empty_title">No teams yet</string>
+    <string name="teams_empty_subtitle">Your teams will appear here once you start building them.</string>
+
+    <!-- Custom Pokémon -->
+    <string name="roster_title">Custom Pokémon</string>
+    <string name="roster_empty_title">No custom Pokémon</string>
+    <string name="roster_empty_subtitle">No custom Pokémon saved yet.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme_system">System default</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_section_language">Language</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_italian">Italian</string>
+    <string name="settings_language_english">English</string>
+</resources>
