@@ -31,15 +31,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.marcogn.coverdex.R
-import com.marcogn.coverdex.ui.common.EmptyState
+import com.marcogn.coverdex.ui.team.analysis.AnalysisScreen
 
 private const val TAB_POKEMON = 0
 private const val TAB_ANALYSIS = 1
 
 /**
- * The team's own screen: two tabs (Pokémon / Analysis), per
- * `docs/plan/phase-2-teams-and-roster.md` §3. The Analysis tab is a placeholder until Phase 3 —
- * same accepted, labeled-partial state the Teams screen's own Phase 1 empty state was.
+ * The team's own screen: two tabs, Pokémon (this file's six-slot grid) and Analysis
+ * ([com.marcogn.coverdex.ui.team.analysis.AnalysisScreen], `docs/plan/phase-3-analysis.md`).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,11 +102,7 @@ fun TeamDetailScreen(
                     }
                 }
                 TAB_ANALYSIS -> {
-                    EmptyState(
-                        title = stringResource(R.string.team_detail_analysis_placeholder_title),
-                        subtitle = stringResource(R.string.team_detail_analysis_placeholder_subtitle),
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    AnalysisScreen(modifier = Modifier.fillMaxSize())
                 }
             }
         }

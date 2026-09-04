@@ -9,8 +9,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,6 +39,7 @@ import com.marcogn.coverdex.ui.common.EmptyState
 fun TeamsScreen(
     onMenuClick: () -> Unit,
     onTeamSelected: (String) -> Unit,
+    onSurpriseMeClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TeamsViewModel = hiltViewModel(),
 ) {
@@ -47,7 +50,17 @@ fun TeamsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { CoverDexTopBar(title = stringResource(R.string.teams_title), onMenuClick = onMenuClick) },
+        topBar = {
+            CoverDexTopBar(
+                title = stringResource(R.string.teams_title),
+                onMenuClick = onMenuClick,
+                actions = {
+                    IconButton(onClick = onSurpriseMeClick) {
+                        Icon(Icons.Default.Casino, contentDescription = stringResource(R.string.surprise_me_button))
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreateDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.teams_new_team_title))

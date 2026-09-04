@@ -40,8 +40,28 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
 - **The custom Pokémon roster is a full screen now**: create, edit and
   delete entries with the same type/ability/move editor as a team slot,
   minus the species picker.
-- The Analysis tab on a team's own screen is a visible placeholder —
-  coverage analysis itself lands in Phase 3.
+- **Coverage analysis is real now.** Every team's Analysis tab shows: what
+  basis the analysis runs on (entered moves, Pokémon types, or a mix,
+  clearly stated); a per-Pokémon breakdown of weaknesses, resistances,
+  immunities and ability effects; full 18-type offensive and defensive
+  coverage grids; the team's shared weaknesses; and the types nothing on
+  the team can hit super-effectively.
+- **Suggestions are real now.** The Analysis tab's seventh section ranks
+  up to five candidates to add (team under six) or swap in (a full team)
+  — sprite, types, coverage gain, composite score, newly covered types and
+  new weaknesses — filterable by generation, "include custom Pokémon" and
+  "exclude legendaries/mythicals". Tapping a card adds or replaces it in
+  the team immediately.
+- **The suggestions' generation filter uses each candidate's real
+  generation**, not the hardcoded Pokédex-id ranges the original web app
+  used (`docs/plan/reference-pokedata.md` §4) — an alternate-form Pokémon
+  with a high catalogue id (a Mega evolution, say) now filters by the
+  generation its species actually belongs to, not always "Generation 9".
+- **Surprise Me builds a team for you.** A new screen, reached from Teams
+  via the dice icon: lock 0-5 Pokémon you want kept, set how many
+  starters/legendaries-mythicals/Mega/Dynamax slots to reserve, Generate,
+  regenerate individual slots or the whole team, then Keep to create the
+  new team.
 
 ## [1.0.0]
 

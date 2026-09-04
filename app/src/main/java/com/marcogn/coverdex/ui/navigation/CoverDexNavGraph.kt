@@ -30,6 +30,7 @@ import com.marcogn.coverdex.R
 import com.marcogn.coverdex.ui.roster.RosterEditorScreen
 import com.marcogn.coverdex.ui.roster.RosterScreen
 import com.marcogn.coverdex.ui.settings.SettingsScreen
+import com.marcogn.coverdex.ui.surprise.SurpriseMeScreen
 import com.marcogn.coverdex.ui.team.SlotEditorScreen
 import com.marcogn.coverdex.ui.team.TeamDetailScreen
 import com.marcogn.coverdex.ui.teams.TeamsScreen
@@ -107,6 +108,7 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
                 TeamsScreen(
                     onMenuClick = onMenuClick,
                     onTeamSelected = { teamId -> navController.navigate(Destination.TeamDetail(teamId)) },
+                    onSurpriseMeClick = { navController.navigate(Destination.SurpriseMe) },
                 )
             }
             composable<Destination.TeamDetail> { backStackEntry ->
@@ -130,6 +132,16 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
             }
             composable<Destination.Settings> {
                 SettingsScreen(onMenuClick = onMenuClick)
+            }
+            composable<Destination.SurpriseMe> {
+                SurpriseMeScreen(
+                    onMenuClick = onMenuClick,
+                    onTeamCreated = { teamId ->
+                        navController.navigate(Destination.TeamDetail(teamId)) {
+                            popUpTo(Destination.Teams)
+                        }
+                    },
+                )
             }
         }
     }

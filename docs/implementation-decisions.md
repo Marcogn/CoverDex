@@ -397,3 +397,147 @@ the way this session briefly did:
   native-only UX decision, so the plan's text is the authority here, not
   `legacy-web`'s code. Creating a team still immediately opens it
   afterward, matching `createEmptyTeam`'s own behaviour.
+
+## Phase 3 — Coverage analysis
+
+- **`offensiveCoverageForMember` keeps its explicit `useMoves: Boolean`
+  parameter**, even though `phase-3-analysis.md` §1's own pseudocode lists
+  it as `fun offensiveCoverageForMember(chart: TypeChart, m: TeamMember):
+  Set<PokemonType>` — no `useMoves` argument at all. The real
+  `coverageEngine.ts` signature (`offensiveCoverageForMember(chart,
+  member, useMoves)`) has one, every one of its own tests exercises both
+  `true` and `false` explicitly, and Phase 4's suggestion engine depends on
+  being able to force `useMoves = false` for a candidate regardless of
+  what moves it happens to carry ("Candidates are evaluated by types
+  only, always" — phase-4's §1 rule 7, and `coverageEngineTest.ts`'s own
+  "custom Pokémon type-only evaluation" group, ported verbatim as
+  `CoverageEngineTest`'s last case). Dropping the parameter to match the
+  plan's abbreviated pseudocode would silently break that. Treated as a
+  pseudocode omission, not a signature change to follow.
+- **The Pokémon tab's "Analyze team" button and "include custom Pokémon"
+  checkbox are deferred to Phase 4**, not built alongside the Analysis
+  tab's seven sections. Both exist in `TeamDetailPage.tsx` (next to the
+  tab switcher, not inside `CoverageGrid.tsx`), but the button only
+  switches to the Analysis tab — already possible by tapping the tab
+  itself — and the checkbox toggles `includeCustomsAnalysis`, a flag
+  Phase 3's own `AnalysisUiState` carries (per `phase-3-analysis.md` §2's
+  explicit instruction to combine it now) but that affects nothing until
+  Phase 4's suggestion computation exists. Shipping a checkbox with no
+  observable effect would be actively confusing; `AnalysisViewModel`
+  already exposes `setIncludeCustomsAnalysis`/`setGenerationFilter` so
+  Phase 4's `SuggestionFilters.kt` only needs to add UI, not ViewModel
+  plumbing.
+- **`MainDispatcherRule` is new** — the first Robolectric test in this
+  codebase (or Hall of Memories) to construct a real `ViewModel` and
+  collect its `StateFlow` directly, rather than testing only the
+  DAO/repository layer underneath it. `viewModelScope` dispatches onto
+  `Dispatchers.Main`, which no JVM test provides by default; without
+  `Dispatchers.setMain(...)` (and passing that same `TestDispatcher` to
+  `runTest`), `AnalysisViewModelTest` hung indefinitely — confirmed by
+  reproducing the "did not run to completion" failure before adding the
+  rule, not assumed from the symptom. `MainDispatcherRule` lives at the
+  test-source root (`app/src/test/java/.../MainDispatcherRule.kt`, no
+  package suffix) so any future `ViewModel` test can reuse it.
+- **`analysis_pokemon_column_header` and `analysis_suggestions_placeholder`
+  have no `legacy-web` source.** `CoverageGrid.tsx`'s "Pokémon" column
+  header is a hardcoded literal (`<th>Pokémon</th>`, no `t()`); the
+  Suggestions-section placeholder text has no equivalent at all, since
+  `legacy-web` never had a partial state where suggestions don't exist
+  yet — the phase split is native-only. Same treatment as the other
+  wording gaps recorded above. (`analysis_suggestions_placeholder` itself
+  is gone as of Phase 4 — the real Suggestions section replaced it.)
+
+## Phase 4 — Suggestions and the Surprise Me generator
+
+- **The generation filter is a real generation number (`Int?`, `null` =
+  "all"), not a ported `GenerationFilter` string key.** This is the plan's
+  one intentional deviation (`phase-4-suggestions-and-generator.md` §2):
+  `suggestionEngine.ts`'s hardcoded `GEN_RANGES` id buckets put every
+  alternate form with id > 10000 into "Generation 9" regardless of its
+  real species. `domain/suggestion/SuggestionEngine.kt` filters on
+  `PokemonEntry.generationIntroduced` directly instead, so `GEN_RANGES`
+  has no Kotlin equivalent at all — there was nothing left to port once
+  the id-bucket approach was dropped. `TestFixtures.kt`'s `mockPokemonList()`
+  proves the fix rather than just asserting it: "Spectraform" (id 9301,
+  modelled on a >10000 alt-form id) is deliberately given
+  `generationIntroduced = 1`, and `SuggestionEngineTest`'s
+  `generation filter uses the real generationIntroduced, not an id range`
+  asserts it now appears under the Generation I filter, where the old
+  id-range scheme would have excluded it.
+- **`computeSuggestions` itself never caps its result**, matching
+  `suggestionEngine.ts` exactly (confirmed by porting
+  `useSuggestions.test.ts`'s own "top 10 candidates returned (not 5)"
+  case, which documents that the *engine* dropped its cap; only
+  `SuggestionPanel.tsx` slices to 10 for display). This app's own UI spec
+  (`phase-4-suggestions-and-generator.md` §4: "Up to five cards") caps at
+  5 instead of the web panel's 10 — `AnalysisScreen.kt` does the slicing
+  (`state.suggestions.take(5)`), the same "engine returns everything,
+  the screen decides how much to show" split as the TypeScript, just a
+  different display count because this phase's own UI spec says so.
+- **`Suggestion`/`TeamMember` drop the TypeScript's `spriteUrl` field
+  entirely**, for both `memberFromEntry`'s candidates and `Suggestion`
+  itself. Every prior phase's `TeamMember` already carries `pokedexId`
+  instead of a stored sprite URL — sprite URLs are derived, never stored,
+  from `(speciesId, ...)` via `SpriteUrlResolver`/`PokemonSprite`
+  (`CLAUDE.md`, "Product decisions already made"); `SuggestionCard.kt`
+  resolves a suggestion's sprite from `suggestion.candidate.pokedexId` the
+  same way every other screen does, not from a field that would have had
+  to be plumbed through and kept in sync for no reason.
+- **`teamGenerator.ts`'s `customs: TeamMember[]` parameter is dropped from
+  `buildEligiblePool`, `generateTeam` and `regenerateSlot`**, and
+  `GeneratorConstraints.customSlots` is kept as a ported struct field but
+  is likewise never read by generator logic. Reading `teamGenerator.ts`
+  end to end shows `customs` is never referenced in any of the three
+  function bodies, and `customSlots` never gates anything either — an
+  unfinished feature in the original (the UI still shows a "Custom
+  Pokémon" counter when the roster is non-empty, but it does nothing).
+  Dropping the dead parameter (not the struct field, which is still part
+  of the ported `GeneratorConstraints` shape the UI binds counters to) is
+  a straightforward cleanup of something confirmed unused, not a
+  behavioural change — see `docs/plan/README.md`'s "when the Kotlin and
+  the TypeScript disagree ... the TypeScript is right" rule, which
+  governs behaviour, not literal parameter-for-parameter shape.
+- **The generator takes an injectable `kotlin.random.Random`** (default
+  `Random.Default`), per `phase-4-suggestions-and-generator.md` §3.
+  `TeamGeneratorTest`'s ported `teamGenerator.test.ts` "anchor composite
+  score validation" case is the clearest payoff: the TypeScript runs
+  `generateTeam` five times with real `Math.random()` and accepts 4-of-5
+  passes because it has no way to control randomness. The Kotlin version
+  asserts the same "no more than one additional Water type" property
+  **for every one of ten fixed seeds** (`Random(0)` through `Random(9)`),
+  a strictly stronger test of the same claim, run and confirmed green
+  locally rather than assumed to hold.
+- **`AnalysisViewModel.applySuggestion` writes through the same default-
+  ability lookup the slot editor uses** (`pokedexRepository.speciesById(id)
+  ?.defaultAbility`, `SlotEditorScreen.kt`'s own pattern for a freshly
+  picked species) rather than leaving a newly added/replaced member with
+  no ability at all. `memberFromEntry` (the engine's own candidate
+  constructor, shared with the generator) deliberately leaves `ability =
+  null` — candidates are evaluated by types only, and an ability belongs
+  to the *applied* member, not the abstract candidate — so this lookup
+  happens once, at the point a suggestion is actually accepted into a
+  team slot.
+- **Surprise Me is one scrollable screen, not `SurpriseMeModal.tsx`'s
+  three-step (seed/constraints/result) wizard.** The phase's own UI
+  section asks only for "an optional anchor picker ..., the constraint
+  controls, a Generate button, per-slot regenerate, and Keep ... styled
+  to match the rest of this app's Material 3 screens" and explicitly
+  notes the web modal was never Android-restyled, so there was no native
+  pattern to preserve continuity with. Every other destination in this
+  app is a full screen, not a dialog/wizard; collapsing the three steps
+  into one scrollable column (anchors → constraints → Generate → result)
+  keeps that consistent rather than introducing the only multi-step
+  wizard in the app.
+- **"Keep" always creates a brand-new team**, via `TeamRepository.createTeam`
+  followed by six `saveMember` calls, rather than offering to overwrite an
+  existing one — matching `useAppShell.ts`'s `handleSurpriseCreate` (the
+  handler `App.tsx` wires to `SurpriseMeModal`'s `onCreate`), which also
+  always appends a brand-new `Team` to `state.teams`; there is no
+  "overwrite an existing team" path in the behavioural reference either.
+  One real difference: `handleSurpriseCreate` auto-names the team
+  (`` `Team ${state.teams.length + 1}` ``) with no prompt, while Keep here
+  reuses `TeamNameDialog` (the same name-entry dialog Teams' own "create"
+  flow uses) to ask first — consistent with Phase 2's own "creating a team
+  asks for a name up front" decision (see above), which already treats
+  `phase-2-teams-and-roster.md`'s explicit "a name dialog" instruction as
+  the native-only authority over `legacy-web`'s auto-naming.

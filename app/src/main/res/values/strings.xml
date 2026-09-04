@@ -61,8 +61,66 @@
     <string name="team_detail_pokemon_tab">Pokémon</string>
     <string name="team_detail_analysis_tab">Analisi</string>
     <string name="team_detail_enable_moves">Abilita slot mosse</string>
-    <string name="team_detail_analysis_placeholder_title">In arrivo</string>
-    <string name="team_detail_analysis_placeholder_subtitle">L\'analisi di copertura arriverà con una fase successiva.</string>
+
+    <!-- Analysis tab -->
+    <string name="analysis_empty">Aggiungi Pokémon nel tab Pokémon per analizzare il tuo team.</string>
+    <string name="analysis_basis_types_only">Analisi basata solo sui tipi dei Pokémon.</string>
+    <string name="analysis_basis_moves_only">Analisi basata sulle mosse inserite.</string>
+    <string name="analysis_basis_mixed">Mista: basata sulle mosse per %1$s, sui tipi per %2$s.</string>
+    <string name="analysis_offensive_coverage">Copertura offensiva</string>
+    <string name="analysis_defensive_coverage">Copertura difensiva</string>
+    <string name="analysis_shared_weaknesses">Debolezze condivise</string>
+    <string name="analysis_uncovered_types">Tipi scoperti</string>
+    <string name="analysis_suggestions">Suggerimenti</string>
+    <string name="analysis_no_shared_weaknesses">Nessuna — il tuo team non ha debolezze sovrapposte.</string>
+    <string name="analysis_full_coverage">Il tuo team può colpire ogni tipo in modo super-efficace. 🎉</string>
+    <string name="analysis_missing_coverage">Copertura super-efficace mancante su:</string>
+    <string name="analysis_per_pokemon">Dettaglio per Pokémon</string>
+    <string name="analysis_most_vulnerable">Più vulnerabile</string>
+    <string name="analysis_team_best">Miglior team</string>
+    <string name="analysis_immune_to">immune a</string>
+    <string name="analysis_wonder_guard_note">Solo le mosse super-efficaci infliggono danni</string>
+    <string name="analysis_pokemon_column_header">Pokémon</string>
+
+    <!-- Suggestions (Phase 4) -->
+    <string name="suggestions_no_suggestions">Nessun suggerimento disponibile.</string>
+    <string name="suggestions_filter_generation_all">Tutte le generazioni</string>
+    <string name="suggestions_filter_generation">Generazione %1$d</string>
+    <string name="suggestions_include_customs">Includi Pokémon custom</string>
+    <string name="suggestions_exclude_legendaries">Escludi leggendari/mitici</string>
+    <string name="suggestions_add_to_team">Aggiungi al team</string>
+    <string name="suggestions_replaces">Sostituisci: %1$s</string>
+    <string name="suggestions_covers">Copre:</string>
+    <string name="suggestions_new_weaknesses">Nuove debolezze:</string>
+    <string name="suggestions_aggravates">Aggrava:</string>
+    <string name="suggestions_already_weak">già debole: %1$s</string>
+    <string name="suggestions_no_new_weaknesses">Nessuna nuova debolezza condivisa introdotta</string>
+    <string name="suggestions_score">Punteggio: %1$s</string>
+
+    <!-- Surprise Me (Phase 4) -->
+    <string name="surprise_me_title">Sorprendimi 🎲</string>
+    <string name="surprise_me_button">Sorprendimi 🎲</string>
+    <string name="surprise_me_seed_description">Scegli 0–5 Pokémon da mantenere nel team. Il generatore riempie il resto.</string>
+    <string name="surprise_me_seed_warning">Tutti e 6 gli slot sono bloccati. Rimuovine uno per generare.</string>
+    <string name="surprise_me_starters">Starter</string>
+    <string name="surprise_me_legendaries_mythicals">Leggendari / Mitici</string>
+    <string name="surprise_me_mega_evolutions">Mega evoluzioni</string>
+    <string name="surprise_me_dynamax_gmax">Dynamax/Gmax</string>
+    <string name="surprise_me_custom_pokemon">Pokémon custom</string>
+    <string name="surprise_me_generate">Genera team</string>
+    <string name="surprise_me_regenerate_all">Rigenera tutto 🎲</string>
+    <string name="surprise_me_regenerate_slot">Rigenera questo slot</string>
+    <string name="surprise_me_too_few_pokemon">Non ci sono abbastanza Pokémon idonei per riempire tutti gli slot.</string>
+    <string name="surprise_me_remaining_slots">Slot rimanenti: %1$d</string>
+    <string name="surprise_me_result_title">Il tuo team</string>
+    <string name="surprise_me_keep">Crea team</string>
+
+    <string name="defensive_weaknesses_4x">Debolezze (4×)</string>
+    <string name="defensive_weaknesses_2x">Debolezze (2×)</string>
+    <string name="defensive_resistances_05x">Resistenze (½×)</string>
+    <string name="defensive_resistances_025x">Resistenze (¼×)</string>
+    <string name="defensive_immune_0x">Immune (0×)</string>
+    <string name="defensive_move_coverage">Copertura mosse:</string>
 
     <!-- Slot editor -->
     <string name="slot_editor_title">Slot %1$d</string>
