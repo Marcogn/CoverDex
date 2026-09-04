@@ -228,6 +228,19 @@ there.
   needs a real `@Update` for its edit path, or must delete-and-reinsert
   every child in the *same* transaction right after. Check any future
   `REPLACE`-based upsert against this before assuming it's safe.
+- **Room's `MigrationTestHelper` needs its schema JSONs on the `debug`
+  source set's assets, not `test`'s.** The commonly repeated advice
+  (`sourceSets["test"].assets.srcDirs("$projectDir/schemas")`, carried over
+  from the officially documented `androidTest` pattern) does nothing under
+  Robolectric: `MigrationTestHelper` reads schemas through a real
+  `AssetManager.open()` call, whose Robolectric shadow is backed by
+  whatever directory AGP's generated `test_config.properties` names as
+  `android_merged_assets` — which is the actual `debug` variant's
+  `mergeDebugAssets` output, not a `debugUnitTest`-specific one (this AGP
+  version has no such task). `app/build.gradle.kts` wires the schemas into
+  `sourceSets["debug"].assets` instead, which is what actually makes
+  `Migration1To2Test` pass. See `docs/implementation-decisions.md`,
+  "Phase 2", for how this was verified rather than assumed.
 
 ## Build/test commands
 

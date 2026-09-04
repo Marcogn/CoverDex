@@ -219,3 +219,65 @@ the way this session briefly did:
   "Shadow" move set, `type_id = 10002`, outside the 18-type model). 919 is
   the correct count for `PokedexRepository`'s move cache from this point
   on; do not "fix" a future test that expects 937.
+
+## Phase 2 — Teams and roster
+
+- **`MigrationTestHelper`'s exported schema JSONs must be wired in as a
+  `debug` source-set asset, not a `test` one — confirmed by measurement,
+  not by trusting the widely-repeated advice.** The officially documented
+  pattern (Room's own migration guide, countless blog posts and Stack
+  Overflow answers) is:
+  ```kotlin
+  sourceSets {
+      getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+  }
+  ```
+  for instrumented tests, and by extension people carry the same
+  `sourceSets["test"].assets.srcDirs(...)` (or `resources.srcDirs(...)`)
+  over to a Robolectric-based `MigrationTestHelper` test under
+  `testOptions.unitTests.isIncludeAndroidResources = true`. Neither worked
+  here (`Migration1To2Test`, added this phase, kept failing with
+  `FileNotFoundException: ... Missing file:
+  com.marcogn.coverdex.data.local.CoverDexDatabase/1.json`), so this was
+  run to ground with real build artifacts rather than assumed to be a
+  typo:
+  - `MigrationTestHelper.loadSchema()` (decompiled from
+    `room-testing-2.6.1-runtime.jar`, since the class name obfuscation in
+    the error message hides which API it actually calls) genuinely calls
+    `instrumentation.context.assets.open("$assetsFolder/$version.json")`
+    — a real `android.content.res.AssetManager` read, not a JVM classpath
+    resource lookup, confirming Room's own (correct, if easy to misread)
+    error wording.
+  - Under Robolectric, that `AssetManager` is a shadow backed by whatever
+    directory AGP's generated `test_config.properties` names as
+    `android_merged_assets` — inspected directly at
+    `app/build/intermediates/.../test_config.properties`, which reads
+    `android_merged_assets=build/intermediates/assets/debug/mergeDebugAssets`.
+    That is the **real `debug` variant's** merged assets output. There is
+    no `debugUnitTest`-specific assets merge task in this AGP version
+    (confirmed: `./gradlew :app:help --task mergeDebugUnitTestAssets`
+    reports the task does not exist) — so a `test`-source-set asset has
+    nowhere to be merged *into* before Robolectric looks for it. This was
+    verified empirically, not just reasoned about: pointing
+    `sourceSets["test"].assets` at the schemas directory left
+    `mergeDebugAssets`'s output untouched, and the test still failed
+    identically; adding the same directory to
+    `sourceSets["debug"].assets` instead made the files appear at
+    `app/build/intermediates/assets/debug/mergeDebugAssets/...`, and the
+    test passed.
+  - The Hall of Memories sibling app was checked first, as the
+    architectural reference — it has no precedent to copy here. It has
+    never written a second schema version (`app/schemas/` holds only
+    `1.json`), so it has never needed `MigrationTestHelper` at all.
+  - Net effect: `app/build.gradle.kts`'s `android { sourceSets { ... } }`
+    wires `getByName("debug").assets.srcDirs("$projectDir/schemas")`,
+    accepting that the exported schema JSONs (a few KB, currently two
+    files) ship inside debug-only APK builds. Release builds are
+    unaffected — nothing here touches the `release` source set.
+- **`MigrationTestHelper`'s two-argument, string-based constructor
+  (`MigrationTestHelper(instrumentation, assetsFolder: String, factory)`)
+  is deprecated as of Room 2.6.1** in favour of the class-based overload
+  (`MigrationTestHelper(instrumentation, databaseClass: KClass<T>, specs,
+  factory)`), which is required anyway once a future phase introduces an
+  `@AutoMigration`. `Migration1To2Test` uses the class-based constructor
+  from the start rather than deferring the fix.

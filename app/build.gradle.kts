@@ -89,6 +89,23 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    // Room's MigrationTestHelper reads the exported schema JSONs through
+    // Instrumentation.getContext().getAssets() — Robolectric's shadow AssetManager, which is
+    // backed by the real `debug` variant's merged assets directory on disk, not by the JVM test
+    // classpath. Adding the schemas to sourceSets["test"].assets (the officially documented
+    // pattern for instrumented androidTest) does nothing for a Robolectric-based unit test in
+    // this AGP version — there is no separate assets merge for the debugUnitTest variant, so the
+    // only directory Robolectric's AssetManager ever sees is `debug`'s own mergeDebugAssets
+    // output. So the schemas must be wired in as a `debug` source set asset instead; the handful
+    // of KB this adds to debug-only APKs is an accepted cost. Without this, Migration1To2Test
+    // fails with a FileNotFoundException rather than a real migration error. See
+    // docs/implementation-decisions.md, "Phase 2".
+    sourceSets {
+        getByName("debug") {
+            assets.srcDirs("$projectDir/schemas")
+        }
+    }
 }
 
 ksp {
@@ -132,6 +149,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.androidx.room.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.ext.junit)
 
