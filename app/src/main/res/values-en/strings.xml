@@ -7,6 +7,11 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_confirm">Confirm</string>
 
+    <!-- SearchableDropdown -->
+    <string name="common_search_placeholder">Start typing to search…</string>
+    <string name="common_no_matches">No matches</string>
+    <string name="common_clear_selection">Clear selection</string>
+
     <!-- Navigation drawer -->
     <string name="drawer_teams">Your Teams</string>
     <string name="drawer_roster">Custom Pokémon</string>

@@ -7,6 +7,11 @@
     <string name="action_cancel">Annulla</string>
     <string name="action_confirm">Conferma</string>
 
+    <!-- SearchableDropdown -->
+    <string name="common_search_placeholder">Inizia a digitare per cercare…</string>
+    <string name="common_no_matches">Nessun risultato</string>
+    <string name="common_clear_selection">Rimuovi selezione</string>
+
     <!-- Cassetto di navigazione -->
     <string name="drawer_teams">I tuoi Team</string>
     <string name="drawer_roster">Pokémon Custom</string>
