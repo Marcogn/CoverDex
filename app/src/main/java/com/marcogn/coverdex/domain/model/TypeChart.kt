@@ -9,4 +9,9 @@ package com.marcogn.coverdex.domain.model
 value class TypeChart(private val table: Map<PokemonType, Map<PokemonType, Double>>) {
     fun multiplier(attacker: PokemonType, defender: PokemonType): Double =
         table[attacker]?.get(defender) ?: 1.0
+
+    /** Every (attacker, defender, multiplier) cell — for persisting the chart to the cache, never
+     * used by the coverage engine, which always goes through [multiplier]. */
+    fun entries(): List<Triple<PokemonType, PokemonType, Double>> =
+        table.flatMap { (attacker, row) -> row.map { (defender, factor) -> Triple(attacker, defender, factor) } }
 }
