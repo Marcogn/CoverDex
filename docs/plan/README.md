@@ -166,6 +166,6 @@ real bug found that way gets an entry in that file's "Known regressions".
 - **Phase 1 — Dataset sync**: ✅ done
 - **Phase 2 — Teams and roster**: ✅ done
 - **Phase 3 — Analysis**: ✅ done
-- **Phase 4 — Suggestions and generator**: not started
+- **Phase 4 — Suggestions and generator**: ✅ done
 - **Phase 5 — Import/export and settings**: not started
 - **Phase 6 — Release**: not started

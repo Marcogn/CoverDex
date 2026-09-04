@@ -179,3 +179,44 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 4 — Suggestions and Surprise Me
+
+- [ ] **Addition mode.** With a team of fewer than six, the Suggestions
+  section shows up to five "add" cards — sprite, name, type badges, gain,
+  composite score, newly covered types and new weaknesses. Tapping one
+  fills the first empty slot with it immediately.
+- [ ] **Replacement mode.** With a full team of six, every card instead
+  names which member it would replace; tapping one swaps that slot's
+  Pokémon in place, leaving the other five slots untouched.
+- [ ] **Generation filter uses the real generation, not an id range.**
+  Filter Suggestions to Generation I — Mega/regional/alternate forms of
+  Generation I species now appear (they would have been wrongly excluded,
+  or shown under the wrong generation, under the old id-range scheme).
+- [ ] **"Include custom Pokémon" and "exclude legendaries/mythicals"
+  toggles** actually change the candidate list — a saved custom roster
+  entry appears only with the toggle on; a legendary/mythical drops out
+  with "exclude" on unless the team already has one.
+- [ ] **No suggestions message.** A team with nothing left to suggest (or
+  an empty synced catalogue) shows the "no suggestions" message instead
+  of an empty section.
+- [ ] **Surprise Me — anchors.** From Teams, tap the dice icon. Search and
+  lock up to 5 Pokémon; each appears as a removable chip. Locking a 6th
+  is blocked with the "all slots locked" warning shown.
+- [ ] **Surprise Me — constraints and generate.** Adjust the starter/
+  legendary-mythical/Mega/Dynamax counters (each capped so the total plus
+  locked anchors never exceeds 6); Generate produces a full team, anchors
+  first and unchanged.
+- [ ] **Surprise Me — regenerate.** Regenerating a single (non-anchor)
+  slot changes only that slot; "Regenerate all" produces an entirely new
+  team respecting the same anchors and constraints.
+- [ ] **Surprise Me — too few eligible Pokémon.** With constraints that
+  can't be satisfied from the synced catalogue, the warning message
+  appears and the returned team is shorter than 6.
+- [ ] **Surprise Me — Keep.** Tapping Keep prompts for a team name, then
+  creates a brand-new team with the generated six slots and navigates to
+  it — the Teams list shows it immediately.
+
+### Known regressions
+
+None yet.

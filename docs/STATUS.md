@@ -2,7 +2,7 @@
 
 A snapshot of what's implemented, what's known to be missing, and any loose
 ends — written for whoever (human or agent) picks this project up next.
-Last verified 2026-09-04, at the end of Phase 3 of the native Android
+Last verified 2026-09-04, at the end of Phase 4 of the native Android
 migration. Re-verify anything here before relying on it — this file goes
 stale the moment someone ships a change without updating it. It complements,
 not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for rules and
@@ -17,12 +17,16 @@ A native Android app that downloads and caches the full Pokémon catalogue in
 the background, lets the user build real teams (create/rename/delete a team,
 fill its six slots from the synced catalogue or type a ROM-hack-only
 species/ability/move by hand, override a slot's types, save any slot into a
-reusable custom roster), and now analyses those teams: every team's Analysis
-tab shows the ported coverage engine's full output — basis notice,
-per-Pokémon breakdown, offensive/defensive grids, shared weaknesses,
-uncovered types. Suggestions (the seventh section) remains a placeholder,
-and that is the intended state at the end of Phase 3 of
-[`docs/plan/README.md`](plan/README.md), not a partial feature.
+reusable custom roster), analyses those teams (every team's Analysis tab
+shows the ported coverage engine's full output — basis notice, per-Pokémon
+breakdown, offensive/defensive grids, shared weaknesses, uncovered types),
+and now suggests how to improve them: the Analysis tab's seventh section
+ranks real candidates to add or swap in, filterable by generation/custom-
+Pokémon/legendaries, and a new Surprise Me screen generates a whole team
+from scratch around optional locked anchors and category constraints. That
+is the full feature set through Phase 4 of
+[`docs/plan/README.md`](plan/README.md); Showdown import/export and the
+rest of Settings are Phase 5.
 
 ## What's implemented
 
@@ -79,19 +83,42 @@ and that is the intended state at the end of Phase 3 of
   per-Pokémon breakdown (expandable cards), the offensive and defensive
   18-type grids (pinned name column, independently horizontally
   scrolling, `CoverageGridTable` shared between both), shared weaknesses
-  with counts, uncovered types, and a labeled Suggestions placeholder.
+  with counts, uncovered types, and — as of Phase 4 — real suggestions.
   `AnalysisViewModel` applies the "Enable move slots" gate before the
   engine ever sees a member's moves.
+- **The suggestion engine** (`domain/suggestion/`) — a direct port of
+  `suggestionEngine.ts`'s `computeSuggestions`/`memberFromEntry`, with the
+  composite-score weights shared with the generator via `Scoring.kt`. One
+  intentional deviation from the TypeScript: the generation filter uses
+  each candidate's real `generationIntroduced` instead of hardcoded
+  Pokédex-id ranges (`docs/plan/reference-pokedata.md` §4).
+- **The Suggestions section** (section 7 of the Analysis tab) — up to five
+  ranked cards (addition mode below six members, replacement mode at a
+  full six), each showing sprite, types, gain, composite score, newly
+  covered types and new weaknesses; a generation dropdown and "include
+  custom Pokémon"/"exclude legendaries" toggles; tapping a card writes it
+  into the team immediately.
+- **The team generator** (`domain/generator/`) — a direct port of
+  `teamGenerator.ts`'s `buildEligiblePool`/`generateTeam`/`regenerateSlot`/
+  `STARTER_FINALS`, with an injectable `kotlin.random.Random` (the
+  TypeScript calls `Math.random()` directly and so can only test
+  probabilistically; the Kotlin tests assert the same properties
+  deterministically across a fixed set of seeds).
+- **The Surprise Me screen** (`ui/surprise/`, reached from Teams via the
+  dice icon) — lock 0-5 anchor Pokémon, tune starter/legendary-mythical/
+  Mega/Dynamax/custom constraint counters, Generate, regenerate a single
+  slot or the whole team, then Keep to create a brand-new team from the
+  result. One scrollable screen, not `SurpriseMeModal.tsx`'s three-step
+  wizard — see `docs/implementation-decisions.md`, "Phase 4".
 - **`./gradlew testDebugUnitTest lintDebug assembleDebug`** all green in one
-  invocation — 146 unit tests, 0 failures (verified locally with a
+  invocation — 191 unit tests, 0 failures (verified locally with a
   temporary, non-persistent SDK this session, same as every prior phase).
 
 ## What's known to be missing
 
-Everything the app is supposed to do beyond teams, the roster and coverage
-analysis. In order, per [`docs/plan/README.md`](plan/README.md):
+Everything the app is supposed to do beyond teams, the roster, coverage
+analysis and suggestions. In order, per [`docs/plan/README.md`](plan/README.md):
 
-- **Phase 4** — suggestions and the "Surprise Me" generator.
 - **Phase 5** — Showdown import/export, the rest of Settings, local backup.
 - **Phase 6** — signing, the release pipeline, `legacy-web/` deleted.
 
@@ -102,11 +129,6 @@ Also deliberately deferred (not a bug, see `docs/implementation-decisions.md`):
   custom Pokémon in search" checkbox — `phase-2-teams-and-roster.md`'s own
   description of the species picker never mentions it. "Save as custom"
   (writing a slot *into* the roster) is unaffected.
-- **Phase 3** — the Pokémon tab has no "Analyze team" button or "include
-  custom Pokémon" checkbox yet; both exist in `legacy-web` but would have
-  no observable effect until Phase 4's suggestion engine exists to use
-  them. Tapping the Analysis tab directly already does what the button
-  would.
 
 [`ROADMAP.md`](../ROADMAP.md) points at
 [`docs/plan/native-spec.md`](plan/native-spec.md)'s "Explicitly out of
@@ -125,7 +147,7 @@ say so plainly before they update.
 
 ```bash
 export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
-./gradlew testDebugUnitTest   # 146 tests as of Phase 3
+./gradlew testDebugUnitTest   # 191 tests as of Phase 4
 ./gradlew lintDebug
 ./gradlew assembleDebug
 ```
@@ -133,9 +155,11 @@ export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
 `docs/test-plan.md` has the on-device manual steps this doesn't cover —
 locale switching, dynamic colour, the launcher icon, install-over-upgrade,
 the real first-launch sync, team/slot/roster CRUD, the slot editor's
-discard-on-back behaviour, the debug seed data, and (new this phase) the
-Analysis tab's basis notice, both coverage grids' independent horizontal
-scrolling, and type overrides propagating into the analysis.
+discard-on-back behaviour, the debug seed data, the Analysis tab's basis
+notice, both coverage grids' independent horizontal scrolling, type
+overrides propagating into the analysis, and (new this phase) the
+Suggestions section's addition/replacement modes and filters, and every
+Surprise Me interaction (anchors, constraints, generate, regenerate, Keep).
 
 `legacy-web/` has its own, separate health check:
 
