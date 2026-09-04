@@ -4,6 +4,7 @@
 
     <!-- Comuni / condivise fra più schermate -->
     <string name="cd_menu">Menu</string>
+    <string name="cd_back">Indietro</string>
     <string name="action_cancel">Annulla</string>
     <string name="action_confirm">Conferma</string>
 
@@ -21,6 +22,19 @@
     <string name="teams_title">I tuoi Team</string>
     <string name="teams_empty_title">Nessun team ancora</string>
     <string name="teams_empty_subtitle">I tuoi team compariranno qui quando inizierai a costruirli.</string>
+    <string name="teams_member_count">%1$d/6</string>
+    <string name="teams_new_team_title">Nuovo team</string>
+    <string name="teams_rename_team_title">Rinomina team</string>
+    <string name="teams_team_name_label">Nome</string>
+    <string name="teams_action_rename">Rinomina</string>
+    <string name="teams_action_delete">Elimina</string>
+    <string name="teams_more_actions">Altre azioni</string>
+    <string name="teams_delete_title">Elimina team</string>
+    <string name="teams_delete_message">Il team «%1$s» verrà eliminato e non potrà essere recuperato.</string>
+
+    <!-- Team detail -->
+    <string name="team_detail_placeholder_title">In arrivo</string>
+    <string name="team_detail_placeholder_subtitle">L\'editor degli slot e l\'analisi arriveranno a breve.</string>
 
     <!-- Pokémon custom -->
     <string name="roster_title">Pokémon Custom</string>

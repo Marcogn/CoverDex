@@ -322,3 +322,26 @@ the way this session briefly did:
   regress by a future caller forgetting to carry them over. Asserted
   directly: `CustomPokemonDaoTest`'s "editing an entry's name does not
   reset its creation time".
+- **The Teams screen's create/rename/delete wording has no `legacy-web`
+  source to port for three of its four strings.** `legacy-web/src/i18n/locales/`
+  has `teams.newTeam`, `teams.createEmpty` and `teams.delete`, but: renaming
+  is an inline double-click-to-edit text field in the PWA with no dialog
+  and no "Rename" string anywhere (`teams_rename_team_title`,
+  `teams_action_rename`, `teams_team_name_label` are new keys, phrased to
+  match the existing `teams_delete_title`/`settings_data_clear_confirm_title`
+  style); `DeleteTeamModal.tsx`'s confirmation copy is hardcoded English,
+  never run through `t()` — a real localization gap in the PWA, not
+  something to carry forward — so `teams_delete_message` is phrased fresh
+  (matching `teams.confirmDelete`'s intent, plus an explicit
+  "cannot be recovered" clause the way `settings_data_clear_confirm_message`
+  already does elsewhere in this app) rather than left English-only. This is
+  the same class of gap as `SearchableDropdown`'s "No matches"/"Clear
+  selection" (see above).
+- **Creating a team asks for a name up front**, unlike `legacy-web`'s
+  `createEmptyTeam`, which auto-names it `Team ${teams.length + 1}` with no
+  prompt at all. This is not a paraphrase disagreement (contrast the
+  `MoveSlot` `damageClass` entry above) — `phase-2-teams-and-roster.md`'s
+  own "Screens" section explicitly specifies "Create (a name dialog)" as a
+  native-only UX decision, so the plan's text is the authority here, not
+  `legacy-web`'s code. Creating a team still immediately opens it
+  afterward, matching `createEmptyTeam`'s own behaviour.

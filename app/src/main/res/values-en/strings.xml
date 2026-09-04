@@ -4,6 +4,7 @@
 
     <!-- Shared across multiple screens -->
     <string name="cd_menu">Menu</string>
+    <string name="cd_back">Back</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_confirm">Confirm</string>
 
@@ -21,6 +22,19 @@
     <string name="teams_title">Your Teams</string>
     <string name="teams_empty_title">No teams yet</string>
     <string name="teams_empty_subtitle">Your teams will appear here once you start building them.</string>
+    <string name="teams_member_count">%1$d/6</string>
+    <string name="teams_new_team_title">New team</string>
+    <string name="teams_rename_team_title">Rename team</string>
+    <string name="teams_team_name_label">Name</string>
+    <string name="teams_action_rename">Rename</string>
+    <string name="teams_action_delete">Delete</string>
+    <string name="teams_more_actions">More actions</string>
+    <string name="teams_delete_title">Delete team</string>
+    <string name="teams_delete_message">The team \"%1$s\" will be deleted and cannot be recovered.</string>
+
+    <!-- Team detail -->
+    <string name="team_detail_placeholder_title">Coming soon</string>
+    <string name="team_detail_placeholder_subtitle">The slot editor and analysis are coming shortly.</string>
 
     <!-- Custom Pokémon -->
     <string name="roster_title">Custom Pokémon</string>
