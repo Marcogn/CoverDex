@@ -40,8 +40,13 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
 - **The custom Pokémon roster is a full screen now**: create, edit and
   delete entries with the same type/ability/move editor as a team slot,
   minus the species picker.
-- The Analysis tab on a team's own screen is a visible placeholder —
-  coverage analysis itself lands in Phase 3.
+- **Coverage analysis is real now.** Every team's Analysis tab shows: what
+  basis the analysis runs on (entered moves, Pokémon types, or a mix,
+  clearly stated); a per-Pokémon breakdown of weaknesses, resistances,
+  immunities and ability effects; full 18-type offensive and defensive
+  coverage grids; the team's shared weaknesses; and the types nothing on
+  the team can hit super-effectively. Suggestions (the seventh section)
+  remain a placeholder — that's Phase 4.
 
 ## [1.0.0]
 

@@ -145,3 +145,37 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 3 — Coverage analysis
+
+- [ ] **The coverage basis notice is accurate.** With "Enable move slots"
+  on and every filled slot carrying at least one damaging move, the
+  notice reads "Analysis based on entered moves." With the toggle off
+  (even if slots still have moves saved), it reads "Analysis based on
+  Pokémon types only." With the toggle on and only *some* slots carrying
+  a damaging move, it reads the mixed message naming which species use
+  which basis.
+- [ ] **Per-Pokémon cards are collapsed by default** and expand on tap,
+  showing weaknesses (4×/2×), resistances (½×/¼×), immunities, the
+  ability's own coverage effect (if any — e.g. Levitate showing a Ground
+  immunity, Wonder Guard showing its note) and, when it has damaging
+  moves, its move-type coverage.
+- [ ] **Both coverage grids scroll independently, horizontally, without
+  ever scrolling the screen itself sideways** — the Pokémon name column
+  stays pinned in both while the 18 type columns (plus the Team
+  best/Most vulnerable summary row) scroll under your finger.
+- [ ] **Shared weaknesses show a count**, not just a badge — two team
+  members both weak to the same type shows "×2", three shows "×3".
+- [ ] **Uncovered types** lists every type nothing on the team hits
+  super-effectively; with a team that covers all 18, the section
+  instead shows the "full coverage" message.
+- [ ] **Type overrides on a slot change the Analysis tab too** — override
+  a slot's type from the slot editor (Phase 2), reopen the team, confirm
+  the Analysis tab's grids and per-Pokémon card reflect the override, not
+  the species' real types.
+- [ ] **An empty team shows the "add Pokémon first" message**, not any of
+  the seven sections, on the Analysis tab.
+
+### Known regressions
+
+None yet.
