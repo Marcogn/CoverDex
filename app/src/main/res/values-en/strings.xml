@@ -115,6 +115,21 @@
     <string name="surprise_me_result_title">Your team</string>
     <string name="surprise_me_keep">Create team</string>
 
+    <!-- Import/export Showdown (Phase 5) -->
+    <string name="export_showdown_title">Export to Showdown</string>
+    <string name="export_showdown_copy">Copy to clipboard</string>
+    <string name="export_showdown_save_file">Save to file</string>
+    <string name="import_showdown_title">Import from Showdown</string>
+    <string name="import_showdown_paste_placeholder">Paste a Showdown-format team here…</string>
+    <string name="import_showdown_parse">Parse</string>
+    <string name="import_showdown_open_file">Open file</string>
+    <string name="import_showdown_parsed_title">Recognized Pokémon</string>
+    <string name="import_showdown_nothing_parsed">No Pokémon recognized in this text.</string>
+    <string name="import_showdown_skipped_species">Pokémon not found in the database, skipped: %1$s</string>
+    <string name="import_showdown_unknown_moves_count">%1$d move(s) need completing</string>
+    <string name="import_showdown_create_team">Create team</string>
+    <string name="settings_import_showdown">Import from Showdown</string>
+
     <string name="defensive_weaknesses_4x">Weaknesses (4×)</string>
     <string name="defensive_weaknesses_2x">Weaknesses (2×)</string>
     <string name="defensive_resistances_05x">Resistances (½×)</string>

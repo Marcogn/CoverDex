@@ -37,12 +37,12 @@ interface PokedexRepository {
     suspend fun speciesById(id: Int): PokemonEntry?
     suspend fun speciesByName(name: String): PokemonEntry?
 
-    /** Exact (normalized) name match — used to resolve a Showdown move line (Phase 5) without a
-     * live search subscription. */
-    suspend fun moveByName(name: String): MoveEntry?
-
     /** The full pool — used by the suggestion engine and team generator from Phase 4 onward. */
     suspend fun allSpecies(): List<PokemonEntry>
+
+    /** Every cached move — used to resolve a pasted Showdown team's move lines in bulk (Phase 5),
+     * the same one-shot-list shape as [allSpecies]. */
+    suspend fun allMoves(): List<MoveEntry>
 
     suspend fun typeChart(): TypeChart
 }

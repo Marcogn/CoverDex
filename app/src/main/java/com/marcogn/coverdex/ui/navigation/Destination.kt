@@ -26,4 +26,7 @@ sealed interface Destination {
 
     @Serializable
     data object SurpriseMe : Destination
+
+    @Serializable
+    data object ImportShowdown : Destination
 }
