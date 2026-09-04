@@ -397,3 +397,20 @@ the way this session briefly did:
   native-only UX decision, so the plan's text is the authority here, not
   `legacy-web`'s code. Creating a team still immediately opens it
   afterward, matching `createEmptyTeam`'s own behaviour.
+
+## Phase 3 — Coverage analysis
+
+- **`offensiveCoverageForMember` keeps its explicit `useMoves: Boolean`
+  parameter**, even though `phase-3-analysis.md` §1's own pseudocode lists
+  it as `fun offensiveCoverageForMember(chart: TypeChart, m: TeamMember):
+  Set<PokemonType>` — no `useMoves` argument at all. The real
+  `coverageEngine.ts` signature (`offensiveCoverageForMember(chart,
+  member, useMoves)`) has one, every one of its own tests exercises both
+  `true` and `false` explicitly, and Phase 4's suggestion engine depends on
+  being able to force `useMoves = false` for a candidate regardless of
+  what moves it happens to carry ("Candidates are evaluated by types
+  only, always" — phase-4's §1 rule 7, and `coverageEngineTest.ts`'s own
+  "custom Pokémon type-only evaluation" group, ported verbatim as
+  `CoverageEngineTest`'s last case). Dropping the parameter to match the
+  plan's abbreviated pseudocode would silently break that. Treated as a
+  pseudocode omission, not a signature change to follow.
