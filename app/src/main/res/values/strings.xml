@@ -164,6 +164,9 @@
 
     <!-- Impostazioni -->
     <string name="settings_title">Impostazioni</string>
+    <string name="settings_section_team_suggestions">Suggerimenti Team</string>
+    <string name="settings_include_mega">Includi forme Mega/Dynamax/Gigantamax</string>
+    <string name="settings_include_legendary">Includi Leggendari e Mitici</string>
     <string name="settings_section_appearance">Aspetto</string>
     <string name="settings_theme_system">Predefinito sistema</string>
     <string name="settings_theme_light">Chiaro</string>
@@ -194,4 +197,16 @@
     <string name="sync_stage_writing">Salvataggio</string>
 
     <string name="sync_banner_message">Sincronizzazione dati Pokémon in corso…</string>
+
+    <!-- Impostazioni > Import/export e app (Phase 5) -->
+    <string name="settings_section_import_export">Importa/Esporta</string>
+    <string name="settings_section_backup">Backup locale</string>
+    <string name="settings_backup_description">Salva tutti i tuoi team e il roster custom in un file, o ripristinali da un backup precedente. I dati Pokédex non sono inclusi: verranno riscaricati.</string>
+    <string name="settings_backup_export">Esporta backup</string>
+    <string name="settings_backup_import">Importa backup</string>
+    <string name="settings_backup_import_confirm_title">Ripristinare questo backup?</string>
+    <string name="settings_backup_import_confirm_message">Tutti i team e il roster custom attuali verranno sostituiti con quelli del backup. L\'operazione non può essere annullata.</string>
+    <string name="settings_backup_import_confirm_button">Ripristina</string>
+    <string name="settings_app">App</string>
+    <string name="settings_app_version">CoverDex v%1$s</string>
 </resources>

@@ -164,6 +164,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_team_suggestions">Team Suggestions</string>
+    <string name="settings_include_mega">Include Mega/Dynamax/Gigantamax forms</string>
+    <string name="settings_include_legendary">Include Legendary &amp; Mythical Pokémon</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme_system">System default</string>
     <string name="settings_theme_light">Light</string>
@@ -194,4 +197,16 @@
     <string name="sync_stage_writing">Saving</string>
 
     <string name="sync_banner_message">Syncing Pokémon data…</string>
+
+    <!-- Settings > Import/export and app (Phase 5) -->
+    <string name="settings_section_import_export">Import/Export</string>
+    <string name="settings_section_backup">Local backup</string>
+    <string name="settings_backup_description">Save all your teams and the custom roster to a file, or restore them from an earlier backup. The Pokédex cache is not included — it will be redownloaded.</string>
+    <string name="settings_backup_export">Export backup</string>
+    <string name="settings_backup_import">Import backup</string>
+    <string name="settings_backup_import_confirm_title">Restore this backup?</string>
+    <string name="settings_backup_import_confirm_message">All current teams and the custom roster will be replaced with the ones in the backup. This cannot be undone.</string>
+    <string name="settings_backup_import_confirm_button">Restore</string>
+    <string name="settings_app">App</string>
+    <string name="settings_app_version">CoverDex v%1$s</string>
 </resources>

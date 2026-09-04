@@ -2,6 +2,7 @@ package com.marcogn.coverdex.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.marcogn.coverdex.data.local.dao.BackupDao
 import com.marcogn.coverdex.data.local.dao.CustomPokemonDao
 import com.marcogn.coverdex.data.local.dao.PokedexDao
 import com.marcogn.coverdex.data.local.dao.TeamDao
@@ -36,6 +37,7 @@ abstract class CoverDexDatabase : RoomDatabase() {
     abstract fun pokedexDao(): PokedexDao
     abstract fun teamDao(): TeamDao
     abstract fun customPokemonDao(): CustomPokemonDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val DATABASE_NAME = "coverdex.db"

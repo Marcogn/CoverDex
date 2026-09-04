@@ -132,7 +132,10 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
                 RosterEditorScreen(onBackClick = { navController.popBackStack() })
             }
             composable<Destination.Settings> {
-                SettingsScreen(onMenuClick = onMenuClick)
+                SettingsScreen(
+                    onMenuClick = onMenuClick,
+                    onNavigateToImportShowdown = { navController.navigate(Destination.ImportShowdown) },
+                )
             }
             composable<Destination.SurpriseMe> {
                 SurpriseMeScreen(

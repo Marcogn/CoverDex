@@ -59,4 +59,31 @@ class SettingsPreferencesTest {
 
         assertEquals(ThemeMode.SYSTEM, preferences.themeMode.first())
     }
+
+    @Test
+    fun `includeMegaDynamax defaults to false and round-trips`() = runTest {
+        assertEquals(false, preferences.includeMegaDynamax.first())
+
+        preferences.setIncludeMegaDynamax(true)
+
+        assertEquals(true, preferences.includeMegaDynamax.first())
+    }
+
+    @Test
+    fun `excludeLegendaries defaults to false and round-trips`() = runTest {
+        assertEquals(false, preferences.excludeLegendaries.first())
+
+        preferences.setExcludeLegendaries(true)
+
+        assertEquals(true, preferences.excludeLegendaries.first())
+    }
+
+    @Test
+    fun `includeCustomsAnalysis defaults to false and round-trips`() = runTest {
+        assertEquals(false, preferences.includeCustomsAnalysis.first())
+
+        preferences.setIncludeCustomsAnalysis(true)
+
+        assertEquals(true, preferences.includeCustomsAnalysis.first())
+    }
 }

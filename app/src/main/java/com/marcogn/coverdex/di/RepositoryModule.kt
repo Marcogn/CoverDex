@@ -1,8 +1,10 @@
 package com.marcogn.coverdex.di
 
+import com.marcogn.coverdex.data.repository.BackupRepositoryImpl
 import com.marcogn.coverdex.data.repository.CustomPokemonRepositoryImpl
 import com.marcogn.coverdex.data.repository.PokedexRepositoryImpl
 import com.marcogn.coverdex.data.repository.TeamRepositoryImpl
+import com.marcogn.coverdex.domain.repository.BackupRepository
 import com.marcogn.coverdex.domain.repository.CustomPokemonRepository
 import com.marcogn.coverdex.domain.repository.PokedexRepository
 import com.marcogn.coverdex.domain.repository.TeamRepository
@@ -27,4 +29,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCustomPokemonRepository(impl: CustomPokemonRepositoryImpl): CustomPokemonRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 }
