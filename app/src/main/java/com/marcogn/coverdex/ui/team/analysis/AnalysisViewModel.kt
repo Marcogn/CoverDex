@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.marcogn.coverdex.data.settings.ThemePreferences
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.coverage.analyseTeam
 import com.marcogn.coverdex.domain.coverage.sharedWeaknessCounts
 import com.marcogn.coverdex.domain.model.PokemonEntry
@@ -30,21 +30,29 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/** `-mega`/`-gmax`/`-dynamax`/`-mega-x`/`-mega-y` — `TeamDetailPage.tsx`'s own regex against the
+ * catalogue's form name, ported verbatim (`docs/plan/phase-5-import-export-and-settings.md` §3).
+ * Applied to the suggestion pool only, never `PokedexRepository.searchSpecies`. */
+private val MEGA_DYNAMAX_FORM_REGEX = Regex("-mega|-gmax|-dynamax|-mega-x|-mega-y")
+
 /**
- * `combine()`s the team flow, the type chart, the full catalogue, the custom roster and the local
- * toggles (showMoves, includeCustomsAnalysis, excludeLegendaries, the generation filter) into one
- * [AnalysisUiState] — `docs/plan/phase-3-analysis.md` §2 and, from Phase 4 on,
- * `phase-4-suggestions-and-generator.md` §4. The `showMoves` gate lives here, not in the engine:
- * with the toggle off, members reach [analyseTeam] with their moves stripped, exactly what
- * `TeamDetailPage.tsx`'s `analysisMembers` memo does, so the engine uniformly falls back to
+ * `combine()`s the team flow, the type chart, the full catalogue, the custom roster and the
+ * persisted/local toggles (showMoves, includeMegaDynamax, excludeLegendaries,
+ * includeCustomsAnalysis, the generation filter) into one [AnalysisUiState] —
+ * `docs/plan/phase-3-analysis.md` §2, `phase-4-suggestions-and-generator.md` §4 and, from Phase 5
+ * on, `phase-5-import-export-and-settings.md` §3. The `showMoves` gate lives here, not in the
+ * engine: with the toggle off, members reach [analyseTeam] with their moves stripped, exactly
+ * what `TeamDetailPage.tsx`'s `analysisMembers` memo does, so the engine uniformly falls back to
  * type-based coverage.
  */
+private data class DatasetCore(val chart: TypeChart?, val pool: List<PokemonEntry>)
+
 private data class CoreData(
     val team: Team?,
-    val chart: TypeChart?,
-    val pool: List<PokemonEntry>,
+    val dataset: DatasetCore,
     val roster: List<TeamMember>,
     val showMoves: Boolean,
+    val includeMegaDynamax: Boolean,
 )
 
 @HiltViewModel
@@ -53,48 +61,56 @@ class AnalysisViewModel @Inject constructor(
     private val teamRepository: TeamRepository,
     private val pokedexRepository: PokedexRepository,
     customPokemonRepository: CustomPokemonRepository,
-    themePreferences: ThemePreferences,
+    private val settingsPreferences: SettingsPreferences,
 ) : ViewModel() {
 
     private val teamId: String = savedStateHandle.toRoute<Destination.TeamDetail>().teamId
 
-    private val includeCustomsAnalysis = MutableStateFlow(false)
-    private val excludeLegendaries = MutableStateFlow(false)
     private val generationFilter = MutableStateFlow<Int?>(null)
+
+    private val datasetCore = combine(
+        pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.typeChart() else null },
+        pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.allSpecies() else emptyList() },
+    ) { chart, pool -> DatasetCore(chart, pool) }
 
     private val core = combine(
         teamRepository.team(teamId),
-        pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.typeChart() else null },
-        pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.allSpecies() else emptyList() },
+        datasetCore,
         customPokemonRepository.roster,
-        themePreferences.showMoves,
-    ) { team, chart, pool, roster, showMoves -> CoreData(team, chart, pool, roster, showMoves) }
+        settingsPreferences.showMoves,
+        settingsPreferences.includeMegaDynamax,
+    ) { team, dataset, roster, showMoves, includeMegaDynamax -> CoreData(team, dataset, roster, showMoves, includeMegaDynamax) }
 
     val uiState: StateFlow<AnalysisUiState> = combine(
         core,
-        includeCustomsAnalysis,
-        excludeLegendaries,
+        settingsPreferences.includeCustomsAnalysis,
+        settingsPreferences.excludeLegendaries,
         generationFilter,
-    ) { core, includeCustoms, excludeLegendariesValue, genFilter ->
+    ) { core, includeCustoms, excludeLegendaries, genFilter ->
         val filled = core.team?.members?.filterNotNull() ?: emptyList()
         val members = if (core.showMoves) filled else filled.map { it.copy(moves = List(4) { null }) }
-        val coverage = core.chart?.let { analyseTeam(it, members) }
-        val sharedWeaknesses = core.chart?.let { chart ->
+        val coverage = core.dataset.chart?.let { analyseTeam(it, members) }
+        val sharedWeaknesses = core.dataset.chart?.let { chart ->
             sharedWeaknessCounts(chart, members)
                 .filterValues { it >= 2 }
                 .entries
                 .sortedByDescending { it.value }
                 .map { it.key to it.value }
         } ?: emptyList()
-        val suggestions = core.chart?.let { chart ->
+        val suggestionPool = if (core.includeMegaDynamax) {
+            core.dataset.pool
+        } else {
+            core.dataset.pool.filterNot { MEGA_DYNAMAX_FORM_REGEX.containsMatchIn(it.name) }
+        }
+        val suggestions = core.dataset.chart?.let { chart ->
             computeSuggestions(
                 chart,
                 members,
-                core.pool,
+                suggestionPool,
                 core.roster,
                 SuggestionOptions(
                     includeCustoms = includeCustoms,
-                    excludeLegendaries = excludeLegendariesValue,
+                    excludeLegendaries = excludeLegendaries,
                     generation = genFilter,
                 ),
             )
@@ -102,14 +118,13 @@ class AnalysisViewModel @Inject constructor(
 
         AnalysisUiState(
             members = members,
-            chart = core.chart,
+            chart = core.dataset.chart,
             coverage = coverage,
             sharedWeaknesses = sharedWeaknesses,
             showMoves = core.showMoves,
             roster = core.roster,
             suggestions = suggestions,
             includeCustomsAnalysis = includeCustoms,
-            excludeLegendaries = excludeLegendariesValue,
             generationFilter = genFilter,
         )
     }.stateIn(
@@ -119,11 +134,7 @@ class AnalysisViewModel @Inject constructor(
     )
 
     fun setIncludeCustomsAnalysis(value: Boolean) {
-        includeCustomsAnalysis.value = value
-    }
-
-    fun setExcludeLegendaries(value: Boolean) {
-        excludeLegendaries.value = value
+        viewModelScope.launch { settingsPreferences.setIncludeCustomsAnalysis(value) }
     }
 
     fun setGenerationFilter(value: Int?) {

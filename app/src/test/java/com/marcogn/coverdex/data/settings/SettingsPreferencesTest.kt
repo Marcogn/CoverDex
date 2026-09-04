@@ -20,10 +20,10 @@ import org.robolectric.annotation.Config
 // about the app's supported API range.
 @Config(sdk = [26])
 @RunWith(RobolectricTestRunner::class)
-class ThemePreferencesTest {
+class SettingsPreferencesTest {
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-    private val preferences = ThemePreferences(context)
+    private val preferences = SettingsPreferences(context)
 
     // Robolectric reuses the same on-disk filesDir across test methods within a run, and
     // preferencesDataStore() caches one DataStore per (Context, name) pair — without this, a

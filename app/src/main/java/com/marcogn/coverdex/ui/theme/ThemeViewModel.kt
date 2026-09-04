@@ -2,7 +2,7 @@ package com.marcogn.coverdex.ui.theme
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.marcogn.coverdex.data.settings.ThemePreferences
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -13,16 +13,16 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
-    private val themePreferences: ThemePreferences,
+    private val settingsPreferences: SettingsPreferences,
 ) : ViewModel() {
 
-    val themeMode: StateFlow<ThemeMode> = themePreferences.themeMode.stateIn(
+    val themeMode: StateFlow<ThemeMode> = settingsPreferences.themeMode.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = ThemeMode.SYSTEM,
     )
 
     fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch { themePreferences.setThemeMode(mode) }
+        viewModelScope.launch { settingsPreferences.setThemeMode(mode) }
     }
 }

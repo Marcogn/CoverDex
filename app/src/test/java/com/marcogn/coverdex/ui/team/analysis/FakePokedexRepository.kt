@@ -34,6 +34,7 @@ class FakePokedexRepository(
     override fun searchAbilities(query: String): Flow<List<AbilityEntry>> = flowOf(emptyList())
     override suspend fun speciesById(id: Int): PokemonEntry? = pool.find { it.id == id }
     override suspend fun speciesByName(name: String): PokemonEntry? = pool.find { it.name == name }
+    override suspend fun moveByName(name: String): MoveEntry? = null
     override suspend fun allSpecies(): List<PokemonEntry> = pool
     override suspend fun typeChart(): TypeChart = chart
 }

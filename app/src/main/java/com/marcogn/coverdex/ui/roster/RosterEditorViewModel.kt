@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.marcogn.coverdex.data.settings.ThemePreferences
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.MoveEntry
 import com.marcogn.coverdex.domain.model.TeamMember
@@ -26,7 +26,7 @@ class RosterEditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val customPokemonRepository: CustomPokemonRepository,
     private val pokedexRepository: PokedexRepository,
-    themePreferences: ThemePreferences,
+    settingsPreferences: SettingsPreferences,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<Destination.RosterEditor>()
@@ -41,7 +41,7 @@ class RosterEditorViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     } ?: MutableStateFlow(null)
 
-    val showMoves: StateFlow<Boolean> = themePreferences.showMoves.stateIn(
+    val showMoves: StateFlow<Boolean> = settingsPreferences.showMoves.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false,

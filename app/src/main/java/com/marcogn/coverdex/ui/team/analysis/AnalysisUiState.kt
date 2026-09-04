@@ -21,8 +21,9 @@ data class AnalysisUiState(
      * five (`phase-4-suggestions-and-generator.md` §4), kept unsliced here so a future caller
      * (e.g. a "show more" affordance) is not blocked on a state-shape change. */
     val suggestions: List<Suggestion> = emptyList(),
+    /** Backed by `SettingsPreferences.includeCustomsAnalysis` (Phase 5) — persisted, but still
+     * toggled right from this screen's `SuggestionFilters`, same as `showMoves`. */
     val includeCustomsAnalysis: Boolean = false,
-    val excludeLegendaries: Boolean = false,
     /** `null` means "all generations" — a real generation number (1-9) otherwise. See
      * `domain/suggestion/SuggestionEngine.kt`'s doc comment for why this is a number, not the
      * TypeScript's id-range key. */
