@@ -1,0 +1,9 @@
+damage_type_id,target_type_id,damage_factor
+1,8,0
+2,8,0
+1,6,50
+1,9,50
+1,1,100
+1,2,100
+2,1,200
+2,6,200
