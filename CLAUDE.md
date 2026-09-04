@@ -1,5 +1,24 @@
 # CLAUDE.md
 
+> ## ⚠️ This repository is being rewritten as a native Android app
+>
+> CoverDex is being converted from a React/Capacitor PWA into a **native
+> Kotlin + Jetpack Compose Android app**, modelled on the sibling project
+> [Hall of Memories](https://github.com/Marcogn/hall-of-memories). GitHub
+> Pages and the whole web-release path are being removed.
+>
+> **If you are here to implement that migration, stop reading this file and
+> start at [`docs/plan/README.md`](docs/plan/README.md).** It names the
+> phase order, the working rules and the definition of done. The single most
+> important file in it is
+> [`docs/plan/reference-pokedata.md`](docs/plan/reference-pokedata.md) — the
+> measured dataset contract that takes first-launch acquisition from ~426 MB
+> to ~208 KB.
+>
+> Everything below this banner still describes the **current** React
+> codebase, which is accurate until Phase 0 runs and is the behavioural
+> reference for the port throughout. Phase 0 rewrites this file.
+
 Instructions for AI coding agents (Claude Code, GitHub Copilot, etc.)
 working in this repository. Read this file in full before editing any
 code — it's kept short on purpose; the detail it summarizes lives in
