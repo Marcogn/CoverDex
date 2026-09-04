@@ -49,9 +49,10 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
 - **Suggestions are real now.** The Analysis tab's seventh section ranks
   up to five candidates to add (team under six) or swap in (a full team)
   — sprite, types, coverage gain, composite score, newly covered types and
-  new weaknesses — filterable by generation, "include custom Pokémon" and
-  "exclude legendaries/mythicals". Tapping a card adds or replaces it in
-  the team immediately.
+  new weaknesses — filterable by generation and "include custom Pokémon"
+  right on the screen, plus two app-wide preferences in Settings (include
+  Mega/Dynamax forms, include legendaries/mythicals). Tapping a card adds
+  or replaces it in the team immediately.
 - **The suggestions' generation filter uses each candidate's real
   generation**, not the hardcoded Pokédex-id ranges the original web app
   used (`docs/plan/reference-pokedata.md` §4) — an alternate-form Pokémon
@@ -62,6 +63,20 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
   starters/legendaries-mythicals/Mega/Dynamax slots to reserve, Generate,
   regenerate individual slots or the whole team, then Keep to create the
   new team.
+- **Teams round-trip through Pokémon Showdown's team format.** Export a
+  team from its overflow menu — copy to clipboard or save a `.txt` file —
+  and import one from Settings, pasted or opened from a file: every
+  recognized Pokémon is shown before you commit, with unresolved moves
+  flagged per slot (they still import, as a placeholder to fill in) and
+  unresolved species skipped and listed.
+- **Every setting from the old app is here**, plus what Phase 1 already
+  added: include Mega/Dynamax/Gigantamax forms and include legendaries/
+  mythicals in Suggestions, alongside theme, language, "Enable move
+  slots" and the dataset status/sync/clear controls.
+- **Local backup.** Settings → Local backup exports every team and the
+  custom roster to a single file (never the Pokédex cache — that's
+  re-downloaded) and restores from one, asking for confirmation first
+  since a restore fully replaces what's on the device, with no merging.
 
 ## [1.0.0]
 

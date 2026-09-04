@@ -2,7 +2,7 @@
 
 A snapshot of what's implemented, what's known to be missing, and any loose
 ends — written for whoever (human or agent) picks this project up next.
-Last verified 2026-09-04, at the end of Phase 4 of the native Android
+Last verified 2026-09-04, at the end of Phase 5 of the native Android
 migration. Re-verify anything here before relying on it — this file goes
 stale the moment someone ships a change without updating it. It complements,
 not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for rules and
@@ -21,12 +21,16 @@ reusable custom roster), analyses those teams (every team's Analysis tab
 shows the ported coverage engine's full output — basis notice, per-Pokémon
 breakdown, offensive/defensive grids, shared weaknesses, uncovered types),
 and now suggests how to improve them: the Analysis tab's seventh section
-ranks real candidates to add or swap in, filterable by generation/custom-
-Pokémon/legendaries, and a new Surprise Me screen generates a whole team
-from scratch around optional locked anchors and category constraints. That
-is the full feature set through Phase 4 of
-[`docs/plan/README.md`](plan/README.md); Showdown import/export and the
-rest of Settings are Phase 5.
+ranks real candidates to add or swap in, filterable by generation and
+custom-Pokémon inclusion, and a new Surprise Me screen generates a whole
+team from scratch around optional locked anchors and category constraints.
+Teams round-trip through Pokémon Showdown's team format (export from a
+team's overflow menu, import from Settings into a brand-new team), every
+setting from the old web app is now present, and Settings has a local
+backup that exports/restores every team and the custom roster to a single
+file. That is the full feature set through Phase 5 of
+[`docs/plan/README.md`](plan/README.md); only Phase 6 (signing, the release
+pipeline, the docs rewrite) is left.
 
 ## What's implemented
 
@@ -96,8 +100,10 @@ rest of Settings are Phase 5.
   ranked cards (addition mode below six members, replacement mode at a
   full six), each showing sprite, types, gain, composite score, newly
   covered types and new weaknesses; a generation dropdown and "include
-  custom Pokémon"/"exclude legendaries" toggles; tapping a card writes it
-  into the team immediately.
+  custom Pokémon" toggle live on the screen, while "include Mega/Dynamax
+  forms" and "include legendaries/mythicals" are app-wide Settings
+  preferences (Phase 5) — matching `legacy-web`'s own read-only props for
+  those two.
 - **The team generator** (`domain/generator/`) — a direct port of
   `teamGenerator.ts`'s `buildEligiblePool`/`generateTeam`/`regenerateSlot`/
   `STARTER_FINALS`, with an injectable `kotlin.random.Random` (the
@@ -110,17 +116,38 @@ rest of Settings are Phase 5.
   slot or the whole team, then Keep to create a brand-new team from the
   result. One scrollable screen, not `SurpriseMeModal.tsx`'s three-step
   wizard — see `docs/implementation-decisions.md`, "Phase 4".
+- **The Showdown format** (`domain/showdown/ShowdownFormat.kt`) — a direct
+  port of `showdownParser.ts`'s export/parse/import functions, contract-
+  complete (species/ability/moves/`# Types:` comment on both sides, an
+  unresolved move importing as a flagged placeholder rather than failing
+  the block). Export is a team's overflow-menu dialog (copy to clipboard
+  or save a `.txt` file via SAF); Import is its own Settings-reached
+  screen (paste or open a file, review what parsed, then create a
+  brand-new team from it).
+- **Every setting from the old web app now exists**, alongside what
+  Phase 1 already added: "Team Suggestions" (include Mega/Dynamax/
+  Gigantamax forms, include legendaries/mythicals — both `SettingsPreferences`,
+  renamed from `ThemePreferences` since it now holds far more than the
+  theme), Import/Export, Local backup, and the app version.
+- **Local backup** (`domain/backup/` + `data/backup/`) — a zip holding
+  every team and the custom roster (never the Pokédex cache), versioned
+  so a backup from a newer app version is refused rather than partially
+  applied; restore is a full replace in one transaction, ids and
+  timestamps preserved. Copied from Hall of Memories' own pattern, minus
+  the `images/` half neither app's data model needs the same way here —
+  CoverDex has no photos on a team slot.
 - **`./gradlew testDebugUnitTest lintDebug assembleDebug`** all green in one
-  invocation — 191 unit tests, 0 failures (verified locally with a
+  invocation — 226 unit tests, 0 failures (verified locally with a
   temporary, non-persistent SDK this session, same as every prior phase).
 
 ## What's known to be missing
 
 Everything the app is supposed to do beyond teams, the roster, coverage
-analysis and suggestions. In order, per [`docs/plan/README.md`](plan/README.md):
+analysis, suggestions, import/export and settings. Per
+[`docs/plan/README.md`](plan/README.md):
 
-- **Phase 5** — Showdown import/export, the rest of Settings, local backup.
-- **Phase 6** — signing, the release pipeline, `legacy-web/` deleted.
+- **Phase 6** — signing, the release pipeline, the docs rewrite,
+  `legacy-web/` deleted.
 
 Also deliberately deferred (not a bug, see `docs/implementation-decisions.md`):
 
@@ -147,7 +174,7 @@ say so plainly before they update.
 
 ```bash
 export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
-./gradlew testDebugUnitTest   # 191 tests as of Phase 4
+./gradlew testDebugUnitTest   # 226 tests as of Phase 5
 ./gradlew lintDebug
 ./gradlew assembleDebug
 ```
@@ -157,9 +184,12 @@ locale switching, dynamic colour, the launcher icon, install-over-upgrade,
 the real first-launch sync, team/slot/roster CRUD, the slot editor's
 discard-on-back behaviour, the debug seed data, the Analysis tab's basis
 notice, both coverage grids' independent horizontal scrolling, type
-overrides propagating into the analysis, and (new this phase) the
-Suggestions section's addition/replacement modes and filters, and every
-Surprise Me interaction (anchors, constraints, generate, regenerate, Keep).
+overrides propagating into the analysis, the Suggestions section's
+addition/replacement modes and filters, every Surprise Me interaction
+(anchors, constraints, generate, regenerate, Keep), and (new this phase)
+Showdown export/import (clipboard, SAF file pickers, unknown-move/skipped-
+species handling) and a real local-backup export/restore cycle, including
+across a reinstall.
 
 `legacy-web/` has its own, separate health check:
 

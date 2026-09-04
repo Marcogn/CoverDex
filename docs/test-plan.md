@@ -220,3 +220,57 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 5 — Showdown import/export, settings and local backup
+
+- [ ] **Export a team, copy to clipboard.** A team's overflow menu →
+  "Export to Showdown" shows the exported block; Copy, then paste into a
+  text editor or directly into Pokémon Showdown's team builder — species,
+  ability, moves and the `# Types:` comment all appear correctly.
+- [ ] **Export a team, save to file.** Same dialog → "Save to file" (SAF)
+  → pick a location → confirm the `.txt` file was written with the same
+  content shown in the dialog.
+- [ ] **Import from pasted text.** Settings → "Import from Showdown" →
+  paste a real Showdown export (six Pokémon, real moves) → Parse shows
+  all six with sprites and types before creating anything → Create team
+  prompts for a name → the new team appears in Teams with every slot
+  filled correctly.
+- [ ] **Import from a file.** Same screen → "Open file" (SAF) → pick a
+  `.txt` exported earlier → the pasted-text field fills in and Parse
+  works identically.
+- [ ] **Unknown moves still import.** Paste a block naming a move that
+  doesn't exist in the synced catalogue (a typo, or a move from a
+  different game) — that slot still gets created, flagged with how many
+  moves need completing, not dropped or rejected.
+- [ ] **Unknown species are skipped, not fatal.** A multi-block paste
+  where one species name doesn't match anything in the catalogue: the
+  other species still import, and the skipped name is listed.
+- [ ] **Settings → Team Suggestions toggles actually filter.** Turn off
+  "Include Mega/Dynamax/Gigantamax forms" — a Mega Pokémon no longer
+  appears as a suggestion (the species picker is unaffected). Turn off
+  "Include Legendary & Mythical Pokémon" on a team with none — legendaries
+  stop appearing as suggestions; a team that already has one still
+  suggests more.
+- [ ] **Local backup export.** Settings → Local backup → Export → pick a
+  location — the saved `.zip` is non-trivial in size and named with a
+  timestamp.
+- [ ] **Local backup restore, same install.** Add a team, export a
+  backup, then change something (rename a team, add another) — Import →
+  pick the backup file → confirm the replace warning → every team and
+  roster entry matches exactly what was in the backup, extra changes
+  gone.
+- [ ] **Local backup restore across a reinstall.** Export a backup,
+  uninstall CoverDex, reinstall it, sync the dataset, then restore the
+  backup — teams and the custom roster come back exactly as they were;
+  the Pokédex cache is unaffected either way (it was never part of the
+  backup).
+- [ ] **A backup from a future app version is refused.** (If a test build
+  with a bumped backup format is available.) Attempting to restore it
+  shows a clear "too new" message and changes nothing.
+- [ ] **Language switch applies to every new screen from this phase** —
+  the import screen, the Settings additions, both backup dialogs — not
+  just the ones that existed before Phase 5.
+
+### Known regressions
+
+None yet.

@@ -541,3 +541,104 @@ the way this session briefly did:
   asks for a name up front" decision (see above), which already treats
   `phase-2-teams-and-roster.md`'s explicit "a name dialog" instruction as
   the native-only authority over `legacy-web`'s auto-naming.
+
+## Phase 5 — Showdown import/export, settings and local backup
+
+- **The Showdown parser's resolver callbacks take the full `PokemonEntry`/
+  `MoveEntry`, not just a species' types or a move's fields**, unlike
+  `showdownParser.ts`'s `resolveTypes: (name) => [PokemonType,
+  PokemonType | null] | null`. This app resolves a sprite from
+  `TeamMember.pokedexId`, never a stored URL (every prior phase's
+  `TeamMember` already carries that instead of `spriteUrl`) — the id has
+  to come back from resolution somehow, and threading it through a
+  parallel second lookup (as `ImportExport.tsx`'s own caller does, via a
+  second `pokemon.find()` after parsing) would just be more code for the
+  same result. `PokedexRepository` gained `allMoves()` (mirroring
+  `allSpecies()`) instead of a per-move `moveByName` specifically so the
+  import screen can resolve every line in a pasted team from one bulk
+  fetch, not a suspend call per move.
+- **Import always creates a brand-new team, prompting for its name up
+  front** — the same shape as Surprise Me's Keep (see above), and for the
+  same reason: `phase-2-teams-and-roster.md`'s "a name dialog" instruction
+  is the native-only authority here, and `useAppShell.ts`'s own
+  `handleImportTeam` (the live, reachable import path — wired from
+  `App.tsx`) also always appends a new `Team`, never overwrites one.
+  `legacy-web/src/components/ImportExport/ImportExport.tsx`, which *does*
+  write into a specific existing team's slots, is dead code — grepping the
+  repo shows nothing renders it; `useAppShell.ts`'s `handleImportTeam` is
+  the actual behavioural reference, not that component.
+- **Export lives only on a team's overflow menu; Import lives only in
+  Settings** — not both places for both actions, despite
+  `phase-5-import-export-and-settings.md` §2's "both in Settings and both
+  reachable from a team's overflow menu" phrasing. Export needs a specific
+  team to render (there is nothing to export from Settings without first
+  picking one, and Teams' own overflow menu already exists for per-team
+  actions); Import always produces a *new* team per the decision above, so
+  it has no natural per-team entry point — attaching an "Import" action to
+  an existing team's menu would misleadingly suggest it imports *into*
+  that team. One entry point per action, at the place each one's own
+  target (an existing team vs. a new one) actually lives.
+- **`ThemePreferences` is renamed to `SettingsPreferences`.** It now holds
+  `includeMegaDynamax`/`excludeLegendaries`/`includeCustomsAnalysis`
+  alongside the Phase 0/3 theme and `showMoves` keys, in the same
+  `settings_prefs` DataStore file as always (`phase-5-import-export-and-
+  settings.md` §3: "one file, not five") — the old name stopped describing
+  what the class actually holds partway through Phase 3 already.
+- **`excludeLegendaries` and `includeMegaDynamax` moved out of
+  `AnalysisViewModel`'s per-screen state into `SettingsPreferences`**,
+  removing the "exclude legendaries" switch `SuggestionFilters.kt` shipped
+  with in Phase 4. Rereading `TeamDetailPage.tsx`'s props for this phase
+  showed neither has an `onChange` callback there — both are read-only,
+  app-wide preferences flowing down from `AppSettings`, unlike
+  `includeCustomsAnalysis`, which does have one (see the next entry). The
+  Phase 4 per-screen toggle was a reasonable interim shape before
+  `SettingsPreferences` existed to back it; once it did, keeping a
+  duplicate, ephemeral copy of a setting the reference implementation
+  treats as global would just invite the two from drifting apart.
+- **`includeCustomsAnalysis` stays a toggle on the Analysis screen, but is
+  now backed by `SettingsPreferences` too** — reconciling two phase docs
+  that describe it differently. `phase-3-analysis.md` calls it one of
+  "the local toggles" `AnalysisViewModel` combines; `phase-5-import-
+  export-and-settings.md` §3's table lists it as
+  `SettingsPreferences.includeCustomsAnalysis` under the same "one
+  DataStore file" rule as the other settings. `TeamDetailPage.tsx` itself
+  splits the difference: it receives `includeCustomsAnalysis` as a prop
+  *with* an `onIncludeCustomsChange` callback, unlike the two read-only
+  ones above — genuinely page-adjustable in the reference implementation,
+  just not (per `types/index.ts`'s `AppSettings` interface, which has no
+  such field at all) actually persisted there. Keeping the on-screen
+  toggle satisfies Phase 3's description; persisting it satisfies Phase
+  5's; doing both is a strict improvement over the TypeScript, which
+  forgets the choice the moment you leave the page.
+- **The local backup has no `images/` entries**, unlike Hall of Memories'
+  own `BackupArchive.kt`, which this file otherwise copies wholesale
+  (`phase-5-import-export-and-settings.md` §4: "Copy Hall of Memories'
+  `data/backup/` wholesale"). CoverDex has nothing analogous to a
+  screenshot or box art — every field on a `TeamMember`/`Team` is already
+  plain data — so the `ImageStorage`-driven half of the reference
+  implementation (`BackupArchiveBuilder`'s referenced-file-name filtering,
+  `importPayload`'s `resolveImage`) has nothing to port; the zip holds
+  only `data.json`.
+- **A restored custom roster entry's `createdAtEpochMillis` is
+  synthesized from its position in the backup, not carried over from the
+  original row.** `CustomPokemonRepository.roster: Flow<List<TeamMember>>`
+  already discards that column when mapping `CustomPokemonWithMoves` to
+  the domain `TeamMember` — it exists purely as `observeRoster()`'s
+  `ORDER BY` key, never a value any screen displays — so `BackupPayload`
+  (built from the domain model, like Hall of Memories' own DTOs) never
+  had it to preserve in the first place. `BackupRepositoryImpl.importPayload`
+  assigns each entry `restoreTimeBase + index` instead, which reproduces
+  the one thing the real timestamp was ever for: the roster's display
+  order survives a restore intact, even though the literal historical
+  creation instant does not — the actual invariant behind "timestamps
+  preserved" (`phase-5-import-export-and-settings.md` §4), not a
+  narrower literal reading of it that this app's own architecture can't
+  satisfy for this one field.
+- **Timestamps in the backup format are epoch-millis `Long`s, not ISO
+  strings** (`BackupPayload.exportedAtEpochMillis`), matching every other
+  timestamp already in this app (`Team.createdAtEpochMillis`,
+  `CacheStatus.syncedAtEpochMillis`) rather than Hall of Memories'
+  `java.time.Instant.toString()` — `minSdk` stays 24
+  (`docs/plan/native-spec.md`, "Identity") and `java.time` needs API 26
+  without desugaring, the same reason `PokedexRepositoryImpl` already
+  uses `java.text.SimpleDateFormat` instead.
