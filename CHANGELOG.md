@@ -31,6 +31,17 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
   progress on the Teams screen while everything else stays usable.
 - Settings → Data: dataset status, re-sync, and a "Clear cached data"
   action that never touches saved teams.
+- **Teams are real now.** Create, rename, delete a team; each has six
+  slots. Every slot has a species picker backed by the synced catalogue,
+  type overrides (a ROM-hack-friendly feature the old app also had),
+  an ability field, and — behind a persisted "Enable move slots" toggle —
+  four move slots, each accepting either a cached move or a typed custom
+  one. A slot can be saved into a reusable custom-Pokémon roster.
+- **The custom Pokémon roster is a full screen now**: create, edit and
+  delete entries with the same type/ability/move editor as a team slot,
+  minus the species picker.
+- The Analysis tab on a team's own screen is a visible placeholder —
+  coverage analysis itself lands in Phase 3.
 
 ## [1.0.0]
 

@@ -62,7 +62,7 @@ the app is native-only from here on.
 
 - **Phase 0 — Foundation**: ✅ done
 - **Phase 1 — Dataset sync**: ✅ done
-- **Phase 2 — Teams and roster**: not started
+- **Phase 2 — Teams and roster**: ✅ done
 - **Phase 3 — Analysis**: not started
 - **Phase 4 — Suggestions and generator**: not started
 - **Phase 5 — Import/export and settings**: not started
@@ -107,14 +107,17 @@ explicitly asks for it.
 
 The target shape, built out phase by phase — see
 [`docs/plan/README.md`](docs/plan/README.md) for which phase adds what.
-As of Phase 1: `ui/theme`, `ui/navigation`, `ui/roster` (empty state only),
-`ui/teams` (empty state + sync banner), `ui/settings` (theme, language and
-dataset status), `ui/common` (`PokemonSprite`, `TypeBadge`, no call site
-yet), `data/settings/ThemePreferences.kt`, `data/debug/DebugSeeder.kt` (a
-seam, no call site yet), and the full `data/pokeapi`, `data/local`,
-`data/repository`, `domain/pokeapi`, `domain/sprite`, `domain/model`,
-`domain/repository` and `di` packages the tree below describes. No `team`/
-`custom_pokemon` tables, no analysis, no suggestions yet.
+As of Phase 2: `ui/theme`, `ui/navigation`, `ui/teams` (real CRUD),
+`ui/team` (team detail, the slot editor, `MoveSlotEditor`, `SlotSummaryCard`),
+`ui/roster` (real CRUD, its own editor), `ui/settings` (theme, language and
+dataset status), `ui/common` (`PokemonSprite`, `TypeBadge`, `SearchableDropdown`,
+`EditableComboBox`, `TypeDropdown`, `DamageClassDropdown`, the `PokemonType`/
+`DamageClass` `displayName()` extensions), `data/settings/ThemePreferences.kt`
+(theme + the persisted "Enable move slots" toggle), `data/debug/DebugSeeder.kt`
+(seeds two teams and two roster entries, wired from `CoverDexApplication`),
+and the full `data/pokeapi`, `data/local`, `data/repository`, `domain/pokeapi`,
+`domain/sprite`, `domain/model`, `domain/repository` and `di` packages the
+tree below describes. No analysis, no suggestions, no generator yet.
 
 ```
 com.marcogn.coverdex

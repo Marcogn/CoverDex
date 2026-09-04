@@ -91,3 +91,57 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 2 — Teams, slots and the custom roster
+
+- [ ] **Create, rename, delete a team.** Teams screen's FAB opens a name
+  dialog (Confirm disabled while blank); the new team opens immediately.
+  Three-dot menu on a team row → Rename (pre-filled with the current name)
+  and Delete (a confirmation dialog naming the team) both work and neither
+  disturbs the other teams' order in the list.
+  [ ] **Order survives a rename.** With three or more teams, rename one
+  in the middle of the list — it must not jump to the end.
+- [ ] **The slot editor's species picker.** Open any slot, type a partial
+  species name — matches appear only after the first character (no list
+  on focus alone), picking one fills the sprite, both type badges and the
+  default ability. Picking a *different* species afterward fully replaces
+  the slot (old moves/ability gone), not merged with the previous pick.
+- [ ] **Type overrides persist independently per slot.** Change Type 1
+  and/or Type 2 on one slot, save, reopen it — the override is still
+  there; a different slot with the same species is unaffected.
+- [ ] **Ability field accepts free text.** Type an ability that isn't in
+  the suggestion list at all (a ROM-hack-only ability name), save, reopen
+  the slot — the typed text is preserved verbatim, not rejected or
+  cleared.
+- [ ] **"Enable move slots" toggle** shows/hides the four move rows on
+  every slot editor and on the roster editor alike (it's one shared,
+  global setting) and survives an app restart.
+- [ ] **A custom move's defaults.** In a move slot, type a name with no
+  cache match into the "Custom move name" field (leave the picker above
+  it untouched) — the type/power/category fields that appear default to
+  Normal / blank / Physical, per `docs/implementation-decisions.md`
+  ("Phase 2"), not Status.
+- [ ] **"Save as custom" from a slot** adds the slot's current Pokémon to
+  the custom roster (check the Custom Pokémon screen) without altering
+  the team slot itself.
+- [ ] **Back discards unsaved edits, on every path.** Open a slot, change
+  several fields, then back out via (a) the top bar's arrow, (b) the
+  system back gesture — reopen the slot both times: nothing was saved.
+  Only the checkmark (Save) action commits.
+- [ ] **Custom roster CRUD.** Add an entry (name required — Save disabled
+  while blank), edit an existing one (tap its row), delete it (its own
+  icon button, no confirmation prompt). Deleting one entry never affects
+  the others' sort order.
+- [ ] **Wiping the Pokédex cache leaves every team and roster entry
+  untouched** — Settings → Data → "Clear cached data" with at least one
+  populated team and one roster entry; reopen both afterward and confirm
+  every field (species name, types, ability, moves) is exactly as it was.
+- [ ] **Debug seed data**, debug build only: a fresh install with an empty
+  database shows two teams ("Kanto Starters", partially filled; "National
+  Dex All-Stars", full) and two custom roster entries on first launch,
+  with no re-seeding (and no duplication) on subsequent launches or after
+  creating a real team of your own.
+
+### Known regressions
+
+None yet.
