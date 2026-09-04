@@ -1,163 +1,108 @@
 # Project Status
 
-A snapshot of what's implemented, what's known to be missing, and any
-loose ends — written for whoever (human or agent) picks this project up
-next. Last verified 2026-08-17, during a docs/release-automation pass
-following the first release-worthy APK build (see "Loose ends from this
-session (2026-08-17)" below). Re-verify anything here that actually
-matters before relying on it — this file goes stale the moment someone
-ships a change without updating it. It complements, not replaces, the other docs:
-[`CLAUDE.md`](../CLAUDE.md) for rules and invariants,
-[`ARCHITECTURE.md`](ARCHITECTURE.md) for how the app fits together,
-[`ROADMAP.md`](../ROADMAP.md) for the intentionally-deferred backlog.
+A snapshot of what's implemented, what's known to be missing, and any loose
+ends — written for whoever (human or agent) picks this project up next.
+Last verified 2026-09-04, at the end of Phase 0 of the native Android
+migration. Re-verify anything here before relying on it — this file goes
+stale the moment someone ships a change without updating it. It complements,
+not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for rules and
+invariants, [`docs/plan/README.md`](plan/README.md) for the phase-by-phase
+build, [`docs/plan/native-spec.md`](plan/native-spec.md) for what the
+finished app must do, [`ROADMAP.md`](../ROADMAP.md) for the deferred
+backlog.
+
+## What CoverDex is right now
+
+A native Android skeleton: a themed, empty Teams screen behind a
+three-item navigation drawer (Your Teams / Custom Pokémon / Settings), a
+working theme picker (System/Light/Dark, persisted) and a working language
+picker (System/Italiano/English, persisted, switches every visible string
+immediately). No team can be created yet, there is no Pokémon data, and
+there is no network activity anywhere in the app.
+
+That is the intended state at the end of Phase 0 of
+[`docs/plan/README.md`](plan/README.md) — not a partial feature, a
+completed one. The functional app (teams, analysis, suggestions, the
+generator, import/export, backup) does not exist yet; it is built out
+phase by phase starting with Phase 1.
 
 ## What's implemented
 
-The full feature list lives in [`README.md`](../README.md); this is the
-short version plus what isn't obvious from a feature list.
+- **The Gradle project.** Single-module (`:app`), Kotlin DSL, the version
+  catalogue and Gradle wrapper copied verbatim from Hall of Memories (agp
+  8.13.0, kotlin 2.0.21, compose BOM 2024.12.01, room 2.6.1, hilt 2.52,
+  …). `./gradlew assembleDebug`, `lintDebug` and `testDebugUnitTest` are
+  all green (verified locally with a temporary SDK this session — see
+  `docs/implementation-decisions.md`).
+- **App identity.** `applicationId com.marcogn.coverdex`, `minSdk 24`,
+  `targetSdk`/`compileSdk 36`, `versionCode 2` / `versionName "2.0.0"` —
+  chosen so the native APK can install *over* the old Capacitor build (same
+  applicationId, higher versionCode), even though no user data carries
+  over (see "Known regressions" below, and
+  `docs/implementation-decisions.md`).
+- **Theme.** Material 3, seeded from the app's existing brand purple
+  (`#5B21B6`), Material You dynamic colour on API 31+. Persisted via a
+  Preferences DataStore (`settings_prefs`) that every later setting will
+  share.
+- **Language.** `AppCompatDelegate.setApplicationLocales()`-based picker,
+  System/Italian/English, persisted automatically
+  (`AppLocalesMetadataHolderService`).
+- **Navigation.** Type-safe Navigation-Compose routes behind a
+  `ModalNavigationDrawer`. `Destination.TeamDetail`'s route type exists
+  (Phase 2 needs it) but nothing navigates to it yet.
+- **The launcher icon** is the Capacitor build's own icon, ported
+  unchanged.
+- **CI.** `.github/workflows/android-ci.yml`: JDK 17 + Android SDK, lint +
+  unit tests + `assembleDebug` on every push/PR to `main`.
+- **`legacy-web/`** — the parked React/Capacitor PWA, kept as the
+  behavioural reference for the rest of the migration. `npm test` is green
+  (23 files, 175 tests) as of the move. It is not part of CI and is deleted
+  in Phase 6.
 
-- Team building, coverage analysis, suggestions, the "Surprise Me"
-  generator, the custom roster, Showdown import/export, and i18n (English/
-  Italian) are all shipped and covered by tests — 23 test files, 175 tests
-  as of this session (`npm run test`).
-- The PWA is installable and works offline after the first PokéAPI fetch.
-  GitHub Pages deploys only as part of `release.yml` (see below), not on
-  every push to `main` — deliberate, so the live site always matches a
-  tagged release. User data (`teamdex_userdata`) is persisted in
-  `localStorage`, unchanged.
-- The Android app is a native Capacitor shell wrapping the same React
-  code, MUI-restyled for every screen except `SurpriseMeModal` (left
-  intentionally unrestyled — same Tailwind markup on both platforms). CI
-  builds a signed release APK/AAB automatically on the Android dev branch;
-  the debug APK is manual-only. Distribution is through Firebase App
-  Distribution only (the old temporary Actions-artifact workflow was
-  deleted this session — see "Loose ends" below). It's sideload-only: no
-  Play Store listing. As of
-  this session, Android user data is persisted through
-  `@capacitor/preferences` (native storage) instead of the WebView's
-  `localStorage` — see `useUserDataStorage.ts`/`.android.ts` in
-  `docs/MODULES.md` and `docs/android/PLATFORM.md` → "Storage isolation
-  (PWA vs Android)". Devices that had the app
-  installed before this change get their existing teams migrated
-  automatically on next launch.
-- The app is versioned from a single source of truth: `package.json`'s
-  `version` field, shown in Settings → App (`__APP_VERSION__`, injected
-  at build time by `vite.config.ts`). `.github/workflows/release.yml`
-  (manual-dispatch only) is the single workflow that publishes anything
-  public: it *reads* that field (bumping it is a normal PR, not something
-  the workflow does itself — see "Loose ends" below for why), builds and
-  publishes a signed release APK as a GitHub Release with `CHANGELOG.md`'s
-  matching section as release notes, and in the same run redeploys GitHub
-  Pages — see [`docs/android/BUILD.md`](android/BUILD.md) → "Cutting a
-  public release" and [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) → "Keeping
-  the web and Android releases in sync".
-- Actions workflows were consolidated down to three this session:
-  `ci.yml` (tests + build check on every PR/push to `main`, no
-  publishing — replaces the old `pr-check.yml`), `release.yml` (the
-  public-release workflow above — replaces `deploy.yml` and
-  `release-android.yml`, folding the GitHub Pages deploy that used to be
-  its own always-on workflow into the manual release), and
-  `android-build.yml` (unchanged: internal test builds via Firebase App
-  Distribution, kept separate from the public release path). The
-  temporary `android-debug-apk-artifact.yml` was deleted, resolving the
-  "still temporary" loose end from the previous session.
-- Documentation was restructured this session: `CLAUDE.md` was cut from
-  ~34KB to ~16KB by moving per-file invariants to
-  [`docs/MODULES.md`](MODULES.md) and Android architectural invariants to
-  [`docs/android/PLATFORM.md`](android/PLATFORM.md); local dev setup and
-  GitHub Pages deployment moved to [`docs/DEVELOPMENT.md`](DEVELOPMENT.md).
-  `README.md` was rewritten as a market-facing product page (features,
-  "why CoverDex", how to get it) rather than a developer-first document.
-  `CHANGELOG.md` was added, starting at `[1.0.0]`.
+## What's known to be missing
 
-## What's known to be missing or deferred
+Everything the app is supposed to do. In order, per
+[`docs/plan/README.md`](plan/README.md):
 
-[`ROADMAP.md`](../ROADMAP.md) is the authoritative list — read that for
-the remaining Android backlog (promoting `android-build.yml` off
-manual-dispatch, Play Store submission, iOS via Capacitor). The
-`teamdex_userdata` → `@capacitor/preferences` migration that used to be
-the first item there is done as of this session and has been removed from
-that file.
+- **Phase 1** — the dataset sync (species/moves/abilities/types from
+  PokéAPI's CSV source data, ~208 KB total — see
+  [`reference-pokedata.md`](plan/reference-pokedata.md)), the Room cache,
+  sprite rendering.
+- **Phase 2** — actual teams: creating one, the six-slot editor, type
+  overrides, abilities, moves, the custom roster.
+- **Phase 3** — the coverage analysis screen (the ported coverage engine).
+- **Phase 4** — suggestions and the "Surprise Me" generator.
+- **Phase 5** — Showdown import/export, the rest of Settings, local backup.
+- **Phase 6** — signing, the release pipeline, `legacy-web/` deleted.
 
-A "move calculation/filtering into a backend, Android-only" idea was
-proposed and explicitly turned down this session — see CLAUDE.md's
-"Architecture Overview" → the "No backend" bullet for the reasoning (no
-real performance problem to fix at this data scale, and it would fork
-business logic between platforms). If this comes up again, read that
-reasoning before re-implementing it; it hasn't changed.
+[`ROADMAP.md`](../ROADMAP.md) points at
+[`docs/plan/native-spec.md`](plan/native-spec.md)'s "Explicitly out of
+scope" for what's deliberately never planned (Play Store submission, iOS,
+a backend).
 
-## Loose ends from this session (2026-08-17)
+## Known regressions
 
-- **`release.yml` still hasn't completed a successful end-to-end run.**
-  Three real attempts against `1.0.0` so far, each catching a real
-  problem: (1) failed on "Decode release keystore" — the
-  `ANDROID_KEYSTORE_BASE64` secret wasn't valid base64, fixed by
-  re-setting it via `gh secret set`, and the step now fails with an
-  actionable error instead of a bare `base64: invalid input`; (2) got
-  past the Android build but then failed pushing the version bump
-  straight to `main` (`GH006: Protected branch update failed`, "Require
-  a pull request before merging"); (3) the fix for that — opening and
-  auto-merging a small PR — worked but was more machinery than needed.
-  Comparing against `ThePatientGamerHelper`'s already-working
-  `release.yml` (same kind of branch protection on its `main`) showed the
-  actual fix: don't bump the version *in* the release workflow at all.
-  `release.yml` now only **reads** `package.json`'s version and refuses
-  to run if that version's release already exists — the maintainer bumps
-  `package.json` and adds the `CHANGELOG.md` entry via a normal PR first,
-  same as any other change, so the workflow never needs to write to
-  `main` and branch protection never comes up. See
-  `docs/android/BUILD.md` → "Why this workflow never writes to `main`".
-  **Before the next trigger**, `package.json`'s `"version"` needs to
-  already say `1.0.0` on `main` (it does, untouched since the project's
-  start) and `CHANGELOG.md` needs its `[1.0.0]` entry (it does). Trigger
-  it and confirm: the GitHub Release appears with the APK attached and
-  installable, the live site at `marcogn.github.io/CoverDex` shows the
-  same version in Settings → App, and the release notes match
-  `CHANGELOG.md`'s `[1.0.0]` section.
-- **`CHANGELOG.md` needs a new `## [X.Y.Z]` entry, and `package.json`'s
-  `"version"` needs bumping to match, via a normal PR before every
-  release after `1.0.0`.** `release.yml` refuses to run at all if the
-  version it reads has already been released (no silent duplicate/
-  overwritten release), and falls back to a generic "see CHANGELOG.md /
-  README.md" note if it can't find a matching `CHANGELOG.md` heading for
-  the version it did find — better than failing the release outright,
-  but not a substitute for real notes.
-- **GitHub Pages no longer redeploys on every push to `main`** — only
-  `release.yml` deploys it now (see "What's implemented" above), and
-  since that workflow now refuses to run for an already-released
-  version, it can no longer double as a "just redeploy Pages" trick
-  either. For a docs-only or urgent web fix that needs to go live without
-  a full Android release, use the one-off manual deploy in
-  `docs/DEVELOPMENT.md` → "Manual deployment" instead.
-
-## Loose ends from the previous session (2026-08-04)
-
-- **The Android storage migration needs a real-device/emulator check
-  before it can be fully trusted.** Everything here was verified by unit
-  tests against a mocked `@capacitor/preferences` (see
-  `src/hooks/__tests__/useUserDataStorage.android.test.ts`) and by
-  confirming the Android production bundle actually pulls in the
-  `.android.ts` file (grepped `dist-android` for the Preferences plugin
-  string and the `teamdex_userdata` key) — there was no Android
-  SDK/emulator available in this session to run `./gradlew assembleDebug`
-  and install it on a real device or emulator. Before this ships to real
-  users, actually install a build and confirm: (1) a fresh install starts
-  with one empty default team and no crash, (2) creating/editing teams
-  persists across an app restart, (3) if you have a build from before this
-  migration installed with saved teams, upgrading in place shows those
-  same teams afterward (the migration path) rather than an empty default.
+None yet — nothing user-facing has shipped to regress. The one
+deliberate, non-regression gap: **upgrading from the old Capacitor build
+loses saved teams and the custom roster.** This is a decided trade-off
+(see `docs/implementation-decisions.md`), not a bug, but it will read as
+one to a real user with existing data unless Phase 6's release notes
+say so plainly before they update.
 
 ## Verifying project health
 
 ```bash
-npm install
-npm run test            # 23 files, 175 tests as of this session
-npm run build            # type-check + PWA production build
-npm run build:android    # type-check + Android web bundle
+export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
+./gradlew testDebugUnitTest   # 6 tests as of Phase 0
+./gradlew lintDebug
+./gradlew assembleDebug
 ```
 
-The Android native build/lint (`cd android && ./gradlew lint
-testDebugUnitTest assembleDebug`) needs a JDK 21 + Android SDK toolchain —
-see [`docs/android/BUILD.md`](android/BUILD.md) for the full local setup,
-including the emulator-based Espresso smoke test. That native build is the
-one thing this session couldn't run — see "Loose ends" above.
+`docs/test-plan.md` has the on-device manual steps this doesn't cover —
+locale switching, dynamic colour, the launcher icon, install-over-upgrade.
+
+`legacy-web/` has its own, separate health check:
+
+```bash
+cd legacy-web && npm ci && npm test   # 175 tests
+```

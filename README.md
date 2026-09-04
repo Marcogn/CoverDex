@@ -1,5 +1,11 @@
 # CoverDex
 
+> **This repository is being rewritten as a native Android app.** The web
+> app and GitHub Pages described below are being retired; see
+> [`docs/plan/README.md`](docs/plan/README.md) for the migration plan and
+> [`docs/STATUS.md`](docs/STATUS.md) for what's actually shipped so far.
+> This README is rewritten for the native app in Phase 6.
+
 **Know your team's type coverage before you take it into battle.**
 
 CoverDex is a free Pokémon team builder that shows you, instantly, what

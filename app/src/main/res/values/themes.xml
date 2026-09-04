@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      AppCompatDelegate.setApplicationLocales() (the in-app language picker, wired up in this
+      phase's Settings screen) requires an AppCompat theme parent — with a Theme.Material3.*
+      parent instead, MainActivity would crash on launch ("You need to use a Theme.AppCompat
+      theme (or descendant) with this activity"). See CLAUDE.md, "Known gotchas".
+    -->
+    <style name="Theme.CoverDex" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

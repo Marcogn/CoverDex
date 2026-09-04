@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CoverDex</string>
+
+    <!-- Comuni / condivise fra più schermate -->
+    <string name="cd_menu">Menu</string>
+
+    <!-- Cassetto di navigazione -->
+    <string name="drawer_teams">I tuoi Team</string>
+    <string name="drawer_roster">Pokémon Custom</string>
+    <string name="drawer_settings">Impostazioni</string>
+
+    <!-- Team -->
+    <string name="teams_title">I tuoi Team</string>
+    <string name="teams_empty_title">Nessun team ancora</string>
+    <string name="teams_empty_subtitle">I tuoi team compariranno qui quando inizierai a costruirli.</string>
+
+    <!-- Pokémon custom -->
+    <string name="roster_title">Pokémon Custom</string>
+    <string name="roster_empty_title">Nessun Pokémon custom</string>
+    <string name="roster_empty_subtitle">Nessun Pokémon custom salvato.</string>
+
+    <!-- Impostazioni -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_section_appearance">Aspetto</string>
+    <string name="settings_theme_system">Predefinito sistema</string>
+    <string name="settings_theme_light">Chiaro</string>
+    <string name="settings_theme_dark">Scuro</string>
+    <string name="settings_section_language">Lingua</string>
+    <string name="settings_language_system">Predefinito sistema</string>
+    <string name="settings_language_italian">Italiano</string>
+    <string name="settings_language_english">Inglese</string>
+</resources>

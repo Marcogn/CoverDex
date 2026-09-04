@@ -1,361 +1,271 @@
 # CLAUDE.md
 
-> ## ⚠️ This repository is being rewritten as a native Android app
->
-> CoverDex is being converted from a React/Capacitor PWA into a **native
-> Kotlin + Jetpack Compose Android app**, modelled on the sibling project
-> [Hall of Memories](https://github.com/Marcogn/hall-of-memories). GitHub
-> Pages and the whole web-release path are being removed.
->
-> **If you are here to implement that migration, stop reading this file and
-> start at [`docs/plan/README.md`](docs/plan/README.md).** It names the
-> phase order, the working rules and the definition of done. The single most
-> important file in it is
-> [`docs/plan/reference-pokedata.md`](docs/plan/reference-pokedata.md) — the
-> measured dataset contract that takes first-launch acquisition from ~426 MB
-> to ~208 KB.
->
-> Everything below this banner still describes the **current** React
-> codebase, which is accurate until Phase 0 runs and is the behavioural
-> reference for the port throughout. Phase 0 rewrites this file.
+Guide for AI coding agents working on this repository. Read it in full
+before editing anything, then read the phase plan you are executing.
 
-Instructions for AI coding agents (Claude Code, GitHub Copilot, etc.)
-working in this repository. Read this file in full before editing any
-code — it's kept short on purpose; the detail it summarizes lives in
-these companion docs, read on demand rather than up front:
+- [`docs/plan/native-spec.md`](docs/plan/native-spec.md) — the authoritative
+  functional specification for the native app. Anything not in it, or in a
+  phase plan, is out of scope.
+- [`docs/plan/README.md`](docs/plan/README.md) — how the phased build is
+  executed, the working rules, and the definition of done for every phase.
+- [`docs/plan/reference-pokedata.md`](docs/plan/reference-pokedata.md) —
+  the measured dataset contract: sources, sizes, field derivations, sprite
+  URLs, pinning. The single most important file in the plan.
+- [`docs/implementation-decisions.md`](docs/implementation-decisions.md) —
+  non-obvious choices and why they were made. Add to it as you go.
+- [`docs/test-plan.md`](docs/test-plan.md) — manual, on-device verification.
+  One new section per phase; one "Known regressions" entry per real bug found.
+- [`CHANGELOG.md`](CHANGELOG.md) — one entry per release, updated as you go.
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — narrative walkthrough
-  of how the app fits together (data flow, the two engines, import/
-  export, the web/Android split).
-- [`docs/MODULES.md`](docs/MODULES.md) — per-file invariants for
-  `src/utils`/`src/hooks`/`src/data` modules. Read the entry for a
-  module before changing it.
-- [`docs/android/PLATFORM.md`](docs/android/PLATFORM.md) — Android
-  architectural invariants (build outputs, the shared-logic/platform-
-  presentation convention, storage isolation).
-- [`docs/android/BUILD.md`](docs/android/BUILD.md) — operational Android
-  build detail: local builds, signing, CI, Firebase distribution, icon
-  generation, troubleshooting.
-- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — local dev setup,
-  environment variables, GitHub Pages deployment.
-- [`docs/STATUS.md`](docs/STATUS.md) — current snapshot of what's
-  implemented and what's known to be missing or in progress. Check this
-  before starting a new session.
-- [`CHANGELOG.md`](CHANGELOG.md) — one entry per release.
+## What this project is
 
-## Project Identity
+CoverDex is a native, single-user, offline-first Android app for building
+Pokémon teams and analysing their type coverage, offensively and
+defensively. It supports custom Pokémon and per-slot type overrides, which
+is what makes it useful for ROM hack runs and draft building. Kotlin +
+Jetpack Compose + Material 3, Room, Hilt, ViewModel/StateFlow with
+unidirectional data flow.
 
-CoverDex (formerly known as the Pokémon Team Analyzer) is a single-page PWA for building Pokémon
-teams and analysing their type coverage offensively and defensively.
-It supports custom Pokémon and per-slot type overrides, which makes it
-useful for ROM hack runs and competitive draft building. It is **not**
-a battle simulator, **not** a Pokémon Showdown replacement, and **not**
-a damage calculator.
+It is **not** a battle simulator, **not** a Pokémon Showdown replacement,
+and **not** a damage calculator.
 
-## Architecture Overview
+| | |
+|---|---|
+| Repository | `marcogn/coverdex` |
+| Gradle root project | `CoverDex` |
+| `applicationId` / package | `com.marcogn.coverdex` |
+| Database file | `coverdex.db` |
+| minSdk / targetSdk / compileSdk | 24 / 36 / 36 |
 
-- Single page React app. No router, no nested route state.
-- All UI state lives in React. No Redux, no Zustand, no Recoil. The
-  top-level `AppState` (`src/types/index.ts`) is persisted on-device and
-  rehydrated on boot — `localStorage` on the web build, native
-  `@capacitor/preferences` storage on Android (see `useUserDataStorage.ts`/
-  `.android.ts` in [`docs/MODULES.md`](docs/MODULES.md) and "Storage
-  isolation" in [`docs/android/PLATFORM.md`](docs/android/PLATFORM.md)).
-- PokéAPI data (Pokémon list, types, moves, evolution chain summaries)
-  is fetched once on first load, cached in `localStorage`, and **never
-  re-fetched** unless the user explicitly resets the cache from the
-  Settings panel.
-- No backend. No authentication. No telemetry. Network is used only for
-  the initial PokéAPI fetch and for sprite URLs. This has been proposed
-  and turned down before — moving calculation/filtering into some kind of
-  backend (an embedded server, a native-code layer reached over a
-  Capacitor plugin bridge) wouldn't fix a real performance problem (the
-  coverage/suggestion math is trivial at this data scale, comfortably
-  microseconds in the WebView's JS engine) and would fork business logic
-  between platforms, which is exactly what the shared-engine architecture
-  exists to avoid. Don't reopen this without a measured, reproduced
-  performance problem to point at.
+CoverDex is a rewrite of a working app, not a new one. It used to ship as a
+React/Capacitor PWA on GitHub Pages; that path is gone (see
+[`docs/plan/phase-0-foundation.md`](docs/plan/phase-0-foundation.md)) and
+the app is native-only from here on.
 
-## Key Data Flows
+## Sibling projects
 
-1. **App boot.** `usePokemonData` checks `localStorage` for the cache
-   under `teamdex_pokeapi_cache`. If missing or its `version` does not
-   match `CACHE_VERSION`, the hook calls `fetchPokemonData()`
-   (`src/utils/pokeApiFetch.ts`), which fetches Pokémon, species,
-   evolution chains, types, and moves from the static
-   `raw.githubusercontent.com/PokeAPI/api-data` mirror (batched 50 at
-   a time, 50 ms between batches, one retry per resource). On completion
-   it writes the cache with the current `CACHE_VERSION`. `teamdex_userdata`
-   is never touched during this process. This first-launch download is
-   the main case where the whole UI blocks (`App.tsx`/`App.android.tsx`
-   render `LoadingScreen` while `usePokemonData().loading` is true); a
-   manual re-download via Settings → Data (`refresh()`) keeps the
-   existing data usable in the rest of the app until the new fetch
-   completes or fails. On Android there's a second, usually much shorter
-   blocking wait on the same `LoadingScreen`: `App.android.tsx` also holds
-   it until `userDataReady` (from `useAppShell`, backed by
-   `useUserDataStorage.android.ts`) is `true` — see that module's entry
-   in [`docs/MODULES.md`](docs/MODULES.md).
-2. **Pokémon selection.** When the user picks a species in a slot, the
-   slot reads the form's types from the cache, and pre-populates the
-   ability field from `PokemonEntry.defaultAbility`. The user can
-   override either type or the ability on that slot without affecting
-   the cache.
-3. **Analyze.** The coverage hook calls pure functions in
-   `coverageEngine.ts` to produce per-member offensive coverage, the
-   team union, defensive profiles, and shared weaknesses. The
-   suggestion hook then runs over the same data to produce ranked
-   additions or replacements.
-4. **Export.** `showdownParser.ts` serialises the active team to a
-   Showdown-style multi-block string, copied to the clipboard or
-   downloaded as a `.txt` file.
-5. **Import.** `showdownParser.ts` parses a Showdown paste, resolves
-   each block against the cache, and fills the team slots. Unknown
-   moves are kept as placeholder custom moves and flagged so the UI
-   can prompt the user to complete them.
+- **Hall of Memories** (`marcogn/hall-of-memories`) — same author, same
+  stack, six shipped phases. It is the **architectural** reference: Gradle
+  setup, the version catalogue, Hilt modules, Room + `Flow` + `combine()`
+  ViewModels, the `HttpURLConnection` client style, the sprite fallback
+  composable, the SAF backup pattern, and all three CI workflows.
+  **Copy its patterns rather than inventing new ones.**
+- **`legacy-web/`** — this repository's own parked React code (see
+  `legacy-web/README.md`). It is the **behavioural** reference: the
+  coverage maths, the suggestion ranking, the composite score weights, the
+  Showdown format contract, every UI string in both languages. Its Vitest
+  suite (23 files, 175 tests) is the oracle for expected values when
+  porting an engine to Kotlin. Never edited; deleted once Phase 6 confirms
+  everything in it has a native equivalent.
 
-## Module Responsibilities
+## Progress status by phase
 
-Per-file invariants for `src/utils`, `src/hooks`, and `src/data` modules
-(what each one owns, what it must never do) live in
-[`docs/MODULES.md`](docs/MODULES.md). Read the relevant entry before
-touching one of those files.
+- **Phase 0 — Foundation**: ✅ done
+- **Phase 1 — Dataset sync**: not started
+- **Phase 2 — Teams and roster**: not started
+- **Phase 3 — Analysis**: not started
+- **Phase 4 — Suggestions and generator**: not started
+- **Phase 5 — Import/export and settings**: not started
+- **Phase 6 — Release**: not started
 
-## Type Chart Rules
+Tick these off as phases land — here and in
+[`docs/plan/README.md`](docs/plan/README.md). Do not implement anything not
+present in `docs/plan/native-spec.md` or a phase plan unless a new session
+explicitly asks for it.
 
-- The type chart is an 18×18 matrix keyed by attacker type then
-  defender type, with values from `{0, 0.5, 1, 2}`.
-- Dual-type defense **multiplies** the two effectiveness values (it
-  never adds them). A 2× weakness on top of another 2× weakness becomes
-  4×; a 2× weakness against a 0× immunity becomes 0×.
-- Type overrides set on a `TeamMember` (used for ROM hack typings)
-  apply only to that team slot. They must never be written back into
-  the cached `TypeChart` or into the cached `PokemonEntry`.
+## Product decisions already made (do not ask again)
 
-## Suggestion Engine Rules
+- **`applicationId` stays `com.marcogn.coverdex`** and **`minSdk` stays
+  24** — both carried over from the Capacitor build. The native app must
+  install over it, and nothing here needs `java.time`, so there's no
+  reason to drop API 24–25. `versionCode` starts at 2 (the Capacitor build
+  shipped 1) so the upgrade path exists at all.
+- **No data migration from the Capacitor build.** A clean break, decided
+  explicitly rather than deferred. Users upgrading in place start with an
+  empty team list; Phase 6's release notes must lead with that warning and
+  tell users to export their teams to Showdown format first. See
+  `docs/implementation-decisions.md`.
+- **The dataset sync reads PokéAPI's own CSV source data, not its JSON
+  mirror.** ~8 requests and ~208 KB instead of ~3875 requests and ~426 MB
+  — measured, not estimated. See `docs/plan/reference-pokedata.md`.
+- **Sprite URLs are derived, never stored**, from a Pokémon's id alone.
+- **Species/type-override/ability/move values on a team slot are
+  denormalized snapshots**, not references into the cached catalogue.
+  Wiping the cache must never alter or blank a saved team.
+- **The generation filter uses each species' real introduction
+  generation**, not hardcoded id ranges — the one intentional behavioural
+  change from the PWA. See `docs/plan/reference-pokedata.md` §4.
+- **Backups never contain the cached catalogue** — it is re-downloadable
+  data. **Restore is a full replace**, single transaction, ids and
+  timestamps preserved. No merging, no conflict resolution.
+- **No Play Store submission, no iOS, no backend of any kind.** See
+  `docs/plan/native-spec.md`, "Explicitly out of scope" — a backend in
+  particular has been proposed and turned down twice; don't reopen it
+  without a measured, reproduced performance problem to point at.
 
-The algorithm in `useSuggestions.ts`:
+## Architecture
 
-1. Filter the cached pool to entries with `isFinalEvolution === true`
-   (mid-evolutions are dropped). Append custom Pokémon when the
-   `includeCustoms` flag is on.
-2. For each candidate, compute its offensive coverage from its types
-   only (never from saved moves).
-3. **Team size < 6 (addition mode).** For each candidate, count the
-   types it covers that the team does not yet cover; that is its
-   `gain`. Return the top 5 by `gain`.
-4. **Team size = 6 (replacement mode).** Compute each existing
-   member's `unique_contribution` = types it covers that no other
-   member covers. The member with the smallest unique contribution is
-   the *weakest link*. Compute the team's base coverage without the
-   weakest link; for every candidate, `gain(R) = |base ∪ candidate
-   coverage| − |team coverage|`. Return the top 5 by `gain`, keyed by
-   species name to avoid duplicates.
-5. **Final-evolution preference.** Built into step 1: mid-evolutions
-   are never offered.
-6. **Legendary handling.** The current build does not exclude
-   legendaries (all forms are kept in the pool). If you re-introduce
-   exclusion, the rule must be: legendaries are excluded unless the
-   active team already contains one.
+The target shape, built out phase by phase — see
+[`docs/plan/README.md`](docs/plan/README.md) for which phase adds what.
+Only `ui/theme`, `ui/navigation`, `ui/teams`, `ui/roster`, `ui/settings`
+(theme + language only) and `data/settings/ThemePreferences.kt` exist as of
+Phase 0.
 
-### Move-awareness fallback
-
-Per-member offensive coverage uses the member's moves when the member
-has any damaging move entered (`memberHasMoves`). Otherwise it falls
-back to the member's own types. Candidates in the suggestion engine
-are always evaluated by types only — we never invent a movepool for
-them.
-
-The team-detail page additionally gates this behavior on the
-"Enable move slots" checkbox: when the toggle is off, members are
-passed to the coverage / suggestion engines with `moves` cleared, so
-analysis is type-only regardless of any moves that may still be
-stored on the team data.
-
-## Showdown Format Contract
-
-### Read on import
-
-- Species name (first non-comment line, splits on `@`).
-- Ability line (`Ability: <name>`) — populated into `member.ability`.
-- Move lines beginning with `- `; the move name is everything after
-  `- ` until end-of-line.
-- Type override comment of the form `# Types: type1[/type2]` (case
-  insensitive, ignored if either type is not a valid `PokemonType`).
-
-Lines matching `EVs:`, `IVs:`, or `Nature` are ignored.
-Other `#` comment lines are ignored.
-
-### Written on export
-
-- Species name followed by `@ ` (empty item placeholder).
-- `Ability: <ability>` line (ability value or empty if not set).
-- `EVs: ` and ` Nature` placeholder lines.
-- One `- <move name>` line per non-null move slot.
-- A trailing `# Types: ...` comment line preserving the slot's types.
-
-### Unknown moves on import
-
-If `resolveMove(name)` returns `null` for a move, the parser builds a
-placeholder move with `isCustom: true`, `damageClass: 'status'`,
-`power: null`, and the original name. The move name is appended to
-the returned `unknownMoveNames` list so the caller can flag the slot
-for manual completion. The block is still imported.
-
-## Changelog Entries
-
-`CHANGELOG.md` is one entry per release, added in the same PR that
-bumps `package.json`'s `version` (see "What NOT to Change Without
-Discussion" below). Every version section leads with a flat list of
-top-level bullets — one bold lead-in per significant, user-facing
-change, e.g. `- **One-line summary.** further detail...` — before any
-other prose. Keep the bold span itself short and skimmable; put
-elaboration after it, not inside it.
-
-This isn't just style: `.github/workflows/release.yml`'s "Extract
-changelog highlights" step pulls exactly those bold lead-ins (or, for a
-bullet with no bold lead-in, its first sentence) straight into the
-GitHub Release body, followed by a link back to this file's matching
-section — never the full section text, and never trimmed by an
-arbitrary character/line-count cutoff. A version written with no
-bulleted highlights at all falls back to publishing the whole section
-verbatim instead (a structural fallback for a section with nothing to
-extract from, not a size-based judgment call) — the only entry that
-currently hits this fallback is the initial `[1.0.0]` prose entry,
-written before this convention existed.
-
-## What NOT to Change Without Discussion
-
-- The persisted-data schema (`AppState`/`teamdex_userdata` and the
-  PokéAPI cache) on either storage backend — `localStorage` on the web,
-  `@capacitor/preferences` on Android. Breaking either requires a written
-  migration plan and a version bump on the storage key.
-- The `coverageEngine.ts` pure-function signatures. They are consumed
-  by both the analysis hook and the suggestion engine and by tests.
-  Optional parameters (like `ability`) are fine to add.
-- The Showdown format contract above (`exportMemberToShowdown`,
-  `parseShowdownBlock`). External users may rely on round-tripping.
-- The PWA manifest icon paths (`public/icons/icon-192x192.png`,
-  `public/icons/icon-512x512.png`, `public/favicon.ico`, `public/favicon.svg`) — they are referenced by
-  the `vite-plugin-pwa` config in `vite.config.ts`.
-- The `abilityEffects.ts` map entries. Do not add or remove abilities
-  without updating tests and this documentation.
-- The `STARTER_FINALS` list in `teamGenerator.ts`. Adding new
-  generations requires updating this hardcoded list.
-- The composite score weights (0.5 / 1.0) used in both suggestion
-  and team generation engines.
-- `capacitor.config.ts` (`appId`, `appName`, `webDir`) and the Android
-  `applicationId`/`namespace` in `android/app/build.gradle`, which must
-  match it. Changing `appId` post-release changes the app's identity on
-  any device that installed it under the old one.
-- `package.json`'s `version` field without also adding a matching
-  `## [X.Y.Z]` entry to `CHANGELOG.md` in the same change (see
-  [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) → "Keeping the web and
-  Android releases in sync"). The release workflow reads this field
-  directly — it's the trigger for the next `Release` run, not just a
-  cosmetic number.
-
-## Common Pitfalls
-
-- **Type badge display.** `TypeBadge` renders PokeAPI type sprites (small
-  Scarlet/Violet icons) via `getTypeSpriteUrl()`. It no longer uses
-  coloured pill text or abbreviations. Do **not** re-add `abbreviated`
-  prop or inline colour classes.
-- **Sprite URLs.** Always use `resolveSpriteUrl()` from
-  `src/utils/spriteUtils.ts`; never access `spriteHome`,
-  `spriteArtwork`, or `spriteDefault` directly from components.
-- **Cache version.** If you add new fields to the cached payload
-  structure, increment `CACHE_VERSION` in `src/utils/pokeApiFetch.ts` —
-  otherwise users with old caches will get runtime errors on missing
-  fields. A version mismatch is treated as "no cache" and silently
-  re-fetched, not an error.
-- **Batch fetching.** Do not increase the batch size above 50 without
-  testing. GitHub's CDN rate limits are undocumented and can cause
-  silent failures at higher concurrency.
-- **Alternate forms.** Some Pokémon share a species but have different
-  type arrays per form (Rotom, Deoxys, Wormadam, …). Always use the
-  PokéAPI **form** endpoint, not the species endpoint, to read types.
-- **Evolution chain timing.** The evolution chain fetch is a separate
-  network round-trip from the Pokémon list. Do not assume evolution
-  data is available before `usePokemonData` reports the cache as
-  fully loaded.
-- **Offensive type for moves.** When computing offense from moves,
-  use the move's `type`, not the user Pokémon's types. Same-type
-  attack bonus is not modelled.
-- **Dual-type defense.** Effectiveness across two defender types is
-  multiplicative, never additive. Watch for the immunity case where
-  one type's 0× cancels the other type's 2×.
-
-## Android Platform
-
-CoverDex ships a native Android shell via Capacitor, additive to the PWA
-— it must never carry business logic of its own. Architectural
-invariants (build outputs, the shared-logic/platform-presentation file
-convention, storage isolation) are in
-[`docs/android/PLATFORM.md`](docs/android/PLATFORM.md); operational
-build/CI/signing/distribution detail is in
-[`docs/android/BUILD.md`](docs/android/BUILD.md). Read both before
-touching anything under `android/` or an `.android.tsx`/`.android.ts`
-file.
-
-## Dev Commands
-
-```bash
-npm run dev            # local dev server
-npm run build          # type-check then production build
-npm run preview        # preview the production build locally
-npm run test           # run the Vitest suite once
-npm run test:coverage  # run the Vitest suite with coverage
-npm run generate-icons # generate PWA icons locally
-npm run android:icons  # regenerate PWA + Android launcher icons and splash screens
-npm run build:android  # type-check then build the Android bundle to dist-android/
-npm run cap:sync       # sync dist-android/ into android/
-npm run android:open   # open the Android project in Android Studio
-npm run android:build  # build:android + cap sync android
+```
+com.marcogn.coverdex
+├── data/
+│   ├── local/        Room: entity/, dao/, Converters, CoverDexDatabase, Migrations
+│   ├── repository/   repository implementations (transactional) + Mappers
+│   ├── pokeapi/      PokeDataClient (HttpURLConnection), DatasetSyncManager
+│   ├── backup/       BackupArchive (zip), SAF import/export
+│   ├── settings/     ThemePreferences (DataStore) + every other app-wide setting, one file
+│   └── debug/        DebugSeeder, behind BuildConfig.SEED_DEBUG_DATA
+├── domain/
+│   ├── model/         pure models, enums — no Android imports
+│   ├── pokeapi/        CsvParser, per-file parsers, dataset assembly, SyncStage
+│   ├── sprite/          SpriteUrlResolver (pure, unit-tested)
+│   ├── coverage/       the ported coverage engine
+│   ├── ability/          AbilityEffects (ported verbatim)
+│   ├── suggestion/     the ported suggestion engine + shared Scoring
+│   ├── generator/       the ported team generator ("Surprise Me")
+│   ├── showdown/        export/import, contract-complete
+│   ├── backup/           BackupPayload DTOs + mapping
+│   └── repository/     repository interfaces
+├── di/                Hilt modules (Database, Repository, Coroutines, Network)
+└── ui/
+    ├── theme/         Material 3 theme + ThemeViewModel
+    ├── navigation/    type-safe routes, ModalNavigationDrawer around the NavHost
+    ├── teams/         the teams list
+    ├── team/           team detail: Pokémon tab (slot editor) + Analysis tab
+    ├── roster/        the custom Pokémon roster
+    ├── surprise/      the team generator screen
+    ├── settings/      theme, language, dataset, import/export, backup
+    └── common/        shared composables (PokemonSprite, TypeBadge, SearchableDropdown, ...)
 ```
 
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for full local setup
-and [`docs/android/BUILD.md`](docs/android/BUILD.md) for icon
-regeneration detail.
+**Room is the single source of truth**, exposed as `Flow`. ViewModels
+`combine()` repository flows with local UI state into one `StateFlow` of UI
+state; events flow up as lambdas, state flows down. Pure logic lives in
+`domain/` with no Android imports so it is testable on the plain JVM
+without Robolectric — this split is what makes the ported engines directly
+comparable to their `legacy-web` originals.
 
-### i18n
+## Code conventions
 
-Uses i18next + react-i18next.
-Translation files: src/i18n/locales/en.json and it.json.
-All user-visible strings must use the useTranslation hook.
-Pokémon names and move names are NOT translated.
-Language persisted in localStorage key 'teamdex_lang'.
+- **Code, comments, commits and docs are English.** Only the UI's string
+  resources are bilingual: `res/values/strings.xml` is Italian (the default
+  locale), `res/values-en/strings.xml` English. Add a key to both in the
+  same commit — a key present in only one silently falls back to Italian.
+  The source of the wording is `legacy-web/src/i18n/locales/{it,en}.json` —
+  port the text, do not reinvent it, except where a screen is genuinely
+  native-only (see `docs/implementation-decisions.md` for the language
+  picker's "System default" option, which has no PWA equivalent).
+- **No hardcoded user-visible strings**: `stringResource()` in Compose,
+  `context.getString()` in ViewModels (inject `@ApplicationContext`).
+- Ids: `String` UUIDs for user data, generated in the repository. The
+  cached catalogue keeps PokéAPI's own `Int` ids.
+- **Room migrations are additive and numbered.**
+  `fallbackToDestructiveMigration()` is banned — from Phase 2 onward the
+  app holds data that cannot be re-created.
+- **No new dependencies** without an explicit request or a genuine need.
+  The catalogue is pinned in Phase 0 and closed. CSV parsing, the HTTP
+  client, the sprite fallback chain and the placeholder art are all
+  hand-rolled, exactly as in the sibling app.
+- No mock data in shipped UI; the only seed is `data/debug/DebugSeeder.kt`
+  behind `BuildConfig.SEED_DEBUG_DATA` (debug builds only, from Phase 2).
 
-### Searchable Dropdowns
+## Known gotchas
 
-All searchable dropdowns (Pokémon picker, move picker, anchor picker in
-Surprise Me, ability picker) follow the same UX pattern:
-- On focus/open, do **not** show any list items.
-- Show placeholder "Start typing to search..." inside the input.
-- Only show results once the user has typed at least 1 character.
-- Show **all** matching results (no pagination, no item cap).
-- Dropdown list is internally scrollable (min 240px, max 40vh when
-  fixed-position mode is enabled).
+Carried over from the sibling project; each one cost real debugging time
+there.
 
-### Analysis page structure
+- **`MainActivity` must extend `AppCompatActivity`.** With
+  `ComponentActivity`, `AppCompatDelegate.setApplicationLocales()` is
+  silently ignored and the in-app language picker does nothing. The app
+  theme must then descend from `Theme.AppCompat.*`.
+- **The system back gesture bypasses a screen's custom `onBack`** — Compose
+  Navigation's own callback just calls `popBackStack()`. Any screen with
+  custom back logic needs an explicit `BackHandler`.
+- **Do not set `Accept-Encoding` on `HttpURLConnection`.** Left alone it
+  negotiates gzip and decompresses transparently; set it by hand and you
+  get raw gzip bytes. Matters more here than in the sibling app: CSV
+  compresses very well, so the measured ~208 KB in
+  `docs/plan/reference-pokedata.md` is what crosses the wire uncompressed.
+- **kotlinx.serialization defaults do not cover an explicit `null`.** A
+  default value only fills a *missing* key; `"field": null` still throws
+  unless the type is nullable. Set `coerceInputValues = true` too.
+- **`Json.encodeToString(value)`** without
+  `import kotlinx.serialization.encodeToString` resolves to the wrong
+  overload and fails with a misleading type error.
+- **Never `clearAllTables()`** — cache invalidation must name the cache
+  tables explicitly or it takes the user's teams and roster with it.
+- **Every Robolectric test class needs `@Config(sdk = [26])`.** Robolectric's
+  shadow jar for this app's `compileSdk` (36) requires a newer JDK than CI
+  runs (`android-ci.yml` pins JDK 17) — without the pin, the test passes
+  locally on a machine with a newer JDK and fails in CI with a confusing
+  `UnsupportedOperationException at DefaultSdkProvider.java` that doesn't
+  name the real cause. The pin is about Robolectric's JDK requirement, not
+  a claim about this app's own `minSdk` (which stays 24) — sdk 26 just
+  happens to be the same version the sibling app already validated this
+  workaround against.
+- **This sandbox's default locale is POSIX (non-UTF-8).** A non-ASCII
+  character (an em dash, accented letter, etc.) in a Kotlin backtick test
+  method name breaks `compileDebugUnitTestKotlin` with an opaque
+  `InvalidPathException`, because the generated `.class` filename can't be
+  encoded in that locale. Keep test names plain ASCII.
+- **`@Insert(onConflict = OnConflictStrategy.REPLACE)` is not an update on
+  a row with `ON DELETE CASCADE` children.** It compiles to SQLite
+  `INSERT OR REPLACE`, which deletes the conflicting row before
+  reinserting it — a real, on-device bug in the sibling app: an upsert used
+  for editing a parent row silently cascade-deleted every child row
+  underneath it. Any table that is the parent side of a cascading foreign
+  key (from Phase 2 onward: `team` → `team_member` → `team_member_move`)
+  needs a real `@Update` for its edit path, or must delete-and-reinsert
+  every child in the *same* transaction right after. Check any future
+  `REPLACE`-based upsert against this before assuming it's safe.
 
-Seven sections in order: Coverage basis notice, Per-Pokémon
-breakdown, Offensive grid, Defensive grid, Shared weaknesses,
-Uncovered types, Suggestions.
+## Build/test commands
 
-### Suggestion scoring
+```bash
+./gradlew assembleDebug            # debug APK
+./gradlew testDebugUnitTest        # JVM unit tests (domain + Robolectric)
+./gradlew lintDebug                # Android Lint
+./gradlew connectedDebugAndroidTest  # instrumented tests (needs a device)
+```
 
-Composite score = offensive_gain - 0.5×new_weaknesses
-                  - 1.0×aggravated_shared_weaknesses
-See suggestionEngine.ts for full implementation.
-Do not change weights without updating this documentation
-and the tests.
+Real verification happens in `.github/workflows/android-ci.yml` on every
+push/PR. A sandboxed session may have the Maven repositories reachable but
+no Android SDK — check `$ANDROID_HOME` and `command -v sdkmanager` before
+assuming a local build is possible, and fall back to CI rather than
+fighting it. Never report a build as passing that you did not run.
 
-### Key unit tests
+Testing approach: pure JVM unit tests for everything in `domain/`
+(the coverage, suggestion and generator engines; the CSV parser; the
+Showdown parser; sprite resolution; ability effects); Robolectric as JVM
+tests for Room DAOs, repositories and the backup archive. Anything needing
+the real network, locale switching, the SAF pickers or real image
+rendering is verified by hand — see `docs/test-plan.md`.
 
-- `teamGenerator.test.ts` — "anchor composite score validation":
-  Verifies that when anchor is Swampert (Water/Ground), the generated
-  team does not contain more than 1 additional Water-type Pokémon in
-  at least 4 out of 5 probabilistic runs. This ensures the composite
-  score correctly penalizes redundant type coverage when anchors are
-  present.
+`legacy-web/` has its own, separate suite (`cd legacy-web && npm test`) —
+it stays green throughout the migration as the oracle for the Kotlin
+ports, but it is not part of `android-ci.yml` and never will be.
+
+## Changelog and release process
+
+`CHANGELOG.md` is the release-notes source of truth. **Every change gets
+its entry when it is made**, under `## [Unreleased]` at the top — never
+deferred to release time.
+
+Entry convention: one top-level bullet per significant, user-facing
+change, leading with a short bold summary — `- **Summary.** further
+detail…` — with nested bullets for detail. Phase 6's `release.yml`
+extracts exactly those bold lead-ins into the GitHub Release body. Keep
+the bold span short and skimmable.
+
+## What NOT to do until explicitly requested
+
+Anything not in `docs/plan/native-spec.md`. Named explicitly there,
+"Explicitly out of scope": any web build (GitHub Pages, the PWA manifest,
+Vite, Capacitor), a backend of any kind, Play Store submission, iOS,
+migrating data from the Capacitor build, damage calculation, battle
+simulation, EV/IV tracking, legality validation.

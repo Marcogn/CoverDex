@@ -162,7 +162,7 @@ real bug found that way gets an entry in that file's "Known regressions".
 
 ## Progress status by phase
 
-- **Phase 0 — Foundation**: not started
+- **Phase 0 — Foundation**: ✅ done
 - **Phase 1 — Dataset sync**: not started
 - **Phase 2 — Teams and roster**: not started
 - **Phase 3 — Analysis**: not started
