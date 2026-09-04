@@ -131,6 +131,17 @@ Checked on 2026-09-04 against the files above:
 - `types.csv` has 21 rows: ids 1–18 are the real types, plus `19 stellar`,
   `10001 unknown`, `10002 shadow`. **Filter to ids 1–18**; the app's
   `POKEMON_TYPES` is and stays 18 entries.
+- **Consequence, verified during Phase 1 implementation (2026-09-04):**
+  filtering types to ids 1–18 means `moves.csv`'s 18 rows with
+  `type_id = 10002` (`shadow`) resolve to no `PokemonType` and are dropped
+  from the assembled cache entirely — `shadow-rush`, `shadow-blast`, and
+  the rest of the Pokémon Colosseum/XD "Shadow Pokémon" move set (never
+  used in any mainline game). 919 of 937 moves make it into the cache; the
+  18 that don't are a deliberate consequence of the 18-type model, not a
+  bug — see `docs/implementation-decisions.md`. A ROM hack team that
+  genuinely needs one of these moves uses the existing unrecognized-move
+  fallback (native-spec.md's Showdown import contract): typed in as a
+  custom move, completed by hand.
 - `pokemon_abilities.csv` is missing **11** of the 1351 forms, all with
   id ≥ 10301 (the newest unreleased mega forms upstream has added ahead of
   the JSON mirror). Fall back to the default form of the same species

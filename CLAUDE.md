@@ -61,7 +61,7 @@ the app is native-only from here on.
 ## Progress status by phase
 
 - **Phase 0 — Foundation**: ✅ done
-- **Phase 1 — Dataset sync**: not started
+- **Phase 1 — Dataset sync**: ✅ done
 - **Phase 2 — Teams and roster**: not started
 - **Phase 3 — Analysis**: not started
 - **Phase 4 — Suggestions and generator**: not started
@@ -107,9 +107,14 @@ explicitly asks for it.
 
 The target shape, built out phase by phase — see
 [`docs/plan/README.md`](docs/plan/README.md) for which phase adds what.
-Only `ui/theme`, `ui/navigation`, `ui/teams`, `ui/roster`, `ui/settings`
-(theme + language only) and `data/settings/ThemePreferences.kt` exist as of
-Phase 0.
+As of Phase 1: `ui/theme`, `ui/navigation`, `ui/roster` (empty state only),
+`ui/teams` (empty state + sync banner), `ui/settings` (theme, language and
+dataset status), `ui/common` (`PokemonSprite`, `TypeBadge`, no call site
+yet), `data/settings/ThemePreferences.kt`, `data/debug/DebugSeeder.kt` (a
+seam, no call site yet), and the full `data/pokeapi`, `data/local`,
+`data/repository`, `domain/pokeapi`, `domain/sprite`, `domain/model`,
+`domain/repository` and `di` packages the tree below describes. No `team`/
+`custom_pokemon` tables, no analysis, no suggestions yet.
 
 ```
 com.marcogn.coverdex

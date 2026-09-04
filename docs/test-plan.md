@@ -54,3 +54,40 @@ One new section per phase, added in the same PR that ships the phase.
 ### Known regressions
 
 None yet.
+
+## Phase 1 — Dataset sync
+
+- [ ] **First launch sync.** Fresh install, no cache. Open the app — the
+  Teams screen's sync banner appears (a short "Syncing Pokémon data…" line
+  with a progress bar) and disappears within a few seconds on a normal
+  connection, without ever blocking the empty state underneath it. This is
+  the whole point of the phase — confirm it's actually fast, not just that
+  it works.
+- [ ] **Settings → Data, first launch.** Before the sync finishes: shows
+  "Data not downloaded yet." After it finishes: shows the real species/move
+  counts (should read 1351 Pokémon, 919 moves against the pinned revision —
+  see `docs/implementation-decisions.md` for why 919, not 937), a synced-at
+  timestamp in the device's own locale/format, and the short dataset
+  revision (`d4f9a4a`).
+- [ ] **Sync now.** Settings → Data → "Riscarica dati Pokémon"/"Redownload
+  Pokémon data" re-syncs even though the cache is already fresh (confirm
+  the synced-at timestamp actually updates), without disturbing anything
+  else.
+- [ ] **Clear cached data.** Tap "Cancella dati salvati"/"Clear cached
+  data", confirm the dialog, confirm the cache reports "not downloaded yet"
+  immediately after. Reopen Teams — the sync banner reappears and re-syncs
+  on its own (no manual re-sync needed).
+- [ ] **Offline first launch.** Turn off network before first launch (or
+  after clearing cache). The sync banner shows briefly, Settings → Data
+  reports the failure with the real underlying reason (not a generic
+  message) and a "Riprova"/"Retry" button. Nothing else in the app is
+  blocked or crashes. Turning network back on and tapping Retry succeeds.
+- [ ] **Language switch mid-sync-display.** With Settings → Data showing a
+  synced summary, switch language — the section title, summary sentence
+  (singular "1 mossa"/"1 move" vs plural, if you can catch a build with
+  exactly 1 move — otherwise just confirm the plural form reads
+  correctly for the real count) and both button labels switch immediately.
+
+### Known regressions
+
+None yet.

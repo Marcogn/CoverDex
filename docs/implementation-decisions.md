@@ -94,3 +94,128 @@ judgment call the plan didn't already settle. One section per phase.
   assumption future sessions can rely on — check `$ANDROID_HOME` and
   `command -v sdkmanager` per `docs/plan/README.md` before assuming a local
   build is possible, and fall back to CI if it isn't.
+
+## Phase 1 — Dataset sync
+
+- **`isDefaultForm` was added to `PokemonEntry`**, mid-phase, once Room's
+  schema (§2) turned out to need it (`poke_species.isDefaultForm`) for
+  search ranking but the domain model didn't carry it yet. Sourced from
+  `pokemon.csv`'s already-parsed `is_default` column. Keeping it on the
+  domain model rather than only on the entity is what CLAUDE.md's
+  architecture already commits to ("Room is the single source of truth...
+  Pure logic lives in `domain/`") — an entity should never carry data the
+  domain layer has nowhere to read from.
+- **No `Converters.kt`.** Every field on every Phase 1 entity is a native
+  Room type (`String`/`Int`/`Boolean`/`Double`) — a converter class with
+  nothing to convert would be dead ceremony. Same judgment as Phase 0
+  skipping an empty `di/NetworkModule.kt` — except this phase's
+  `NetworkModule.kt` ended up with real content once `DatasetSource` (next
+  entry) needed a `@Binds`.
+- **`PokeDataClient` sits behind a `DatasetSource` interface.** No mocking
+  library is in the pinned catalogue, and `DatasetSyncManager`'s tests
+  (a failing fetch leaves the database untouched; a successful one writes
+  every table; a fresh cache never touches the network at all) need to
+  control what a fetch returns or whether it throws. A hand-written fake
+  implementing a one-method interface does that without a new dependency;
+  `PokeDataClient` is the only real implementation, bound in
+  `di/NetworkModule.kt`.
+- **The repository interface dropped `suspend fun sync(): Result<Unit>`**
+  from the plan's original one-paragraph sketch, in favour of Hall of
+  Memories' fire-and-forget `startSyncIfNeeded()`/`forceResync()` (both
+  non-suspend, observed via `syncState: StateFlow<SyncState>`). The
+  awaitable version has a real race: `startIfNeeded()`/`forceResync()`
+  launch onto a detached application-scoped coroutine, so a caller
+  immediately awaiting `state.first { terminal }` can observe a *stale*
+  terminal value left over from a previous run before the newly-launched
+  attempt has had a chance to flip the state to `Running`. Hall of
+  Memories' simpler shape has no such race because nothing needs to await
+  a specific run's own outcome. Rule 2 ("Copy Hall of Memories, don't
+  invent") applied against my own draft, not just the plan's — worth
+  naming explicitly since the plan's sketch was mine to begin with.
+- **`PokedexRepository` exposes both `cacheStatus` and `syncState`**, not
+  just the one `cacheStatus` the plan's sketch listed. `CacheStatus` is a
+  snapshot of the *persisted* meta row (usable/synced-at/counts/revision);
+  it has no notion of "a sync is running right now with this stage and
+  progress". The Teams screen's non-blocking banner and Settings' inline
+  progress bar both need that live signal, so `syncState` (a direct pass-
+  through of `DatasetSyncManager.state`) was added as a second observable
+  rather than folding a "current stage" field into `CacheStatus` itself,
+  which would conflate "what's saved" with "what's happening right now".
+- **Search ranking goes beyond the plan's one-line sketch.** The DAO's
+  `LIKE` queries rank a prefix match on the normalized name ahead of a
+  contains-only match, and within a tie a species' default form ahead of
+  its alternate forms (searching "zygarde" surfaces `zygarde-50` before
+  `zygarde-mega`) — both proven against real ranking SQL in
+  `PokedexDaoTest`, not just asserted as intent. This mirrors Hall of
+  Memories' `mergeSearchResults` (prefix-then-contains), done as a single
+  `CASE`-ordered SQL query instead of two separate DAO calls merged in the
+  repository, because the plan's own interface returns `Flow`, not a
+  one-shot suspend list — a two-query app-level merge would need to
+  `combine()` two live Flows on every emission, which is more complexity
+  for the same result.
+- **`java.text.SimpleDateFormat`, not `java.time`,** formats the "last
+  synced" timestamp in Settings → Data. `minSdk` stays 24
+  (`docs/plan/native-spec.md`, "Identity"); `java.time` needs API 26
+  without desugaring, which is exactly the trade CLAUDE.md already said not
+  to make without a real need. `PokeCacheMetaEntity.syncedAtEpochMillis`
+  and `SyncState.Success.syncedAtEpochMillis` are both plain `Long`, not
+  `Instant`, for the same reason.
+- **`TypeBadge` renders the Scarlet/Violet type-icon sprite**, matching
+  `legacy-web/src/components/TypeBadge/TypeBadge.tsx` exactly, rather than
+  Hall of Memories' coloured-pill-text convention. CoverDex's own PWA
+  already made this call for its own UI; porting the visual language is
+  more faithful than porting Hall of Memories' unrelated one.
+- **The move-count string is split into manual `_one`/`_other` resources**
+  rather than a single `%d` template — lint's `PluralsCandidate` check
+  flags either shape identically (confirmed against Hall of Memories'
+  already-shipped `strings.xml`, which has 22 identical findings from the
+  same `_one`/`_other` convention and still lints clean); this is expected
+  noise from a heuristic that doesn't understand the manual split, not a
+  real problem worth suppressing or working around further.
+- **`DebugSeeder` exists but has no call site yet.** With nothing to seed
+  until Phase 2's team/roster tables exist, wiring a call into
+  `CoverDexApplication.onCreate()` now would mean exercising Hilt's
+  Application-field-injection path — untested here, unverifiable without a
+  device — for a function that does nothing. Phase 2 wires it up alongside
+  the actual seeding logic, where there's something real to check.
+
+### Parity check against `legacy-web` and the pinned dataset
+
+`cd legacy-web && npm ci && npm test` — 175/175 green, unaffected by
+anything in this phase.
+
+Every number in `docs/plan/reference-pokedata.md` §3 was re-verified
+against the pinned commit's live files, both by raw `awk`/`csv` counting
+and — going one step further than the plan's own instruction — by actually
+running `assembleDataset()` against the full pinned CSVs (not the small
+test fixtures) in a temporary, throwaway test deleted immediately after
+recording its output here:
+
+```
+species (forms)          = 1351   (matches: 1351 pokemon.csv rows)
+distinct species         = 1025   (matches: 1025 pokemon_species.csv rows)
+moves accepted into cache = 919   (see "18 shadow moves" below)
+finalEvolutions, species-level = 568   (matches)
+legendary, species-level       = 71    (matches)
+mythical, species-level        = 23    (matches)
+type_efficacy cells             = 324   (matches: 18 x 18)
+```
+
+Two things worth writing down so a future reader doesn't trip over them
+the way this session briefly did:
+
+- **Species-level counts vs. form-level counts are not the same number,
+  and both are correct.** `isFinalEvolution`/`isLegendary`/`isMythical`
+  are species-level facts (from `pokemon_species.csv`) applied to every
+  *form* that species has. Counting them over the 1351 assembled
+  `PokemonEntry` forms (rather than grouping by `speciesId` first) gives
+  840/120/38 instead of 568/71/23 — not a bug, just multi-form legendaries
+  (Mega/regional/etc. forms) each contributing one row per form. Group by
+  `speciesId` before comparing against `reference-pokedata.md`'s numbers,
+  which are all species-level.
+- **18 of 937 moves never reach the cache** — see
+  `reference-pokedata.md`'s new "Consequence, verified during Phase 1
+  implementation" bullet for the full explanation (Pokémon Colosseum/XD's
+  "Shadow" move set, `type_id = 10002`, outside the 18-type model). 919 is
+  the correct count for `PokedexRepository`'s move cache from this point
+  on; do not "fix" a future test that expects 937.

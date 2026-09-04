@@ -24,6 +24,13 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
   installed.
 - Theme (System/Light/Dark) and language (System/Italiano/English)
   settings, both persisted.
+- **The Pokémon catalogue now syncs in about 8 requests and ~208 KB**,
+  down from roughly 3,875 requests and ~426 MB in the old app — measured,
+  not estimated, see `docs/plan/reference-pokedata.md`. First launch no
+  longer blocks the app behind a loading screen: a small banner shows
+  progress on the Teams screen while everything else stays usable.
+- Settings → Data: dataset status, re-sync, and a "Clear cached data"
+  action that never touches saved teams.
 
 ## [1.0.0]
 
