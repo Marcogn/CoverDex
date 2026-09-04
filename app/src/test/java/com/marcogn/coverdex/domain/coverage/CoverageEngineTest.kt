@@ -336,4 +336,41 @@ class CoverageEngineTest {
         assertTrue(p.immunities.contains(PokemonType.GROUND))
         assertFalse(p.weaknesses.contains(PokemonType.ELECTRIC))
     }
+
+    // --- grid-support functions (not part of the ported seven; see CoverageEngine.kt's doc
+    // comments and docs/implementation-decisions.md, "Phase 3") ---
+
+    @Test
+    fun `sharedWeaknessCounts agrees with sharedWeaknesses' own 2-plus threshold`() {
+        val team = listOf(
+            buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING),
+            buildMember("Pidgey", PokemonType.NORMAL to PokemonType.FLYING),
+        )
+        val counts = sharedWeaknessCounts(chart, team)
+        val shared = sharedWeaknesses(chart, team)
+        assertEquals(shared.toSet(), counts.filterValues { it >= 2 }.keys)
+        assertEquals(2, counts[PokemonType.ROCK])
+        assertEquals(2, counts[PokemonType.ELECTRIC])
+    }
+
+    @Test
+    fun `offensiveMultipliersForMember uses move types when present, else the member's own types`() {
+        val withMoves = buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING, listOf(PokemonType.FIRE, PokemonType.GROUND))
+        val byMoves = offensiveMultipliersForMember(chart, withMoves)
+        assertEquals(2.0, byMoves.getValue(PokemonType.ELECTRIC), 0.0) // from the Ground move, not from Fire/Flying types
+
+        val noMoves = buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING)
+        val byTypes = offensiveMultipliersForMember(chart, noMoves)
+        assertEquals(1.0, byTypes.getValue(PokemonType.ELECTRIC), 0.0) // neither Fire nor Flying hits Electric for 2x+
+    }
+
+    @Test
+    fun `mostVulnerableByType is the worst multiplier any member takes from each attacking type`() {
+        val team = listOf(
+            buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING), // 4x weak to Rock
+            buildMember("Snorlax", PokemonType.NORMAL to null), // neutral to Rock
+        )
+        val worst = mostVulnerableByType(chart, team)
+        assertEquals(4.0, worst.getValue(PokemonType.ROCK), 0.0)
+    }
 }

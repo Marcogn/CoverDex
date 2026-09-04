@@ -414,3 +414,34 @@ the way this session briefly did:
   `CoverageEngineTest`'s last case). Dropping the parameter to match the
   plan's abbreviated pseudocode would silently break that. Treated as a
   pseudocode omission, not a signature change to follow.
+- **The Pokémon tab's "Analyze team" button and "include custom Pokémon"
+  checkbox are deferred to Phase 4**, not built alongside the Analysis
+  tab's seven sections. Both exist in `TeamDetailPage.tsx` (next to the
+  tab switcher, not inside `CoverageGrid.tsx`), but the button only
+  switches to the Analysis tab — already possible by tapping the tab
+  itself — and the checkbox toggles `includeCustomsAnalysis`, a flag
+  Phase 3's own `AnalysisUiState` carries (per `phase-3-analysis.md` §2's
+  explicit instruction to combine it now) but that affects nothing until
+  Phase 4's suggestion computation exists. Shipping a checkbox with no
+  observable effect would be actively confusing; `AnalysisViewModel`
+  already exposes `setIncludeCustomsAnalysis`/`setGenerationFilter` so
+  Phase 4's `SuggestionFilters.kt` only needs to add UI, not ViewModel
+  plumbing.
+- **`MainDispatcherRule` is new** — the first Robolectric test in this
+  codebase (or Hall of Memories) to construct a real `ViewModel` and
+  collect its `StateFlow` directly, rather than testing only the
+  DAO/repository layer underneath it. `viewModelScope` dispatches onto
+  `Dispatchers.Main`, which no JVM test provides by default; without
+  `Dispatchers.setMain(...)` (and passing that same `TestDispatcher` to
+  `runTest`), `AnalysisViewModelTest` hung indefinitely — confirmed by
+  reproducing the "did not run to completion" failure before adding the
+  rule, not assumed from the symptom. `MainDispatcherRule` lives at the
+  test-source root (`app/src/test/java/.../MainDispatcherRule.kt`, no
+  package suffix) so any future `ViewModel` test can reuse it.
+- **`analysis_pokemon_column_header` and `analysis_suggestions_placeholder`
+  have no `legacy-web` source.** `CoverageGrid.tsx`'s "Pokémon" column
+  header is a hardcoded literal (`<th>Pokémon</th>`, no `t()`); the
+  Suggestions-section placeholder text has no equivalent at all, since
+  `legacy-web` never had a partial state where suggestions don't exist
+  yet — the phase split is native-only. Same treatment as the other
+  wording gaps recorded above.

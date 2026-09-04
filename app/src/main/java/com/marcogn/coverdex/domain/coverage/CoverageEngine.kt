@@ -73,6 +73,14 @@ fun offensiveCoverageForMember(chart: TypeChart, member: TeamMember, useMoves: B
 fun memberHasMoves(member: TeamMember): Boolean =
     member.moves.any { it != null && it.damageClass != DamageClass.STATUS && (it.power ?: 0) > 0 }
 
+/** The attacking types a single member's row in the offensive/defensive grids actually uses —
+ * damaging move types when it has any, its own (possibly overridden) types otherwise. Ports
+ * `CoverageGrid.tsx`'s `collectAttackingTypes` as a call to the shared [memberHasMoves] filter
+ * instead of repeating that filter inline a second time, per `phase-3-analysis.md`'s note on
+ * that file's line 333. */
+fun attackingTypesForMember(member: TeamMember): List<PokemonType> =
+    if (memberHasMoves(member)) damagingMoveTypes(member) else listOfNotNull(member.types.first, member.types.second)
+
 enum class CoverageMode { MOVES, TYPES }
 
 data class TeamCoverage(
@@ -142,12 +150,31 @@ fun defensiveProfile(
     return DefensiveProfile(weaknesses, resistances, immunities)
 }
 
+/** How many team members each type hits super-effectively, keyed in [PokemonType] order — the
+ * count [sharedWeaknesses] itself throws away once it filters to >=2. `CoverageGrid.tsx`
+ * recomputes this exact loop inline for its "×N" shared-weakness badge rather than reusing
+ * `sharedWeaknesses`, since that function only returns membership; exposed here instead so the
+ * UI calls one shared function for both, per the same "call the shared function, don't repeat
+ * the filter" principle `phase-3-analysis.md` states for `collectAttackingTypes`. */
+fun sharedWeaknessCounts(chart: TypeChart, members: List<TeamMember>): Map<PokemonType, Int> =
+    PokemonType.entries.associateWith { atk -> members.count { defensiveMultiplier(chart, atk, it.types, it.ability) > 1.0 } }
+
 /** Types that hit 2+ members for super-effective damage. */
-fun sharedWeaknesses(chart: TypeChart, members: List<TeamMember>): List<PokemonType> {
-    val result = mutableListOf<PokemonType>()
-    for (atk in PokemonType.entries) {
-        val count = members.count { defensiveMultiplier(chart, atk, it.types, it.ability) > 1.0 }
-        if (count >= 2) result.add(atk)
-    }
-    return result
+fun sharedWeaknesses(chart: TypeChart, members: List<TeamMember>): List<PokemonType> =
+    sharedWeaknessCounts(chart, members).filterValues { it >= 2 }.keys.toList()
+
+/** This member's best offensive multiplier against each defending type — one row of the
+ * offensive coverage grid ([TeamCoverage.bestMultiplierByType] is the team-aggregate "best" row
+ * the same grid needs below it). Not one of `coverageEngine.ts`'s seven exported functions —
+ * `CoverageGrid.tsx` computes this inline per grid cell instead of exporting it; centralized here
+ * so it is unit-testable rather than buried in Compose code, per this codebase's own "pure logic
+ * lives in domain/" convention (see `docs/implementation-decisions.md`, "Phase 3"). */
+fun offensiveMultipliersForMember(chart: TypeChart, member: TeamMember): Map<PokemonType, Double> {
+    val attackingTypes = attackingTypesForMember(member)
+    return PokemonType.entries.associateWith { def -> attackingTypes.maxOfOrNull { atk -> chart.multiplier(atk, def) } ?: 0.0 }
 }
+
+/** The defensive grid's "most vulnerable" row: the worst (highest) multiplier any member takes
+ * from each attacking type. */
+fun mostVulnerableByType(chart: TypeChart, members: List<TeamMember>): Map<PokemonType, Double> =
+    PokemonType.entries.associateWith { atk -> members.maxOfOrNull { m -> defensiveMultiplier(chart, atk, m.types, m.ability) } ?: 0.0 }
