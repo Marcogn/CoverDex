@@ -94,6 +94,7 @@ fun assembleDataset(
             isFinalEvolution = pokemon.speciesId !in evolvesFromIds,
             generationIntroduced = speciesRow.generationId,
             defaultAbility = resolveDefaultAbility(pokemon.id, pokemon.speciesId),
+            isDefaultForm = pokemon.isDefault,
         )
     }
 

@@ -70,6 +70,15 @@ class DatasetAssemblyTest {
     }
 
     @Test
+    fun `isDefaultForm reflects pokemon csv's is_default column`() {
+        val zygarde50 = dataset.species.first { it.id == 718 }
+        assertTrue(zygarde50.isDefaultForm)
+
+        val zygardeMega = dataset.species.first { it.id == 10301 }
+        assertTrue(!zygardeMega.isDefaultForm)
+    }
+
+    @Test
     fun `isFinalEvolution is true for a species nothing evolves from`() {
         val zygarde = dataset.species.first { it.id == 718 }
 

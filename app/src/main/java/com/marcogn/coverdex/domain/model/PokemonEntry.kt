@@ -7,6 +7,11 @@ package com.marcogn.coverdex.domain.model
  *
  * [types] is a fixed pair, not a list — Pokémon have at most two types, and `second == null`
  * means single-typed, never an empty placeholder value.
+ *
+ * [isDefaultForm] is `pokemon.csv`'s `is_default` column — the species' primary/base
+ * representative form (e.g. `zygarde-50` for species `zygarde`, not `zygarde-mega` or
+ * `zygarde-10`). Not shown anywhere by itself; used to rank a species' base form ahead of its
+ * alternate forms in search results.
  */
 data class PokemonEntry(
     val id: Int,
@@ -20,4 +25,5 @@ data class PokemonEntry(
     val isFinalEvolution: Boolean,
     val generationIntroduced: Int,
     val defaultAbility: String?,
+    val isDefaultForm: Boolean,
 )
