@@ -6,6 +6,13 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **Post-migration review of the coverage and suggestion engines.** A
+  code-level audit of the shipped app against the phase plans, diffing every
+  Kotlin port against the TypeScript original recovered from git history.
+  Records six findings and an ordered remediation plan in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md);
+  no behaviour changes in this entry.
+
 ## [2.0.0] - 2026-09-04
 
 CoverDex is now a native Android app — the full six-phase rewrite
