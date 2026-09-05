@@ -6,12 +6,19 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **Fixed a crash in "Regenerate" (Surprise Me).** `regenerateSlot`'s
+  candidate ranking re-evaluated its composite score (including the random
+  tie-breaking noise) on every comparator invocation instead of once per
+  candidate, which could throw `IllegalArgumentException: Comparison
+  method violates its general contract!` once the eligible pool was large
+  enough — see finding 1 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md). The
+  score is now computed once per candidate and sorted on the stored value.
 - **Post-migration review of the coverage and suggestion engines.** A
   code-level audit of the shipped app against the phase plans, diffing every
   Kotlin port against the TypeScript original recovered from git history.
   Records six findings and an ordered remediation plan in
-  [`docs/post-migration-review.md`](docs/post-migration-review.md);
-  no behaviour changes in this entry.
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
 
 ## [2.0.0] - 2026-09-04
 

@@ -130,6 +130,28 @@ class TeamGeneratorTest {
         }
     }
 
+    // A same-typed synthetic pool gives every candidate an identical base composite score, so
+    // only computeScore's random noise breaks ties — the worst case for a comparator that must
+    // stay consistent across repeated evaluations. Before the fix, sortedByDescending re-rolled
+    // that noise on every comparison and threw "Comparison method violates its general contract!"
+    // for a real fraction of seeds once the pool passed TimSort's insertion-sort threshold; this
+    // pool (300 entries) reliably exceeds it. The assertion is that nothing above throws.
+    private val largeTiedScorePool: List<PokemonEntry> = (1..300).map { i ->
+        PokemonEntry(
+            id = 20_000 + i, name = "mon$i", displayName = "Mon$i", speciesId = 20_000 + i, speciesName = "mon$i",
+            types = PokemonType.NORMAL to null, isLegendary = false, isMythical = false, isFinalEvolution = true,
+            generationIntroduced = 1, defaultAbility = null, isDefaultForm = true,
+        )
+    }
+
+    @Test
+    fun `regenerateSlot does not crash on a large pool of tied composite scores`() {
+        val team = sixMemberTeam()
+        for (seed in 0..49) {
+            regenerateSlot(chart, largeTiedScorePool, team, 5, DEFAULT_CONSTRAINTS, Random(seed))
+        }
+    }
+
     // ---- anchor composite score validation ----
     //
     // teamGenerator.test.ts runs this 5 times with real Math.random() and accepts 4/5 passes.

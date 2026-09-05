@@ -219,7 +219,13 @@ None yet.
 
 ### Known regressions
 
-None yet.
+- **Fixed 2026-09-05.** "Regenerate" on a single Surprise Me slot could
+  crash with `IllegalArgumentException: Comparison method violates its
+  general contract!` once the eligible candidate pool was large — found by
+  code review (`docs/post-migration-review.md`, finding 1), not by manual
+  testing; reproduced with a standalone JVM harness before the fix, not on
+  a device. `regenerateSlot`'s candidate ranking now scores each candidate
+  once instead of re-rolling the random tie-breaker on every comparison.
 
 ## Phase 5 — Showdown import/export, settings and local backup
 

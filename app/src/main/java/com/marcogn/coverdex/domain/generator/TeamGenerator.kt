@@ -223,9 +223,17 @@ fun regenerateSlot(
         return currentTeam[slotIndex]
     }
 
+    // computeScore adds fresh random noise per call, so it must be evaluated exactly once per
+    // candidate here and sorted on the stored value — sortedByDescending { computeScore(...) }
+    // re-invokes the selector on every comparison, which breaks Comparator's contract and makes
+    // Collections.sort's TimSort throw once the pool is large enough to leave insertion-sort
+    // territory (candidatePool is the full eligible catalogue here, not a test-sized fixture).
     val scored = candidatePool
-        .map { entry -> entry to memberFromEntry(entry) }
-        .sortedByDescending { (_, member) -> computeScore(chart, member, otherMembers, random) }
+        .map { entry ->
+            val member = memberFromEntry(entry)
+            Triple(entry, member, computeScore(chart, member, otherMembers, random))
+        }
+        .sortedByDescending { (_, _, score) -> score }
 
     val topN = minOf(5, scored.size)
     val picked = scored[random.nextInt(topN)]
