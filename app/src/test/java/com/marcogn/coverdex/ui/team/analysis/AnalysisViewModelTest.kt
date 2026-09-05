@@ -7,7 +7,7 @@ import com.marcogn.coverdex.MainDispatcherRule
 import com.marcogn.coverdex.data.local.CoverDexDatabase
 import com.marcogn.coverdex.data.repository.CustomPokemonRepositoryImpl
 import com.marcogn.coverdex.data.repository.TeamRepositoryImpl
-import com.marcogn.coverdex.data.settings.ThemePreferences
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.DamageClass
 import com.marcogn.coverdex.domain.model.PokemonEntry
 import com.marcogn.coverdex.domain.model.PokemonMove
@@ -43,7 +43,7 @@ class AnalysisViewModelTest {
     private lateinit var database: CoverDexDatabase
     private lateinit var teamRepository: TeamRepositoryImpl
     private lateinit var customPokemonRepository: CustomPokemonRepositoryImpl
-    private lateinit var themePreferences: ThemePreferences
+    private lateinit var settingsPreferences: SettingsPreferences
     private val chart = mockTypeChart()
 
     @Before
@@ -54,7 +54,7 @@ class AnalysisViewModelTest {
             .build()
         teamRepository = TeamRepositoryImpl(database.teamDao())
         customPokemonRepository = CustomPokemonRepositoryImpl(database.customPokemonDao())
-        themePreferences = ThemePreferences(context)
+        settingsPreferences = SettingsPreferences(context)
     }
 
     @After
@@ -67,7 +67,7 @@ class AnalysisViewModelTest {
         teamRepository = teamRepository,
         pokedexRepository = FakePokedexRepository(chart, pool = pool),
         customPokemonRepository = customPokemonRepository,
-        themePreferences = themePreferences,
+        settingsPreferences = settingsPreferences,
     )
 
     private fun waterFlyingWithElectricMove(): TeamMember {
@@ -84,7 +84,7 @@ class AnalysisViewModelTest {
 
     @Test
     fun `with showMoves off, a member holding damaging moves still produces type-based coverage`() = runTest(mainDispatcherRule.dispatcher) {
-        themePreferences.setShowMoves(false)
+        settingsPreferences.setShowMoves(false)
         val teamId = teamRepository.createTeam("T1")
         teamRepository.saveMember(teamId, 0, waterFlyingWithElectricMove())
 
@@ -99,7 +99,7 @@ class AnalysisViewModelTest {
 
     @Test
     fun `with showMoves on, the same member produces move-based coverage`() = runTest(mainDispatcherRule.dispatcher) {
-        themePreferences.setShowMoves(true)
+        settingsPreferences.setShowMoves(true)
         val teamId = teamRepository.createTeam("T2")
         teamRepository.saveMember(teamId, 0, waterFlyingWithElectricMove())
 
@@ -114,7 +114,7 @@ class AnalysisViewModelTest {
 
     @Test
     fun `canAnalyse is false for an empty team and true once a slot is filled`() = runTest(mainDispatcherRule.dispatcher) {
-        themePreferences.setShowMoves(false)
+        settingsPreferences.setShowMoves(false)
         val teamId = teamRepository.createTeam("T3")
 
         val empty = viewModel(teamId).uiState.first { it.chart != null }
@@ -127,7 +127,7 @@ class AnalysisViewModelTest {
 
     @Test
     fun `suggestions are computed from the catalogue and respect the generation filter`() = runTest(mainDispatcherRule.dispatcher) {
-        themePreferences.setShowMoves(false)
+        settingsPreferences.setShowMoves(false)
         val teamId = teamRepository.createTeam("T4")
         val pikachu = TeamMember(
             id = "m1", pokedexId = 25, speciesName = "Pikachu",
@@ -147,7 +147,7 @@ class AnalysisViewModelTest {
 
     @Test
     fun `applySuggestion in addition mode writes the candidate into the first empty slot`() = runTest(mainDispatcherRule.dispatcher) {
-        themePreferences.setShowMoves(false)
+        settingsPreferences.setShowMoves(false)
         val teamId = teamRepository.createTeam("T5")
         val pikachu = TeamMember(
             id = "m1", pokedexId = 25, speciesName = "Pikachu",

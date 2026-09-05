@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.marcogn.coverdex.data.settings.ThemePreferences
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.MoveEntry
 import com.marcogn.coverdex.domain.model.PokemonEntry
@@ -28,7 +28,7 @@ class SlotEditorViewModel @Inject constructor(
     private val teamRepository: TeamRepository,
     private val customPokemonRepository: CustomPokemonRepository,
     private val pokedexRepository: PokedexRepository,
-    themePreferences: ThemePreferences,
+    settingsPreferences: SettingsPreferences,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<Destination.SlotEditor>()
@@ -43,8 +43,8 @@ class SlotEditorViewModel @Inject constructor(
         .map { team -> team?.members?.getOrNull(slotIndex) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** Global, not per-team — see `data/settings/ThemePreferences.kt`'s `showMoves` doc. */
-    val showMoves: StateFlow<Boolean> = themePreferences.showMoves.stateIn(
+    /** Global, not per-team — see `data/settings/SettingsPreferences.kt`'s `showMoves` doc. */
+    val showMoves: StateFlow<Boolean> = settingsPreferences.showMoves.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false,

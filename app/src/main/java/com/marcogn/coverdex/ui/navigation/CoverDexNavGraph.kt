@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.marcogn.coverdex.R
+import com.marcogn.coverdex.ui.importexport.ImportShowdownScreen
 import com.marcogn.coverdex.ui.roster.RosterEditorScreen
 import com.marcogn.coverdex.ui.roster.RosterScreen
 import com.marcogn.coverdex.ui.settings.SettingsScreen
@@ -131,11 +132,24 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
                 RosterEditorScreen(onBackClick = { navController.popBackStack() })
             }
             composable<Destination.Settings> {
-                SettingsScreen(onMenuClick = onMenuClick)
+                SettingsScreen(
+                    onMenuClick = onMenuClick,
+                    onNavigateToImportShowdown = { navController.navigate(Destination.ImportShowdown) },
+                )
             }
             composable<Destination.SurpriseMe> {
                 SurpriseMeScreen(
                     onMenuClick = onMenuClick,
+                    onTeamCreated = { teamId ->
+                        navController.navigate(Destination.TeamDetail(teamId)) {
+                            popUpTo(Destination.Teams)
+                        }
+                    },
+                )
+            }
+            composable<Destination.ImportShowdown> {
+                ImportShowdownScreen(
+                    onBackClick = { navController.popBackStack() },
                     onTeamCreated = { teamId ->
                         navController.navigate(Destination.TeamDetail(teamId)) {
                             popUpTo(Destination.Teams)

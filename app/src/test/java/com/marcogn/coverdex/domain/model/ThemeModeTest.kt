@@ -15,9 +15,9 @@ class ThemeModeTest {
 
     @Test
     fun `valueOf throws on an unknown name rather than returning a default`() {
-        // ThemePreferences relies on this throwing so it can fall back to SYSTEM itself
+        // SettingsPreferences relies on this throwing so it can fall back to SYSTEM itself
         // (runCatching { ThemeMode.valueOf(stored) }.getOrNull() ?: ThemeMode.SYSTEM) — see
-        // ThemePreferencesTest's "an unknown stored value falls back to SYSTEM" case.
+        // SettingsPreferencesTest's "an unknown stored value falls back to SYSTEM" case.
         assertThrows(IllegalArgumentException::class.java) {
             ThemeMode.valueOf("NOT_A_REAL_THEME_MODE")
         }

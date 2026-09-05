@@ -1,0 +1,271 @@
+# .github/workflows/release.yml
+#
+# Manual-only release: cuts app/build.gradle.kts's versionName/versionCode and
+# CHANGELOG.md's [Unreleased] section for the version given in the dispatch
+# form (as local, uncommitted edits), builds and signs the release APK
+# against those edits, and only once the GitHub Release is actually
+# published does it commit and push the version bump straight to main. This
+# order is deliberate: if the build/signing step fails (e.g. a bad keystore
+# password), main is never touched and the same version input can simply be
+# re-run once the underlying problem is fixed — nothing is "spent" on a
+# failed attempt. Ported from Hall of Memories, which ported it from
+# ThePatientGamerHelper after hitting the opposite ordering bug for real on
+# an earlier release.
+# The version input is always typed by hand (no auto-computed default —
+# GitHub's dispatch form can't pre-fill a value computed from repo state)
+# and is only validated to be greater than the current versionName. The
+# workflow still refuses to overwrite an existing release/tag. The GitHub
+# Release body is never the full cut section — see "Extract changelog
+# highlights" below for what actually gets published, and CLAUDE.md's
+# "Changelog and release process" for the entry convention it depends on.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 2.0.1 (must be greater than the current versionName in app/build.gradle.kts)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # Uses a PAT (not the default GITHUB_TOKEN) so the version-bump commit below authenticates
+      # as an actual repo admin and can bypass main's branch protection, if any is configured —
+      # GITHUB_TOKEN pushes are attributed to the github-actions[bot] identity, which isn't
+      # covered by an "admins bypass required pull requests" exception. RELEASE_PUSH_TOKEN is a
+      # fine-grained PAT scoped to just this repo's Contents (read/write), stored as a repo secret.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.RELEASE_PUSH_TOKEN }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Validates the typed-in version input, then cuts CHANGELOG.md's [Unreleased] section
+      # into a dated "## [x.y.z]" one (leaving a fresh empty [Unreleased] above it) and bumps
+      # app/build.gradle.kts's versionName/versionCode (+1) to match. Fails the whole run before
+      # touching any file if the input isn't a plain x.y.z, isn't greater than the current
+      # versionName, or the changelog has nothing new to release, since a bad input at this point
+      # would otherwise commit garbage to main.
+      - name: Validate and apply version bump
+        env:
+          NEW_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version input must look like x.y.z (got: '$NEW_VERSION')" >&2
+            exit 1
+          fi
+
+          CURRENT_VERSION=$(grep -m1 'versionName = ' app/build.gradle.kts | sed -E 's/.*versionName = "([^"]*)".*/\1/')
+          CURRENT_CODE=$(grep -m1 'versionCode = ' app/build.gradle.kts | sed -E 's/.*versionCode = ([0-9]+).*/\1/')
+          if [ -z "$CURRENT_VERSION" ] || [ -z "$CURRENT_CODE" ]; then
+            echo "Could not read versionName/versionCode from app/build.gradle.kts" >&2
+            exit 1
+          fi
+
+          HIGHEST=$(printf '%s\n%s\n' "$CURRENT_VERSION" "$NEW_VERSION" | sort -V | tail -1)
+          if [ "$NEW_VERSION" = "$CURRENT_VERSION" ] || [ "$HIGHEST" != "$NEW_VERSION" ]; then
+            echo "version input ($NEW_VERSION) must be greater than the current versionName ($CURRENT_VERSION)" >&2
+            exit 1
+          fi
+
+          UNRELEASED_BODY=$(awk '/^## \[Unreleased\]$/{flag=1; next} /^## \[/{flag=0} flag' CHANGELOG.md | sed '/^[[:space:]]*$/d')
+          if [ -z "$UNRELEASED_BODY" ]; then
+            echo "CHANGELOG.md's [Unreleased] section is empty - nothing to release. Add entries first." >&2
+            exit 1
+          fi
+
+          NEW_CODE=$((CURRENT_CODE + 1))
+          TODAY=$(date -u +%F)
+
+          awk -v newsec="## [$NEW_VERSION] - $TODAY" '
+            /^## \[Unreleased\]$/ { print; print ""; print newsec; next }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+
+          sed -i -E "s/versionCode = [0-9]+/versionCode = $NEW_CODE/" app/build.gradle.kts
+          sed -i -E "s/versionName = \"[^\"]*\"/versionName = \"$NEW_VERSION\"/" app/build.gradle.kts
+
+      # Single source of truth for the release version: app/build.gradle.kts's versionName,
+      # now freshly bumped by the step above (still only a local, uncommitted edit at this
+      # point — see the top-of-file comment for why the commit/push is deferred to the end).
+      - name: Read app version
+        id: version
+        run: |
+          VERSION_NAME=$(grep -m1 'versionName = ' app/build.gradle.kts | sed -E 's/.*versionName = "([^"]*)".*/\1/')
+          if [ -z "$VERSION_NAME" ]; then
+            echo "Could not read versionName from app/build.gradle.kts" >&2
+            exit 1
+          fi
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse to overwrite an existing release
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists. Bump versionName in app/build.gradle.kts and add a matching CHANGELOG.md entry before running this workflow again." >&2
+            exit 1
+          fi
+
+      # Same persistent release keystore used by build-apk.yml — see docs/release-signing.md.
+      - name: Decode release keystore
+        run: echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+
+      - name: Verify decoded keystore integrity
+        run: |
+          echo "Decoded keystore size (bytes):"
+          wc -c < "$RUNNER_TEMP/release.keystore"
+          echo "Decoded keystore SHA-256:"
+          sha256sum "$RUNNER_TEMP/release.keystore"
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      # gh release create attaches whatever file path it's given as-is, so the APK is
+      # uploaded as a plain .apk release asset — never zipped.
+      - name: Rename APK for the release asset
+        id: apk
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          ASSET_PATH="CoverDex-${VERSION_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$ASSET_PATH"
+          echo "path=$ASSET_PATH" >> "$GITHUB_OUTPUT"
+
+      # Release notes are always just the significant-change highlights for this version, never
+      # the full changelog section. This project's CHANGELOG.md convention (see CLAUDE.md's
+      # "Changelog and release process") is that every significant change is a top-level "- "
+      # bullet leading with a bold one-line summary ("- **Summary.** ...elaboration"), with nested
+      # "  - " bullets and wrapped continuation lines reserved for elaboration — so extraction
+      # pulls just the bold lead-in of each top-level bullet (or, for a bullet with no bold
+      # lead-in, its first sentence, split on the first ". " followed by an uppercase letter to
+      # avoid false-splitting on abbreviations), reflowing this file's hard-wrapped prose back
+      # into a single line first. There is no length-based judgment call: this always runs, for
+      # every release. A section with no top-level bullets at all falls back to publishing the
+      # whole section as-is instead — a structural fallback for a section with nothing to
+      # extract, not a size cutoff.
+      #
+      # Either way the notes always end with a link back to CHANGELOG.md's matching section. The
+      # link's #fragment reproduces GitHub's own heading-anchor slug algorithm (lowercase; drop
+      # every character that isn't a-z, 0-9, space, underscore, or hyphen — this is what removes
+      # the brackets/period around the version number, not replaces them; then turn spaces into
+      # hyphens, e.g. "[2.0.0] - 2026-09-04" becomes "200---2026-09-04").
+      - name: Extract changelog highlights
+        id: changelog
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          awk -v ver="$VERSION_NAME" '
+            BEGIN { esc = ver; gsub(/\./, "\\.", esc); pattern = "^## \\[" esc "\\]" }
+            $0 ~ pattern { found = 1; print; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/changelog_section.md
+
+          if [ ! -s /tmp/changelog_section.md ]; then
+            echo "No CHANGELOG.md section found for version $VERSION_NAME; using the whole file as release notes." >&2
+            cp CHANGELOG.md release-notes.md
+          else
+            HEADING_LINE=$(head -1 /tmp/changelog_section.md)
+            HEADING_TEXT=$(printf '%s\n' "$HEADING_LINE" | sed -E 's/^##[[:space:]]*//')
+            SLUG=$(printf '%s' "$HEADING_TEXT" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9 _-]//g' | tr ' ' '-')
+            CHANGELOG_LINK="https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md#${SLUG}"
+
+            HIGHLIGHTS=$(awk '
+              function flush() {
+                if (buf == "") return
+                if (buf ~ /^\*\*/) {
+                  match(buf, /^\*\*[^*]+\*\*/)
+                  out = substr(buf, RSTART, RLENGTH)
+                } else {
+                  out = buf
+                  n = length(buf)
+                  for (i = 1; i <= n - 2; i++) {
+                    if (substr(buf, i, 1) == "." && substr(buf, i + 1, 1) == " " && substr(buf, i + 2, 1) ~ /[A-Z]/) {
+                      out = substr(buf, 1, i)
+                      break
+                    }
+                  }
+                }
+                print "- " out
+                buf = ""
+              }
+              /^### / { flush(); next }
+              /^- / { flush(); sub(/^- /, "", $0); buf = $0; nested = 0; next }
+              /^[[:space:]]*$/ { flush(); nested = 0; next }
+              /^  - / { nested = 1; next }
+              nested { next }
+              /^  / {
+                line = $0
+                sub(/^  +/, "", line)
+                if (buf != "") buf = buf " " line
+                next
+              }
+              { next }
+              END { flush() }
+            ' /tmp/changelog_section.md)
+
+            {
+              if [ -n "$HIGHLIGHTS" ]; then
+                printf '%s\n' "$HIGHLIGHTS"
+              else
+                cat /tmp/changelog_section.md
+              fi
+              echo
+              echo "See [CHANGELOG.md]($CHANGELOG_LINK) for the full changelog."
+            } > release-notes.md
+          fi
+
+      - name: Create GitHub release
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          ASSET_PATH: ${{ steps.apk.outputs.path }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "$ASSET_PATH" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "CoverDex $RELEASE_TAG" \
+            --notes-file release-notes.md
+
+      # Only reached once the release above actually exists. Pushes with the credentials the
+      # initial Checkout step already configured for this job (its RELEASE_PUSH_TOKEN input) —
+      # a PAT, not the default GITHUB_TOKEN, so this commit authenticates as an actual repo admin
+      # and can bypass main's branch protection, if any is configured (a GITHUB_TOKEN push is
+      # attributed to the github-actions[bot] identity, which isn't covered by an "admins bypass
+      # required pull requests" exception).
+      - name: Commit and push version bump
+        env:
+          NEW_VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md app/build.gradle.kts
+          git commit -m "Cut release $NEW_VERSION"
+          git push origin HEAD:main

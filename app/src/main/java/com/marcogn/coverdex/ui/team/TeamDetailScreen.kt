@@ -10,7 +10,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,6 +35,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.marcogn.coverdex.R
+import com.marcogn.coverdex.domain.showdown.exportTeamToShowdown
+import com.marcogn.coverdex.ui.importexport.ExportShowdownDialog
 import com.marcogn.coverdex.ui.team.analysis.AnalysisScreen
 
 private const val TAB_POKEMON = 0
@@ -51,6 +57,8 @@ fun TeamDetailScreen(
     val team by viewModel.team.collectAsState()
     val showMoves by viewModel.showMoves.collectAsState()
     var selectedTab by remember { mutableIntStateOf(TAB_POKEMON) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -60,6 +68,20 @@ fun TeamDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showOverflowMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.teams_more_actions))
+                    }
+                    DropdownMenu(expanded = showOverflowMenu, onDismissRequest = { showOverflowMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.export_showdown_title)) },
+                            onClick = {
+                                showOverflowMenu = false
+                                showExportDialog = true
+                            },
+                        )
                     }
                 },
             )
@@ -105,6 +127,17 @@ fun TeamDetailScreen(
                     AnalysisScreen(modifier = Modifier.fillMaxSize())
                 }
             }
+        }
+    }
+
+    if (showExportDialog) {
+        val current = team
+        if (current != null) {
+            ExportShowdownDialog(
+                teamName = current.name,
+                exportedText = exportTeamToShowdown(current.members),
+                onDismiss = { showExportDialog = false },
+            )
         }
     }
 }

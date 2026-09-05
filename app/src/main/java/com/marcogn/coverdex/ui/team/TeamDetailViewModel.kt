@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.marcogn.coverdex.data.settings.ThemePreferences
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.Team
 import com.marcogn.coverdex.domain.repository.TeamRepository
 import com.marcogn.coverdex.ui.navigation.Destination
@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 class TeamDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     teamRepository: TeamRepository,
-    private val themePreferences: ThemePreferences,
+    private val settingsPreferences: SettingsPreferences,
 ) : ViewModel() {
 
     val teamId: String = savedStateHandle.toRoute<Destination.TeamDetail>().teamId
@@ -30,14 +30,14 @@ class TeamDetailViewModel @Inject constructor(
         initialValue = null,
     )
 
-    /** Global, not per-team — see `data/settings/ThemePreferences.kt`'s `showMoves` doc. */
-    val showMoves: StateFlow<Boolean> = themePreferences.showMoves.stateIn(
+    /** Global, not per-team — see `data/settings/SettingsPreferences.kt`'s `showMoves` doc. */
+    val showMoves: StateFlow<Boolean> = settingsPreferences.showMoves.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false,
     )
 
     fun setShowMoves(enabled: Boolean) {
-        viewModelScope.launch { themePreferences.setShowMoves(enabled) }
+        viewModelScope.launch { settingsPreferences.setShowMoves(enabled) }
     }
 }

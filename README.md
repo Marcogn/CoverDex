@@ -1,14 +1,8 @@
 # CoverDex
 
-> **This repository is being rewritten as a native Android app.** The web
-> app and GitHub Pages described below are being retired; see
-> [`docs/plan/README.md`](docs/plan/README.md) for the migration plan and
-> [`docs/STATUS.md`](docs/STATUS.md) for what's actually shipped so far.
-> This README is rewritten for the native app in Phase 6.
-
 **Know your team's type coverage before you take it into battle.**
 
-CoverDex is a free Pokémon team builder that shows you, instantly, what
+CoverDex is a free, native Android app that shows you, instantly, what
 your team hits hard, what it's weak to, and where the holes are. Build a
 team, switch to the Analysis tab, and see the whole picture — no math,
 no spreadsheets, no guessing.
@@ -18,11 +12,9 @@ stress-test a team before committing to it, and ROM hack / nuzlocke
 players who need a tool that can handle custom typings and off-dex
 Pokémon, which most team builders simply can't.
 
-No account, no ads, nothing sent to a server. CoverDex runs entirely on
-your device, works offline once it's loaded, and never asks for your data.
-
-**[Open the web app →](https://marcogn.github.io/CoverDex/)**
-Also available as a native Android app — see [Get CoverDex](#get-coverdex) below.
+No account, no ads, no backend, nothing sent to a server. CoverDex runs
+entirely on your device, works offline once its one-time Pokémon data
+sync finishes, and never asks for your data.
 
 ## Why CoverDex
 
@@ -44,59 +36,71 @@ Also available as a native Android app — see [Get CoverDex](#get-coverdex) bel
   every calculation adapts to match, without touching the real data.
 - **Speaks Showdown.** Import a team you already built on Pokémon
   Showdown, or export yours in the same format to share or battle with.
-- **Actually offline.** Pokémon data downloads once, then CoverDex
-  never needs the internet again — install it and take it anywhere.
+- **Actually offline.** Pokémon data downloads once — about 8 requests
+  and ~208 KB — then CoverDex never needs the internet again.
 
 ## Get CoverDex
 
-| | |
-|---|---|
-| **Web app** | Open **[marcogn.github.io/CoverDex](https://marcogn.github.io/CoverDex/)** in any modern browser. Works on desktop and mobile, and can be installed as an app — see [Installing as a PWA](#installing-as-a-pwa). |
-| **Android app** | Download the latest APK from the [Releases page](https://github.com/marcogn/CoverDex/releases) and install it directly on your device. Not on the Play Store yet — see [Android app](#android-app) for what that means in practice. |
+Download the latest APK from the
+**[Releases page](https://github.com/marcogn/CoverDex/releases)** and
+install it directly on your device. CoverDex is **sideload-only** —
+there's no Play Store listing (see [`ROADMAP.md`](ROADMAP.md)) — so
+you'll need to allow installs from outside the Play Store the first
+time, the same as any APK you get from somewhere other than the Store.
 
-Both versions have the same features, restyled to feel native on each
-platform. They're independent installs and don't share data with each
-other — a team built on the web app stays on the web app, and a team
-built on the Android app stays there.
+On first launch, CoverDex syncs the Pokémon dataset in the background —
+a few seconds on a normal connection — while the rest of the app is
+already usable underneath it. After that, everything is cached
+on-device and every later launch is instant, fully offline included.
+
+> **Upgrading from the old web/Capacitor build?** Saved teams do **not**
+> carry over — this is a deliberate, one-time clean break (see
+> [`docs/implementation-decisions.md`](docs/implementation-decisions.md),
+> "Phase 0"). Export each of your teams to Showdown format from the old
+> app *before* installing this one, then re-import them here afterward.
 
 ## Features
 
 - **Multiple saved teams**, six slots each, stored on your device.
-- **Full PokéAPI species search**, including alternate forms, with
+- **Full Pokédex species search**, including alternate forms, with
   instant results as you type.
 - **Per-slot type overrides** for ROM hack typings, kept separate from
   the underlying species data.
-- **Ability picker** with known coverage effects (immunities,
+- **Ability field** with known coverage effects (immunities,
   multipliers) reflected directly in the analysis, plus free-text entry
   for anything a randomizer throws at you.
-- **Four move slots per Pokémon**, from PokéAPI or entered as custom
-  moves, with move-aware offensive coverage when you use them.
+- **Four move slots per Pokémon**, from the synced catalogue or entered
+  as custom moves, with move-aware offensive coverage when you use them.
 - **A personal custom-Pokémon roster** for anything that doesn't exist
   in the official Pokédex — build it once, reuse it across every team.
 - **Deep coverage analysis**: per-Pokémon breakdown, an offensive grid,
   a defensive grid, shared team weaknesses, and a list of everything
   your team doesn't hit.
 - **Ranked suggestions** for who to add or swap in, including your
-  custom roster if you want it in the mix.
+  custom roster if you want it in the mix, filterable by generation.
 - **"Surprise Me" team generator** with seed Pokémon and fine-grained
   slot budgets for starters, legendaries/mythicals, mega evolutions,
-  Dynamax/Gmax forms, and custom Pokémon.
-- **English and Italian**, with more languages easy to add.
-- **Showdown-format import/export**, via clipboard or `.txt` file.
-- **Installable, offline-first PWA** on desktop, iOS, and Android.
+  and Dynamax/Gmax forms.
+- **English and Italian**, following the system language or set
+  explicitly, with more languages easy to add.
+- **Showdown-format import/export**, via clipboard, a `.txt` file, or
+  copy/paste — export from a team's menu, import from Settings.
+- **Local backup and restore** to a single file — every team and the
+  custom roster, never the (re-downloadable) Pokédex cache.
 
 ## Custom Pokémon & ROM hacks
 
 CoverDex doesn't require a Pokémon to exist in the official Pokédex to
 be usable:
 
-1. In any slot, choose *Custom* (or just type a name PokéAPI doesn't
-   know) and set its types and moves by hand.
-2. Save it to your **custom roster** to reuse it across every team.
-3. Enable *Include custom roster* in the picker to bring saved custom
-   Pokémon into a team, and into the suggestion engine.
-4. Rename or delete custom Pokémon any time from the **Custom Roster**
-   panel.
+1. In any slot, type a name the synced catalogue doesn't know and set
+   its types and moves by hand.
+2. Save it to your **custom roster** ("Save as custom") to reuse it
+   across every team.
+3. Turn on "Include custom Pokémon" in the Analysis tab's Suggestions
+   filters to bring saved custom Pokémon into the suggestion engine too.
+4. Edit or delete custom Pokémon any time from the **Custom Pokémon**
+   screen, reached from the navigation drawer.
 
 Combined with per-slot type overrides, this covers the two things a
 "real" Pokédex team builder can't: Fakemon and re-typed movesets from a
@@ -110,69 +114,34 @@ also writes a `# Types: ...` comment per Pokémon, which is how a ROM
 hack's type overrides survive the round trip — Showdown itself ignores
 the comment, so the file still works normally there too. Unknown moves
 on import are kept as flagged placeholders rather than silently dropped,
-so you always know what still needs a closer look.
-
-## Installing as a PWA
-
-**Desktop (Chrome, Edge, Brave)** — open the web app, then click the
-install icon in the address bar (or the menu → *Install CoverDex*).
-
-**iOS (Safari)** — open the web app, tap the share icon, then
-*Add to Home Screen*.
-
-**Android (Chrome)** — open the web app, tap the menu, then
-*Install app* / *Add to Home screen*. (This installs the PWA; the
-native Android app from [Get CoverDex](#get-coverdex) above is a
-separate, independent option.)
-
-On first launch, CoverDex downloads the full Pokémon dataset — this
-takes roughly 30–90 seconds depending on your connection, with a
-progress bar showing what's happening. After that, everything is cached
-on-device and every later launch is instant, fully offline included.
-
-## Android app
-
-CoverDex also ships as a native Android app, wrapping the same web app
-in a lightweight native shell so it installs, launches, and feels like
-a normal Android app. It's currently **sideload-only** — there's no
-Play Store listing yet, so you install the APK from the
-[Releases page](https://github.com/marcogn/CoverDex/releases) the same
-way you would any APK from outside the Play Store (you'll need to allow
-installs from that source once).
-
-Building it yourself only takes two commands once the prerequisites are
-in place:
-
-```bash
-npm run android:build   # builds the Android bundle and syncs it into android/
-npm run android:open    # opens the project in Android Studio
-```
-
-See [`docs/android/BUILD.md`](docs/android/BUILD.md) for prerequisites,
-signing a release build, and CI details.
+so you always know what still needs a closer look, and importing always
+creates a brand-new team rather than overwriting one you already have.
 
 ## For developers
 
-```bash
-npm install
-npm run generate-icons  # generate PWA icons (gitignored, not committed)
-npm run dev              # dev server at http://localhost:5173
-npm run test              # run the test suite
-```
+CoverDex is a native Kotlin/Jetpack Compose app — Material 3, Room,
+Hilt, ViewModel/StateFlow with unidirectional data flow. There is no
+web build, no Vite, no Capacitor, and no `npm` command in this
+repository; everything runs through Gradle.
 
-Requires Node.js 18+ (the Android tooling separately requires Node 22+,
-see above). Full setup, environment variables, and the GitHub Pages
-deployment process are in [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+```bash
+./gradlew assembleDebug            # debug APK
+./gradlew testDebugUnitTest        # JVM unit tests (domain + Robolectric)
+./gradlew lintDebug                # Android Lint
+./gradlew connectedDebugAndroidTest  # instrumented tests (needs a device)
+```
 
 To understand how the app is put together before changing anything, read:
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the app fits
-  together: data flow, the two calculation engines, the web/Android split.
-- [`docs/STATUS.md`](docs/STATUS.md) — current snapshot of what's done
-  and what's still open.
-- [`CLAUDE.md`](CLAUDE.md) — rules and invariants for anyone (human or
-  AI) changing the code, with pointers to the more detailed docs it
-  summarizes.
+- [`CLAUDE.md`](CLAUDE.md) — architecture, conventions, and the rules
+  and invariants for anyone (human or AI) changing the code.
+- [`docs/STATUS.md`](docs/STATUS.md) — current snapshot of what's
+  shipped, what's deferred, and what's never been verified on a device.
+- [`docs/plan/`](docs/plan/) — the phase-by-phase record of how this
+  native rewrite was built, including every non-obvious decision made
+  along the way (`docs/implementation-decisions.md`).
+- [`docs/release-signing.md`](docs/release-signing.md) — generating the
+  release keystore and wiring up a signed build.
 
 Contributions are welcome — see
 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for the workflow
@@ -180,13 +149,15 @@ and house rules.
 
 ## Known limitations
 
-- No accounts and no cloud sync — a team lives only on the device (and
-  the platform, web or Android) it was created on.
+- No accounts and no cloud sync — a team lives only on the device it was
+  created on. Local backup (Settings → Local backup) covers moving data
+  between devices or surviving a reinstall.
 - The Pokémon dataset only refreshes when you ask it to, from
   Settings → Data → Redownload.
 - Suggestions look at the top candidates by coverage gain, not an
   exhaustive search across every possible substitution.
-- The Android app is sideload-only for now; there's no Play Store listing.
+- Sideload-only — there's no Play Store listing, and none is planned;
+  see [`ROADMAP.md`](ROADMAP.md).
 
 ## About this project
 

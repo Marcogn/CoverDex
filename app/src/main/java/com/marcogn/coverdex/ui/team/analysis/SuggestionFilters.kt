@@ -25,10 +25,14 @@ import androidx.compose.ui.unit.dp
 import com.marcogn.coverdex.R
 
 /**
- * The generation dropdown, "include custom Pokémon" toggle and "exclude legendaries" toggle that
- * feed [com.marcogn.coverdex.domain.suggestion.SuggestionOptions] — `phase-4-suggestions-and-generator.md`
- * §4. Deliberately smaller than `legacy-web`'s `SuggestionFilters.tsx`, which also carries a
- * type-filter chip row and a best/random mode toggle: neither is in this phase's own UI spec.
+ * The generation dropdown and "include custom Pokémon" toggle that feed
+ * [com.marcogn.coverdex.domain.suggestion.SuggestionOptions] — `phase-4-suggestions-and-generator.md`
+ * §4. "Exclude legendaries" and "include Mega/Dynamax" moved to Settings as of Phase 5
+ * (`phase-5-import-export-and-settings.md` §3: both are read-only, app-wide preferences in
+ * `legacy-web`'s own `TeamDetailPage.tsx` — neither has an `onChange` prop there — so there is no
+ * per-screen override to build here). Deliberately smaller than `legacy-web`'s own
+ * `SuggestionFilters.tsx`, which also carries a type-filter chip row and a best/random mode
+ * toggle: neither is in this app's UI spec.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,8 +41,6 @@ fun SuggestionFilters(
     onGenerationChange: (Int?) -> Unit,
     includeCustoms: Boolean,
     onIncludeCustomsChange: (Boolean) -> Unit,
-    excludeLegendaries: Boolean,
-    onExcludeLegendariesChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -74,13 +76,6 @@ fun SuggestionFilters(
         ) {
             Text(stringResource(R.string.suggestions_include_customs), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(checked = includeCustoms, onCheckedChange = onIncludeCustomsChange)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.suggestions_exclude_legendaries), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Switch(checked = excludeLegendaries, onCheckedChange = onExcludeLegendariesChange)
         }
     }
 }

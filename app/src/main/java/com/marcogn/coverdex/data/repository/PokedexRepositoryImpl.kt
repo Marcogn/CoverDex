@@ -70,5 +70,7 @@ class PokedexRepositoryImpl @Inject constructor(
 
     override suspend fun allSpecies(): List<PokemonEntry> = pokedexDao.getAllSpecies().mapNotNull { it.toDomain() }
 
+    override suspend fun allMoves(): List<MoveEntry> = pokedexDao.getAllMoves().mapNotNull { it.toDomain() }
+
     override suspend fun typeChart(): TypeChart = pokedexDao.getAllTypeEfficacy().toTypeChart()
 }

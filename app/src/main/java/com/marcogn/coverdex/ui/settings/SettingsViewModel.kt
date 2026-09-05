@@ -1,12 +1,16 @@
 package com.marcogn.coverdex.ui.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.marcogn.coverdex.data.backup.LocalBackupManager
+import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.CacheStatus
 import com.marcogn.coverdex.domain.model.SyncState
 import com.marcogn.coverdex.domain.repository.PokedexRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,22 +22,76 @@ private val EMPTY_CACHE_STATUS = CacheStatus(isUsable = false, syncedAtEpochMill
 data class SettingsUiState(
     val cacheStatus: CacheStatus = EMPTY_CACHE_STATUS,
     val syncState: SyncState = SyncState.Idle,
+    val includeMegaDynamax: Boolean = false,
+    /** The UI's own framing — stored inverted as `SettingsPreferences.excludeLegendaries`
+     * (`docs/plan/phase-5-import-export-and-settings.md` §3). */
+    val includeLegendaries: Boolean = true,
+    val backupBusy: Boolean = false,
+    /** Set only on a failed export/import — cleared on the next attempt. Never a success message:
+     * a successful restore is visible immediately in the Teams/Roster lists it just replaced. */
+    val backupMessage: String? = null,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val pokedexRepository: PokedexRepository,
+    private val settingsPreferences: SettingsPreferences,
+    private val localBackupManager: LocalBackupManager,
 ) : ViewModel() {
 
+    private val backupBusy = MutableStateFlow(false)
+    private val backupMessage = MutableStateFlow<String?>(null)
+
     val uiState: StateFlow<SettingsUiState> = combine(
-        pokedexRepository.cacheStatus,
-        pokedexRepository.syncState,
-    ) { cacheStatus, syncState -> SettingsUiState(cacheStatus, syncState) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
+        combine(pokedexRepository.cacheStatus, pokedexRepository.syncState) { cacheStatus, syncState -> cacheStatus to syncState },
+        combine(settingsPreferences.includeMegaDynamax, settingsPreferences.excludeLegendaries) { includeMega, excludeLegendaries -> includeMega to excludeLegendaries },
+        backupBusy,
+        backupMessage,
+    ) { (cacheStatus, syncState), (includeMegaDynamax, excludeLegendaries), busy, message ->
+        SettingsUiState(
+            cacheStatus = cacheStatus,
+            syncState = syncState,
+            includeMegaDynamax = includeMegaDynamax,
+            includeLegendaries = !excludeLegendaries,
+            backupBusy = busy,
+            backupMessage = message,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     fun syncNow() = pokedexRepository.forceResync()
 
     fun clearCache() {
         viewModelScope.launch { pokedexRepository.wipeCache() }
+    }
+
+    fun setIncludeMegaDynamax(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setIncludeMegaDynamax(enabled) }
+    }
+
+    fun setIncludeLegendaries(enabled: Boolean) {
+        viewModelScope.launch { settingsPreferences.setExcludeLegendaries(!enabled) }
+    }
+
+    fun exportBackup(destination: Uri) {
+        viewModelScope.launch {
+            backupBusy.value = true
+            backupMessage.value = null
+            runCatching { localBackupManager.exportTo(destination) }
+                .onFailure { backupMessage.value = it.message }
+            backupBusy.value = false
+        }
+    }
+
+    /** Failure is always one of [BackupArchiveMissingDataException] (not a zip this app wrote) or
+     * [BackupFormatTooNewException] (a backup from a newer app version) — both carry a message
+     * specific enough to show directly, so there is nothing to branch on here. */
+    fun importBackup(source: Uri) {
+        viewModelScope.launch {
+            backupBusy.value = true
+            backupMessage.value = null
+            runCatching { localBackupManager.importFrom(source) }
+                .onFailure { error -> backupMessage.value = error.message }
+            backupBusy.value = false
+        }
     }
 }

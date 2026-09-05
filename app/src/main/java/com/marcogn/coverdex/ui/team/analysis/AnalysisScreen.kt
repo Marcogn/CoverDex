@@ -143,8 +143,6 @@ fun AnalysisScreen(modifier: Modifier = Modifier, viewModel: AnalysisViewModel =
                 onGenerationChange = viewModel::setGenerationFilter,
                 includeCustoms = state.includeCustomsAnalysis,
                 onIncludeCustomsChange = viewModel::setIncludeCustomsAnalysis,
-                excludeLegendaries = state.excludeLegendaries,
-                onExcludeLegendariesChange = viewModel::setExcludeLegendaries,
             )
             if (state.suggestions.isEmpty()) {
                 Text(

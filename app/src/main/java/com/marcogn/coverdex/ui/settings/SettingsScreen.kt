@@ -11,7 +11,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.marcogn.coverdex.BuildConfig
 import com.marcogn.coverdex.R
 import com.marcogn.coverdex.domain.model.ThemeMode
 import com.marcogn.coverdex.ui.common.CoverDexTopBar
@@ -32,6 +35,7 @@ import com.marcogn.coverdex.ui.theme.ThemeViewModel
 @Composable
 fun SettingsScreen(
     onMenuClick: () -> Unit,
+    onNavigateToImportShowdown: () -> Unit,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
@@ -45,6 +49,18 @@ fun SettingsScreen(
         topBar = { CoverDexTopBar(title = stringResource(R.string.settings_title), onMenuClick = onMenuClick) },
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState())) {
+            SettingsSection(title = stringResource(R.string.settings_section_team_suggestions)) {
+                SwitchRow(
+                    label = stringResource(R.string.settings_include_mega),
+                    checked = uiState.includeMegaDynamax,
+                    onCheckedChange = settingsViewModel::setIncludeMegaDynamax,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_include_legendary),
+                    checked = uiState.includeLegendaries,
+                    onCheckedChange = settingsViewModel::setIncludeLegendaries,
+                )
+            }
             SettingsSection(title = stringResource(R.string.settings_section_appearance)) {
                 ThemeOption(ThemeMode.SYSTEM, stringResource(R.string.settings_theme_system), themeMode, themeViewModel::setThemeMode)
                 ThemeOption(ThemeMode.LIGHT, stringResource(R.string.settings_theme_light), themeMode, themeViewModel::setThemeMode)
@@ -70,7 +86,46 @@ fun SettingsScreen(
                 onSyncNow = settingsViewModel::syncNow,
                 onClearCache = settingsViewModel::clearCache,
             )
+            SettingsSection(title = stringResource(R.string.settings_section_import_export)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    TextButton(onClick = onNavigateToImportShowdown) {
+                        Text(stringResource(R.string.settings_import_showdown))
+                    }
+                }
+            }
+            BackupSection(
+                isBusy = uiState.backupBusy,
+                onExport = settingsViewModel::exportBackup,
+                onImport = settingsViewModel::importBackup,
+            )
+            uiState.backupMessage?.let { message ->
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+            SettingsSection(title = stringResource(R.string.settings_app)) {
+                Text(
+                    stringResource(R.string.settings_app_version, BuildConfig.VERSION_NAME),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        Text(label, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

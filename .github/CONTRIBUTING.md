@@ -10,9 +10,9 @@ Thanks for considering a contribution to CoverDex.
    - `fix/<short-name>` for bug fixes
    - `docs/<short-name>` for documentation-only changes
 3. Make your changes.
-4. **Run the tests** before opening a PR:
+4. **Run the checks** before opening a PR:
    ```bash
-   npm run test
+   ./gradlew testDebugUnitTest lintDebug assembleDebug
    ```
 5. Open a pull request against `main`.
 
@@ -28,13 +28,16 @@ Every pull request description must include:
 
 ## House rules
 
-- **Do not change the `localStorage` cache schema** without including a
-  written migration plan in the PR description. The cache key is bumped
-  alongside any schema change.
-- **Do not add new npm dependencies** without discussing the need in an
-  issue first. Prefer standard library, existing dependencies, or a
-  small local implementation.
+- **Room migrations are additive and numbered.** Don't change an
+  existing schema version in place; add a new `MIGRATION_x_y` and bump
+  the database version. `fallbackToDestructiveMigration()` is banned —
+  see [`CLAUDE.md`](../CLAUDE.md).
+- **Do not add new Gradle dependencies** without discussing the need in
+  an issue first. The dependency catalogue is pinned; prefer the
+  standard library, an existing dependency, or a small local
+  implementation (this repo hand-rolls its HTTP client, CSV parsing and
+  image fallback chains for exactly this reason).
 - Keep changes scoped. Unrelated fixes belong in their own PR.
 - Follow the conventions documented in [`CLAUDE.md`](../CLAUDE.md) —
-  especially the module responsibilities and the Showdown format
-  contract.
+  especially the module responsibilities, the bilingual string-resource
+  rule, and the Showdown format contract.

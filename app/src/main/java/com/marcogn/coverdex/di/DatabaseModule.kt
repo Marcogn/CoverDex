@@ -3,6 +3,7 @@ package com.marcogn.coverdex.di
 import android.content.Context
 import androidx.room.Room
 import com.marcogn.coverdex.data.local.CoverDexDatabase
+import com.marcogn.coverdex.data.local.dao.BackupDao
 import com.marcogn.coverdex.data.local.dao.CustomPokemonDao
 import com.marcogn.coverdex.data.local.dao.PokedexDao
 import com.marcogn.coverdex.data.local.dao.TeamDao
@@ -35,4 +36,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCustomPokemonDao(database: CoverDexDatabase): CustomPokemonDao = database.customPokemonDao()
+
+    @Provides
+    fun provideBackupDao(database: CoverDexDatabase): BackupDao = database.backupDao()
 }

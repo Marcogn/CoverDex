@@ -35,5 +35,6 @@ class FakePokedexRepository(
     override suspend fun speciesById(id: Int): PokemonEntry? = pool.find { it.id == id }
     override suspend fun speciesByName(name: String): PokemonEntry? = pool.find { it.name == name }
     override suspend fun allSpecies(): List<PokemonEntry> = pool
+    override suspend fun allMoves(): List<MoveEntry> = emptyList()
     override suspend fun typeChart(): TypeChart = chart
 }

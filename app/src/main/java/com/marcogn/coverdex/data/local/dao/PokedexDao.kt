@@ -77,6 +77,9 @@ interface PokedexDao {
     )
     fun searchMoves(key: String, limit: Int): Flow<List<PokeMoveEntity>>
 
+    @Query("SELECT * FROM poke_move")
+    suspend fun getAllMoves(): List<PokeMoveEntity>
+
     // --- Abilities ---
 
     @Query("DELETE FROM poke_ability")
