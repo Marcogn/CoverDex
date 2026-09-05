@@ -304,9 +304,24 @@ than load-bearing.
 8. ✅ Add the two test shapes that would have caught these: an engine test
    at production pool scale (several hundred entries — `TeamGeneratorTest`'s
    `largeTiedScorePool`), and a ViewModel test asserting the engines are
-   not invoked on the collecting dispatcher (`AnalysisViewModelTest`'s
-   `coverage is computed without ever advancing the Main test dispatcher`,
-   `SurpriseMeViewModelTest`'s `isGenerating` transition test).
+   not invoked on the collecting dispatcher
+   (`AnalysisViewModelTest`'s `coverage is computed without ever advancing
+   the Main test dispatcher`). A second such test on `SurpriseMeViewModel`
+   was written and then removed — CI caught it as flaky, not the
+   production code: it asserted `isGenerating.value` synchronously right
+   after calling `generate()`, assuming the launched coroutine couldn't
+   have finished yet, but `Dispatchers.Default` is a real thread pool the
+   test's `StandardTestDispatcher` does not gate, and the tiny mock pool
+   in that test file finishes fast enough to occasionally (in CI,
+   consistently) flip `isGenerating` back to `false` before the very next
+   line ran. Removed rather than patched: there is no reliable way to
+   observe that transient state from outside without adding an injectable
+   dispatcher for the background work, which finding 2's own decision
+   record (`implementation-decisions.md`) already explains was considered
+   and rejected. The behaviour it was trying to test (the coroutine
+   eventually finishes and updates state) is still covered by
+   `generate fills the result from the pool and keeps a locked anchor
+   first`.
 
 ## Areas swept, no defects found
 

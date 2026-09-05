@@ -89,20 +89,6 @@ class SurpriseMeViewModelTest {
     }
 
     @Test
-    fun `isGenerating is true immediately after generate() and false again once it completes`() = runTest(mainDispatcherRule.dispatcher) {
-        val vm = viewModel()
-        vm.uiState.first { it.chart != null }
-
-        vm.generate()
-        // isGenerating flips synchronously, before generate() even returns — no suspension
-        // needed to observe it, unlike the background computation itself.
-        assertTrue(vm.uiState.value.isGenerating)
-
-        val state = vm.uiState.first { !it.isGenerating }
-        assertTrue(state.result.isNotEmpty())
-    }
-
-    @Test
     fun `regenerateSlot only changes the targeted non-locked slot`() = runTest(mainDispatcherRule.dispatcher) {
         val vm = viewModel()
         vm.uiState.first { it.chart != null }
