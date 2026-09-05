@@ -252,6 +252,15 @@ None yet.
   algorithmic cost against a production-sized catalogue). Both now run on
   `Dispatchers.Default`; Surprise Me additionally gained a progress
   indicator and disables its generation actions while one is in flight.
+- **Fixed 2026-09-05.** `computeCompositeScore` redid the same per-team
+  work (offensive coverage union, weakness map) from scratch for every
+  candidate — found by code review
+  (`docs/post-migration-review.md`, finding 3), not measured on a
+  device. In replacement mode (a full team of six) that meant six
+  redundant recomputations per candidate instead of one overall.
+  Behaviour-preserving: same suggestions, same scores, same ranking —
+  covered by the existing `SuggestionEngineTest`/`TeamGeneratorTest`
+  suites, no new test needed.
 
 ## Phase 5 — Showdown import/export, settings and local backup
 

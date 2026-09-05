@@ -120,8 +120,11 @@ fun computeSuggestions(
     val deduped = dedupCandidates.filter { seen.add(it.speciesName.lowercase()) }
 
     val ranked: List<RankedCandidate> = if (members.size < 6) {
+        // Every candidate is scored against the same team, so this is built once, not once per
+        // candidate — see docs/post-migration-review.md, finding 3.
+        val context = teamScoringContext(chart, members)
         deduped.map { cand ->
-            val result = computeCompositeScore(chart, cand, members, teamAnalysis.unionCovered)
+            val result = computeCompositeScore(chart, cand, context, teamAnalysis.unionCovered)
             val entry = findEntry(pool, cand.speciesName)
             RankedCandidate(
                 candidate = cand,
@@ -133,18 +136,17 @@ fun computeSuggestions(
             )
         }
     } else {
+        // Only 6 distinct "team minus one member" contexts exist, regardless of how many
+        // candidates are scored against them — build each one once, not once per candidate. Before
+        // this, every one of the N candidates recomputed all 6 from scratch (N × 6 calls instead
+        // of 6); see docs/post-migration-review.md, finding 3.
+        val replacementContexts = members.map { m -> m to teamScoringContext(chart, members.filter { it.id != m.id }) }
         deduped.map { cand ->
             var bestScore = Double.NEGATIVE_INFINITY
-            var bestMember = members[0]
-            var bestResult = computeCompositeScore(
-                chart,
-                cand,
-                members.filter { it.id != members[0].id },
-                teamAnalysis.unionCovered,
-            )
-            for (m in members) {
-                val otherMembers = members.filter { it.id != m.id }
-                val result = computeCompositeScore(chart, cand, otherMembers, teamAnalysis.unionCovered)
+            var bestMember = replacementContexts[0].first
+            var bestResult = computeCompositeScore(chart, cand, replacementContexts[0].second, teamAnalysis.unionCovered)
+            for ((m, context) in replacementContexts) {
+                val result = computeCompositeScore(chart, cand, context, teamAnalysis.unionCovered)
                 if (result.compositeScore > bestScore) {
                     bestScore = result.compositeScore
                     bestMember = m

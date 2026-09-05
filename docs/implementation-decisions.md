@@ -762,6 +762,30 @@ findings not yet acted on.
   observed via a real `StateFlow` update from a real background thread —
   not virtual time — the same category of wait every Room-/DataStore-
   backed test in this codebase already relies on.
+- **Finding 3 (per-candidate rework in `computeCompositeScore`) —
+  `TeamScoringContext` extracted, no new test.** `computeCompositeScore`
+  took `otherMembers: List<TeamMember>` and rebuilt the offensive
+  coverage union and weakness map from it on every call, even though
+  neither depends on the candidate — only on the team. Extracted that
+  half into `teamScoringContext(chart, otherMembers): TeamScoringContext`,
+  built once per distinct team (once in addition mode, once per
+  replacement candidate — six total, not `candidates × 6`) and passed
+  into `computeCompositeScore` in place of the raw member list.
+  `TeamGenerator.computeScore` additionally reused the context's
+  `baseCoverage` as its own `currentTeamCoverage` argument, deleting a
+  second, independent redundant computation of the exact same set that
+  existed only in that one call site (the generator never excludes a
+  member from the comparison the way the suggestion engine's replacement
+  mode does, so building the context from the exact team scored against
+  makes the two values identical — this does **not** hold for the
+  suggestion engine, where `currentTeamCoverage` is `analyseTeam`'s
+  potentially moves-aware `unionCovered`, deliberately different from
+  the context's always-types-only `baseCoverage`). No new test: this is
+  behaviour-preserving by construction (same inputs, same output shape,
+  work reordered not changed), and every call site funnels through
+  `computeSuggestions`/`generateTeam`/`regenerateSlot`, all three already
+  covered by `SuggestionEngineTest`/`TeamGeneratorTest`'s existing exact-
+  score and exact-ranking assertions.
 - **Finding 6 (abilities ignored by suggestion/generator scoring) — not
   yet acted on.** Left for its own follow-up commit since it changes the
   composite score's output, not just its performance or a missing

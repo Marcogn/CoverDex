@@ -30,6 +30,13 @@ versions follow [Semantic Versioning](https://semver.org/).
   [`docs/post-migration-review.md`](docs/post-migration-review.md).
   Surprise Me now shows a progress indicator and disables its
   Generate/Regenerate actions while a generation is in flight.
+- **Suggestions in replacement mode (a full team of six) score
+  noticeably faster.** `computeCompositeScore` recomputed the same
+  per-team data from scratch for every candidate — in replacement mode,
+  six times per candidate instead of once overall. See finding 3 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md). Same
+  suggestions, same ranking, same composite scores — this is a pure
+  performance fix.
 - **Post-migration review of the coverage and suggestion engines.** A
   code-level audit of the shipped app against the phase plans, diffing every
   Kotlin port against the TypeScript original recovered from git history.

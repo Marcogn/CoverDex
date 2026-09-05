@@ -1,12 +1,12 @@
 package com.marcogn.coverdex.domain.generator
 
-import com.marcogn.coverdex.domain.coverage.offensiveCoverageForMember
 import com.marcogn.coverdex.domain.model.PokemonEntry
-import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.model.TypeChart
+import com.marcogn.coverdex.domain.suggestion.TeamScoringContext
 import com.marcogn.coverdex.domain.suggestion.computeCompositeScore
 import com.marcogn.coverdex.domain.suggestion.memberFromEntry
+import com.marcogn.coverdex.domain.suggestion.teamScoringContext
 import kotlin.random.Random
 
 /**
@@ -77,20 +77,16 @@ private data class Candidate(val member: TeamMember, val entry: PokemonEntry?, v
 private fun candidateFromEntry(entry: PokemonEntry): Candidate = Candidate(memberFromEntry(entry), entry, entry.defaultAbility)
 private fun candidateFromCustom(member: TeamMember): Candidate = Candidate(member, null, member.ability)
 
-private fun currentTeamCoverage(chart: TypeChart, team: List<TeamMember>): Set<PokemonType> {
-    val cov = mutableSetOf<PokemonType>()
-    team.forEach { cov.addAll(offensiveCoverageForMember(chart, it, false)) }
-    return cov
-}
-
-/** Composite score for [candidate] relative to [currentTeam], plus a small random tie-breaking
- * factor. Ports `teamGenerator.ts`'s own `computeScore` as a thin wrapper over the shared
- * [computeCompositeScore] — `currentTeam` doubles as both the "other members" and the coverage
- * baseline, since the generator (unlike the suggestion engine's replacement mode) never excludes
- * a member from the comparison. */
-private fun computeScore(chart: TypeChart, candidate: TeamMember, currentTeam: List<TeamMember>, random: Random): Double {
-    val coverage = currentTeamCoverage(chart, currentTeam)
-    val result = computeCompositeScore(chart, candidate, currentTeam, coverage)
+/** Composite score for [candidate] against a team summarized by [context] (see
+ * [teamScoringContext]), plus a small random tie-breaking factor. Ports `teamGenerator.ts`'s own
+ * `computeScore` as a thin wrapper over the shared [computeCompositeScore] — [context]'s
+ * `baseCoverage` doubles as both the "other members" coverage and the gain baseline, since the
+ * generator (unlike the suggestion engine's replacement mode) never excludes a member from the
+ * comparison, so building [context] from the exact team being scored against makes the two the
+ * same set. Callers build [context] once per team (not once per candidate) — see
+ * `docs/post-migration-review.md`, finding 3. */
+private fun computeScore(chart: TypeChart, candidate: TeamMember, context: TeamScoringContext, random: Random): Double {
+    val result = computeCompositeScore(chart, candidate, context, context.baseCoverage)
     val noise = (random.nextDouble() - 0.5) * 0.02
     return result.compositeScore + noise
 }
@@ -188,10 +184,13 @@ fun generateTeam(
             return GeneratorResult(team = team, warning = "tooFewPokemon")
         }
 
+        // Built once per slot, not once per candidate — see docs/post-migration-review.md,
+        // finding 3.
+        val context = teamScoringContext(chart, team)
         // maxByOrNull calls its selector exactly once per element (never per comparison), so this
         // is safe even though computeScore adds fresh random noise per call — see regenerateSlot's
         // own note below on the sort that must not do the same thing the same way.
-        val best = candidates.maxByOrNull { candidate -> computeScore(chart, candidate.member, team, random) }!!
+        val best = candidates.maxByOrNull { candidate -> computeScore(chart, candidate.member, context, random) }!!
 
         team.add(best.member.copy(ability = best.ability))
         usedSpecies.add(best.member.speciesName.lowercase())
@@ -262,13 +261,17 @@ fun regenerateSlot(
         return currentTeam[slotIndex]
     }
 
+    // Built once for every candidate below, not once per candidate — see
+    // docs/post-migration-review.md, finding 3.
+    val context = teamScoringContext(chart, otherMembers)
+
     // computeScore adds fresh random noise per call, so it must be evaluated exactly once per
     // candidate here and sorted on the stored value — sortedByDescending { computeScore(...) }
     // re-invokes the selector on every comparison, which breaks Comparator's contract and makes
     // Collections.sort's TimSort throw once the pool is large enough to leave insertion-sort
     // territory (candidatePool is the full eligible catalogue here, not a test-sized fixture).
     val scored = candidatePool
-        .map { candidate -> candidate to computeScore(chart, candidate.member, otherMembers, random) }
+        .map { candidate -> candidate to computeScore(chart, candidate.member, context, random) }
         .sortedByDescending { (_, score) -> score }
 
     val topN = minOf(5, scored.size)
