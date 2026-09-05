@@ -19,10 +19,14 @@ data class SurpriseMeUiState(
     /** `"tooFewPokemon"` when the pool couldn't fill every slot — resolved to a string resource
      * by the screen, matching `GeneratorResult.warning`'s own string-key convention. */
     val warning: String? = null,
+    /** True while `generate()`/`regenerateSlot()` are running on [kotlinx.coroutines.Dispatchers.Default]
+     * — see `docs/post-migration-review.md`, finding 2. Drives the Generate button's spinner and
+     * disables every regenerate action so a second tap can't race the one in flight. */
+    val isGenerating: Boolean = false,
 ) {
     val anchorCount: Int get() = lockedMembers.size
     val constraintTotal: Int get() = with(constraints) { starterSlots + legendaryMythicalSlots + megaSlots + dynamaxSlots + customSlots }
     val remainingSlots: Int get() = (6 - anchorCount - constraintTotal).coerceAtLeast(0)
     val budgetFull: Boolean get() = anchorCount + constraintTotal >= 6
-    val canGenerate: Boolean get() = chart != null
+    val canGenerate: Boolean get() = chart != null && !isGenerating
 }

@@ -21,11 +21,13 @@ import com.marcogn.coverdex.ui.navigation.Destination
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -127,11 +129,18 @@ class AnalysisViewModel @Inject constructor(
             includeCustomsAnalysis = includeCustoms,
             generationFilter = genFilter,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AnalysisUiState(),
-    )
+    }
+        // analyseTeam/computeSuggestions/sharedWeaknessCounts are real work against a catalogue
+        // in the high hundreds (docs/post-migration-review.md, finding 2) — flowOn moves the
+        // whole combine() above, transform lambda included, off Dispatchers.Main.immediate
+        // (what viewModelScope.launch inside stateIn would otherwise use) and onto a background
+        // thread, recomputed on every team edit, toggle flip and filter change alike.
+        .flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AnalysisUiState(),
+        )
 
     fun setIncludeCustomsAnalysis(value: Boolean) {
         viewModelScope.launch { settingsPreferences.setIncludeCustomsAnalysis(value) }

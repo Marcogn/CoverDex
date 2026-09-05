@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -162,7 +163,15 @@ fun SurpriseMeScreen(
             }
 
             Button(onClick = { viewModel.generate() }, enabled = state.canGenerate, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.surprise_me_generate))
+                if (state.isGenerating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    Text(stringResource(R.string.surprise_me_generate))
+                }
             }
 
             // Result.
@@ -190,16 +199,24 @@ fun SurpriseMeScreen(
                                 pokedexId = member.pokedexId,
                                 types = member.types,
                                 ability = member.ability,
-                                canRegenerate = !isLocked,
+                                canRegenerate = !isLocked && !state.isGenerating,
                                 onRegenerate = { viewModel.regenerateSlot(index) },
                             )
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { viewModel.regenerateAll() }, modifier = Modifier.weight(1f)) {
+                        OutlinedButton(
+                            onClick = { viewModel.regenerateAll() },
+                            enabled = !state.isGenerating,
+                            modifier = Modifier.weight(1f),
+                        ) {
                             Text(stringResource(R.string.surprise_me_regenerate_all))
                         }
-                        Button(onClick = { showKeepDialog = true }, modifier = Modifier.weight(1f)) {
+                        Button(
+                            onClick = { showKeepDialog = true },
+                            enabled = !state.isGenerating,
+                            modifier = Modifier.weight(1f),
+                        ) {
                             Text(stringResource(R.string.surprise_me_keep))
                         }
                     }

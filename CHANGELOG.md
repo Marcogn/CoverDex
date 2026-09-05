@@ -21,6 +21,15 @@ versions follow [Semantic Versioning](https://semver.org/).
   Reserving N custom slots now fills exactly N slots from the saved
   custom roster, the same "exactly N" semantics every other constraint
   category already had.
+- **Coverage analysis and team generation no longer run on the main
+  thread.** Both `AnalysisScreen`'s coverage/suggestions pipeline and
+  Surprise Me's generator scored every eligible candidate against the
+  whole team on `Dispatchers.Main.immediate` — real work against a
+  catalogue in the high hundreds, not the handful of entries any unit
+  test's pool has. See finding 2 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
+  Surprise Me now shows a progress indicator and disables its
+  Generate/Regenerate actions while a generation is in flight.
 - **Post-migration review of the coverage and suggestion engines.** A
   code-level audit of the shipped app against the phase plans, diffing every
   Kotlin port against the TypeScript original recovered from git history.

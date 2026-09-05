@@ -221,6 +221,11 @@ None yet.
 - [ ] **Surprise Me — Keep.** Tapping Keep prompts for a team name, then
   creates a brand-new team with the generated six slots and navigates to
   it — the Teams list shows it immediately.
+- [ ] **Surprise Me — generating shows a progress indicator, not a
+  frozen UI.** Tapping Generate (or Regenerate/Regenerate all) shows a
+  spinner and disables the other generation actions until it finishes —
+  the app never appears to hang, even with a large synced catalogue
+  (previously this ran on the main thread; see Known regressions below).
 
 ### Known regressions
 
@@ -239,6 +244,14 @@ None yet.
   `generateTeam` and `regenerateSlot` now treat `customSlots` as a
   reserved category, filled from the custom roster already loaded into
   `SurpriseMeViewModel`'s UI state.
+- **Fixed 2026-09-05.** `AnalysisViewModel`'s coverage/suggestions
+  pipeline and both of `SurpriseMeViewModel`'s generator entry points ran
+  on `Dispatchers.Main.immediate` — found by code review
+  (`docs/post-migration-review.md`, finding 2), not by manual testing (no
+  device profiling backs the "real work" claim; it follows from the
+  algorithmic cost against a production-sized catalogue). Both now run on
+  `Dispatchers.Default`; Surprise Me additionally gained a progress
+  indicator and disables its generation actions while one is in flight.
 
 ## Phase 5 — Showdown import/export, settings and local backup
 

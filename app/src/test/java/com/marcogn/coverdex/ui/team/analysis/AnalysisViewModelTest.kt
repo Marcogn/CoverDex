@@ -146,6 +146,21 @@ class AnalysisViewModelTest {
     }
 
     @Test
+    fun `coverage is computed without ever advancing the Main test dispatcher`() = runTest(mainDispatcherRule.dispatcher) {
+        // mainDispatcherRule.dispatcher is a StandardTestDispatcher, which only runs work queued
+        // on it when explicitly advanced (advanceUntilIdle()/runCurrent()) — this test never
+        // calls either. Before finding 2's fix, analyseTeam ran inside stateIn's own collector,
+        // i.e. on Dispatchers.Main.immediate, so this would hang until timing out; flowOn(Default)
+        // moves it onto a real background thread instead, which completes independently.
+        settingsPreferences.setShowMoves(false)
+        val teamId = teamRepository.createTeam("T-dispatcher")
+        teamRepository.saveMember(teamId, 0, waterFlyingWithElectricMove())
+
+        val state = viewModel(teamId).uiState.first { it.coverage != null }
+        assertTrue(state.coverage!!.unionCovered.isNotEmpty())
+    }
+
+    @Test
     fun `applySuggestion in addition mode writes the candidate into the first empty slot`() = runTest(mainDispatcherRule.dispatcher) {
         settingsPreferences.setShowMoves(false)
         val teamId = teamRepository.createTeam("T5")

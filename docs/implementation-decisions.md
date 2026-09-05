@@ -738,6 +738,30 @@ findings not yet acted on.
   its own reserved budget still has room. The alternative (customs
   competing for every free slot too) was rejected as surprising: a user
   who sets `customSlots = 0` should never see a custom Pokémon appear.
+- **Finding 2 (both engines ran on the main thread) — no injected test
+  dispatcher.** `AnalysisViewModel`'s `combine()` chain now ends in
+  `.flowOn(Dispatchers.Default).stateIn(...)`; `SurpriseMeViewModel.
+  generate()`/`regenerateSlot()` now do `isGenerating.value = true`
+  synchronously, then `viewModelScope.launch(Dispatchers.Default) { ...
+  }` for the whole computation and every `result`/`warning`/
+  `isGenerating` write — deliberately not `withContext(Dispatchers.
+  Default) { compute() }` followed by writes back on the launch's
+  original (Main) context, which would need a second hop back through
+  `Dispatchers.Main` after the background work finishes. Considered
+  adding an injectable `@DefaultDispatcher` qualifier to
+  `CoroutinesModule.kt` (the established pattern for cross-cutting
+  coroutine concerns here, see `@ApplicationScope`) so tests could
+  substitute a deterministic `TestDispatcher`; decided against it for
+  now; `Dispatchers.Default` is hardcoded, matching this codebase's
+  existing convention of calling `Dispatchers.IO` directly in
+  `data/pokeapi`/`data/backup` rather than injecting a dispatcher there
+  either. `SurpriseMeViewModel`'s synchronous `isGenerating.value = true`
+  before the launch is why this is safe to test without one: a test can
+  assert on `vm.uiState.value.isGenerating` immediately after calling
+  `generate()`, with no suspension needed, and the eventual `false` is
+  observed via a real `StateFlow` update from a real background thread —
+  not virtual time — the same category of wait every Room-/DataStore-
+  backed test in this codebase already relies on.
 - **Finding 6 (abilities ignored by suggestion/generator scoring) — not
   yet acted on.** Left for its own follow-up commit since it changes the
   composite score's output, not just its performance or a missing
