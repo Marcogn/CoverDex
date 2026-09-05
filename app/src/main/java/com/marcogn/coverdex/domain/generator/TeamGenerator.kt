@@ -1,12 +1,12 @@
 package com.marcogn.coverdex.domain.generator
 
-import com.marcogn.coverdex.domain.coverage.offensiveCoverageForMember
 import com.marcogn.coverdex.domain.model.PokemonEntry
-import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.model.TypeChart
+import com.marcogn.coverdex.domain.suggestion.TeamScoringContext
 import com.marcogn.coverdex.domain.suggestion.computeCompositeScore
 import com.marcogn.coverdex.domain.suggestion.memberFromEntry
+import com.marcogn.coverdex.domain.suggestion.teamScoringContext
 import kotlin.random.Random
 
 /**
@@ -14,11 +14,17 @@ import kotlin.random.Random
  * [Random] parameter, defaulting to [Random.Default] — rather than a direct `Math.random()` call,
  * so tests can seed it; see `docs/plan/phase-4-suggestions-and-generator.md` §3.
  *
- * `buildEligiblePool`, `generateTeam` and `regenerateSlot` all drop the TypeScript's `customs:
- * TeamMember[]` parameter: reading `teamGenerator.ts` end to end shows it is never referenced in
- * any of the three function bodies (nor is `GeneratorConstraints.customSlots`, kept below only as
- * a ported struct field) — a genuinely dead parameter in the original, not a behavioural
- * difference. See `docs/implementation-decisions.md`, "Phase 4".
+ * `customs` is a deliberate native addition, not a port: `teamGenerator.ts` accepted a `customs:
+ * TeamMember[]` parameter but never referenced it in any of its three function bodies, and Phase 4
+ * dropped it here as genuinely dead. `GeneratorConstraints.customSlots` was kept anyway as a ported
+ * struct field, which meant the Surprise Me screen shipped a "Custom slots" stepper that consumed
+ * the six-slot budget and placed nothing — see `docs/post-migration-review.md`, finding 5, and
+ * `docs/implementation-decisions.md`, "Post-migration review". `generateTeam` and `regenerateSlot`
+ * now take `customs` (default `emptyList()`, so every existing call site is unaffected) and honour
+ * `customSlots` as a reserved category exactly like starter/legendary-mythical/Mega/Dynamax, except
+ * a custom is never chosen opportunistically in a free slot the way a catalogue Pokémon can be
+ * once its own quota is met — customs live outside [buildEligiblePool]'s catalogue-only pool, so a
+ * custom appears only while its own reserved budget still has room.
  */
 
 /** Hardcoded per-generation lists of starter final evolutions (Grass/Fire/Water), ported
@@ -62,20 +68,28 @@ private fun isMegaOrDynamax(entry: PokemonEntry): Boolean = isMega(entry) || isD
 private fun findEntry(allPokemon: List<PokemonEntry>, m: TeamMember): PokemonEntry? =
     allPokemon.find { it.displayName == m.speciesName || it.name == m.speciesName.lowercase() }
 
-private fun currentTeamCoverage(chart: TypeChart, team: List<TeamMember>): Set<PokemonType> {
-    val cov = mutableSetOf<PokemonType>()
-    team.forEach { cov.addAll(offensiveCoverageForMember(chart, it, false)) }
-    return cov
-}
+/** A generator candidate: either a catalogue entry (scored via [memberFromEntry], which already
+ * carries [PokemonEntry.defaultAbility] as its own [TeamMember.ability]) or a custom roster
+ * [TeamMember] (its own ability, unchanged). [entry] is `null` for a custom — that is the single
+ * source of truth this file uses to tell the two apart, since a custom is never legendary/
+ * mythical, a starter, a Mega or a Dynamax. No separate ability field: [member]'s own already
+ * carries the right value in both cases, so there is nothing left to override when a candidate is
+ * picked. */
+private data class Candidate(val member: TeamMember, val entry: PokemonEntry?)
 
-/** Composite score for [candidate] relative to [currentTeam], plus a small random tie-breaking
- * factor. Ports `teamGenerator.ts`'s own `computeScore` as a thin wrapper over the shared
- * [computeCompositeScore] — `currentTeam` doubles as both the "other members" and the coverage
- * baseline, since the generator (unlike the suggestion engine's replacement mode) never excludes
- * a member from the comparison. */
-private fun computeScore(chart: TypeChart, candidate: TeamMember, currentTeam: List<TeamMember>, random: Random): Double {
-    val coverage = currentTeamCoverage(chart, currentTeam)
-    val result = computeCompositeScore(chart, candidate, currentTeam, coverage)
+private fun candidateFromEntry(entry: PokemonEntry): Candidate = Candidate(memberFromEntry(entry), entry)
+private fun candidateFromCustom(member: TeamMember): Candidate = Candidate(member, null)
+
+/** Composite score for [candidate] against a team summarized by [context] (see
+ * [teamScoringContext]), plus a small random tie-breaking factor. Ports `teamGenerator.ts`'s own
+ * `computeScore` as a thin wrapper over the shared [computeCompositeScore] — [context]'s
+ * `baseCoverage` doubles as both the "other members" coverage and the gain baseline, since the
+ * generator (unlike the suggestion engine's replacement mode) never excludes a member from the
+ * comparison, so building [context] from the exact team being scored against makes the two the
+ * same set. Callers build [context] once per team (not once per candidate) — see
+ * `docs/post-migration-review.md`, finding 3. */
+private fun computeScore(chart: TypeChart, candidate: TeamMember, context: TeamScoringContext, random: Random): Double {
+    val result = computeCompositeScore(chart, candidate, context, context.baseCoverage)
     val noise = (random.nextDouble() - 0.5) * 0.02
     return result.compositeScore + noise
 }
@@ -111,6 +125,7 @@ fun generateTeam(
     lockedMembers: List<TeamMember>,
     constraints: GeneratorConstraints,
     random: Random = Random.Default,
+    customs: List<TeamMember> = emptyList(),
 ): GeneratorResult {
     val pool = buildEligiblePool(allPokemon, constraints)
     val slotsToFill = 6 - lockedMembers.size
@@ -125,26 +140,31 @@ fun generateTeam(
     var starterCount = team.count { m -> findEntry(allPokemon, m)?.let { isStarter(it) } == true }
     var megaCount = team.count { m -> findEntry(allPokemon, m)?.let { isMega(it) } == true }
     var dynamaxCount = team.count { m -> findEntry(allPokemon, m)?.let { isDynamax(it) } == true }
+    var customCount = team.count { it.isCustomSaved }
 
     var starterSlotsRemaining = maxOf(0, constraints.starterSlots - starterCount)
     var legendaryMythicalSlotsRemaining = maxOf(0, constraints.legendaryMythicalSlots - legendaryMythicalCount)
     var megaSlotsRemaining = maxOf(0, constraints.megaSlots - megaCount)
     var dynamaxSlotsRemaining = maxOf(0, constraints.dynamaxSlots - dynamaxCount)
+    var customSlotsRemaining = maxOf(0, constraints.customSlots - customCount)
 
     repeat(slotsToFill) {
-        var candidatePool: List<PokemonEntry>
+        val candidates: List<Candidate>
 
         if (legendaryMythicalSlotsRemaining > 0) {
-            candidatePool = pool.filter { isLegendaryOrMythical(it) && it.displayName.lowercase() !in usedSpecies }
+            candidates = pool.filter { isLegendaryOrMythical(it) && it.displayName.lowercase() !in usedSpecies }.map(::candidateFromEntry)
             legendaryMythicalSlotsRemaining--
         } else if (starterSlotsRemaining > 0) {
-            candidatePool = pool.filter { isStarter(it) && it.displayName.lowercase() !in usedSpecies }
+            candidates = pool.filter { isStarter(it) && it.displayName.lowercase() !in usedSpecies }.map(::candidateFromEntry)
             starterSlotsRemaining--
+        } else if (customSlotsRemaining > 0) {
+            candidates = customs.filter { it.speciesName.lowercase() !in usedSpecies }.map(::candidateFromCustom)
+            customSlotsRemaining--
         } else if (megaSlotsRemaining > 0) {
-            candidatePool = pool.filter { isMega(it) && it.displayName.lowercase() !in usedSpecies }
+            candidates = pool.filter { isMega(it) && it.displayName.lowercase() !in usedSpecies }.map(::candidateFromEntry)
             megaSlotsRemaining--
         } else if (dynamaxSlotsRemaining > 0) {
-            candidatePool = pool.filter { isDynamax(it) && it.displayName.lowercase() !in usedSpecies }
+            candidates = pool.filter { isDynamax(it) && it.displayName.lowercase() !in usedSpecies }.map(::candidateFromEntry)
             dynamaxSlotsRemaining--
         } else {
             var free = pool.filter { it.displayName.lowercase() !in usedSpecies }
@@ -160,25 +180,32 @@ fun generateTeam(
             if (constraints.dynamaxSlots > 0 && dynamaxCount >= constraints.dynamaxSlots) {
                 free = free.filterNot { isDynamax(it) }
             }
-            candidatePool = free
+            candidates = free.map(::candidateFromEntry)
         }
 
-        if (candidatePool.isEmpty()) {
+        if (candidates.isEmpty()) {
             return GeneratorResult(team = team, warning = "tooFewPokemon")
         }
 
-        val best = candidatePool
-            .map { entry -> entry to memberFromEntry(entry) }
-            .maxByOrNull { (_, member) -> computeScore(chart, member, team, random) }!!
+        // Built once per slot, not once per candidate — see docs/post-migration-review.md,
+        // finding 3.
+        val context = teamScoringContext(chart, team)
+        // maxByOrNull calls its selector exactly once per element (never per comparison), so this
+        // is safe even though computeScore adds fresh random noise per call — see regenerateSlot's
+        // own note below on the sort that must not do the same thing the same way.
+        val best = candidates.maxByOrNull { candidate -> computeScore(chart, candidate.member, context, random) }!!
 
-        val newMember = best.second.copy(ability = best.first.defaultAbility)
-        team.add(newMember)
-        usedSpecies.add(best.first.displayName.lowercase())
+        team.add(best.member)
+        usedSpecies.add(best.member.speciesName.lowercase())
 
-        if (isLegendaryOrMythical(best.first)) legendaryMythicalCount++
-        if (isStarter(best.first)) starterCount++
-        if (isMega(best.first)) megaCount++
-        if (isDynamax(best.first)) dynamaxCount++
+        if (best.entry != null) {
+            if (isLegendaryOrMythical(best.entry)) legendaryMythicalCount++
+            if (isStarter(best.entry)) starterCount++
+            if (isMega(best.entry)) megaCount++
+            if (isDynamax(best.entry)) dynamaxCount++
+        } else {
+            customCount++
+        }
     }
 
     return GeneratorResult(team = team)
@@ -195,40 +222,63 @@ fun regenerateSlot(
     slotIndex: Int,
     constraints: GeneratorConstraints,
     random: Random = Random.Default,
+    customs: List<TeamMember> = emptyList(),
 ): TeamMember {
     val otherMembers = currentTeam.filterIndexed { i, _ -> i != slotIndex }
     val pool = buildEligiblePool(allPokemon, constraints)
     val usedSpecies = otherMembers.mapTo(mutableSetOf()) { it.speciesName.lowercase() }
 
-    var candidatePool = pool.filter { it.displayName.lowercase() !in usedSpecies }
+    var entryPool = pool.filter { it.displayName.lowercase() !in usedSpecies }
 
     if (constraints.legendaryMythicalSlots > 0) {
         val count = otherMembers.count { m -> findEntry(allPokemon, m)?.let { isLegendaryOrMythical(it) } == true }
-        if (count >= constraints.legendaryMythicalSlots) candidatePool = candidatePool.filterNot { isLegendaryOrMythical(it) }
+        if (count >= constraints.legendaryMythicalSlots) entryPool = entryPool.filterNot { isLegendaryOrMythical(it) }
     }
     if (constraints.starterSlots > 0) {
         val count = otherMembers.count { m -> findEntry(allPokemon, m)?.let { isStarter(it) } == true }
-        if (count >= constraints.starterSlots) candidatePool = candidatePool.filterNot { isStarter(it) }
+        if (count >= constraints.starterSlots) entryPool = entryPool.filterNot { isStarter(it) }
     }
     if (constraints.megaSlots > 0) {
         val count = otherMembers.count { m -> findEntry(allPokemon, m)?.let { isMega(it) } == true }
-        if (count >= constraints.megaSlots) candidatePool = candidatePool.filterNot { isMega(it) }
+        if (count >= constraints.megaSlots) entryPool = entryPool.filterNot { isMega(it) }
     }
     if (constraints.dynamaxSlots > 0) {
         val count = otherMembers.count { m -> findEntry(allPokemon, m)?.let { isDynamax(it) } == true }
-        if (count >= constraints.dynamaxSlots) candidatePool = candidatePool.filterNot { isDynamax(it) }
+        if (count >= constraints.dynamaxSlots) entryPool = entryPool.filterNot { isDynamax(it) }
     }
+
+    // A custom is a regeneration candidate only while its own reserved budget still has room —
+    // same rule generateTeam applies, since customs sit outside buildEligiblePool's catalogue-only
+    // pool and are never picked opportunistically the way a catalogue Pokémon can be once its
+    // quota is met (see the class doc above).
+    val customPool: List<TeamMember> = if (constraints.customSlots > 0) {
+        val count = otherMembers.count { it.isCustomSaved }
+        if (count >= constraints.customSlots) emptyList() else customs.filter { it.speciesName.lowercase() !in usedSpecies }
+    } else {
+        emptyList()
+    }
+
+    val candidatePool = entryPool.map(::candidateFromEntry) + customPool.map(::candidateFromCustom)
 
     if (candidatePool.isEmpty()) {
         return currentTeam[slotIndex]
     }
 
+    // Built once for every candidate below, not once per candidate — see
+    // docs/post-migration-review.md, finding 3.
+    val context = teamScoringContext(chart, otherMembers)
+
+    // computeScore adds fresh random noise per call, so it must be evaluated exactly once per
+    // candidate here and sorted on the stored value — sortedByDescending { computeScore(...) }
+    // re-invokes the selector on every comparison, which breaks Comparator's contract and makes
+    // Collections.sort's TimSort throw once the pool is large enough to leave insertion-sort
+    // territory (candidatePool is the full eligible catalogue here, not a test-sized fixture).
     val scored = candidatePool
-        .map { entry -> entry to memberFromEntry(entry) }
-        .sortedByDescending { (_, member) -> computeScore(chart, member, otherMembers, random) }
+        .map { candidate -> candidate to computeScore(chart, candidate.member, context, random) }
+        .sortedByDescending { (_, score) -> score }
 
     val topN = minOf(5, scored.size)
-    val picked = scored[random.nextInt(topN)]
+    val picked = scored[random.nextInt(topN)].first
 
-    return picked.second.copy(ability = picked.first.defaultAbility)
+    return picked.member
 }

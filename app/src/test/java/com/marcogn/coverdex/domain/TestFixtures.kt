@@ -176,6 +176,7 @@ fun buildMember(
     moveTypes: List<PokemonType> = emptyList(),
     id: String = "member-$speciesName",
     ability: String? = null,
+    isCustomSaved: Boolean = false,
 ): TeamMember {
     val moves = MutableList<PokemonMove?>(4) { null }
     moveTypes.take(4).forEachIndexed { i, mt ->
@@ -195,7 +196,7 @@ fun buildMember(
         types = types,
         ability = ability,
         moves = moves,
-        isCustomSaved = false,
+        isCustomSaved = isCustomSaved,
     )
 }
 

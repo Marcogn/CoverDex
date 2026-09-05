@@ -48,13 +48,17 @@ data class SuggestionOptions(
 /** Turns a catalogue entry into a candidate [TeamMember] with no moves — candidates are always
  * evaluated by types only. Ports `memberFromEntry`; `spriteUrl` is dropped, since this codebase
  * derives sprite URLs from [TeamMember.pokedexId] rather than storing them (see
- * `domain/sprite/SpriteUrlResolver.kt`), unlike the TypeScript `TeamMember.spriteUrl` field. */
+ * `domain/sprite/SpriteUrlResolver.kt`), unlike the TypeScript `TeamMember.spriteUrl` field.
+ * [TeamMember.ability] is [PokemonEntry.defaultAbility] rather than the TypeScript's always-absent
+ * ability field — a deliberate native addition (not a port), since a candidate scored without the
+ * ability it would actually carry once applied is exactly finding 6 in
+ * `docs/post-migration-review.md`. */
 fun memberFromEntry(e: PokemonEntry): TeamMember = TeamMember(
     id = "cand-${e.id}",
     pokedexId = e.id,
     speciesName = e.displayName,
     types = e.types,
-    ability = null,
+    ability = e.defaultAbility,
     moves = List(4) { null },
     isCustomSaved = false,
 )
@@ -120,8 +124,11 @@ fun computeSuggestions(
     val deduped = dedupCandidates.filter { seen.add(it.speciesName.lowercase()) }
 
     val ranked: List<RankedCandidate> = if (members.size < 6) {
+        // Every candidate is scored against the same team, so this is built once, not once per
+        // candidate — see docs/post-migration-review.md, finding 3.
+        val context = teamScoringContext(chart, members)
         deduped.map { cand ->
-            val result = computeCompositeScore(chart, cand, members, teamAnalysis.unionCovered)
+            val result = computeCompositeScore(chart, cand, context, teamAnalysis.unionCovered)
             val entry = findEntry(pool, cand.speciesName)
             RankedCandidate(
                 candidate = cand,
@@ -133,18 +140,17 @@ fun computeSuggestions(
             )
         }
     } else {
+        // Only 6 distinct "team minus one member" contexts exist, regardless of how many
+        // candidates are scored against them — build each one once, not once per candidate. Before
+        // this, every one of the N candidates recomputed all 6 from scratch (N × 6 calls instead
+        // of 6); see docs/post-migration-review.md, finding 3.
+        val replacementContexts = members.map { m -> m to teamScoringContext(chart, members.filter { it.id != m.id }) }
         deduped.map { cand ->
             var bestScore = Double.NEGATIVE_INFINITY
-            var bestMember = members[0]
-            var bestResult = computeCompositeScore(
-                chart,
-                cand,
-                members.filter { it.id != members[0].id },
-                teamAnalysis.unionCovered,
-            )
-            for (m in members) {
-                val otherMembers = members.filter { it.id != m.id }
-                val result = computeCompositeScore(chart, cand, otherMembers, teamAnalysis.unionCovered)
+            var bestMember = replacementContexts[0].first
+            var bestResult = computeCompositeScore(chart, cand, replacementContexts[0].second, teamAnalysis.unionCovered)
+            for ((m, context) in replacementContexts) {
+                val result = computeCompositeScore(chart, cand, context, teamAnalysis.unionCovered)
                 if (result.compositeScore > bestScore) {
                     bestScore = result.compositeScore
                     bestMember = m

@@ -701,3 +701,139 @@ the way this session briefly did:
   the two purely positive "it's native now" bullets — stated plainly
   rather than softened, per `docs/plan/native-spec.md`'s own instruction
   that "Phase 6's release notes must lead with that warning."
+
+## Post-migration review
+
+Findings from `docs/post-migration-review.md`, a code-level audit run
+after Phase 6 closed. Each finding below records the decision made when
+fixing it; the review document itself has the full analysis, including
+findings not yet acted on.
+
+- **Finding 1 (crash) — fixed as a pure bug fix, no decision needed.**
+  `regenerateSlot`'s ranking recomputed its composite score (including
+  random tie-breaking noise) inside the sort comparator instead of once
+  per candidate, which could throw `IllegalArgumentException` once the
+  eligible pool was large. The production pool is in the high hundreds;
+  every existing test pool was under 20 entries, which is why nothing
+  caught it. Fixed by scoring once per candidate before sorting.
+- **Finding 5 (Surprise Me's "Custom slots" stepper did nothing) —
+  implemented rather than removed.** `teamGenerator.ts` accepted a
+  `customs: TeamMember[]` parameter it never referenced, and Phase 4's
+  port dropped it as genuinely dead — but kept
+  `GeneratorConstraints.customSlots` as a ported struct field, so the
+  Surprise Me screen shipped a stepper that consumed the six-slot budget
+  and placed nothing. Decided to implement rather than delete the
+  stepper: it is the one generator feature that serves this app's stated
+  ROM-hack/draft-building audience (`CLAUDE.md`, "What this project
+  is"), and `SurpriseMeViewModel` already loaded the custom roster into
+  its UI state without using it. `generateTeam` and `regenerateSlot` now
+  take a `customs: List<TeamMember> = emptyList()` parameter (default
+  keeps every pre-existing call site, including every test, unchanged)
+  and treat `customSlots` as a reserved category exactly like starter/
+  legendary-mythical/Mega/Dynamax — with one asymmetry, stated here
+  because nothing forced it either way: a custom is **never** chosen
+  opportunistically in an unconstrained "free" slot the way a catalogue
+  Pokémon can be once its own quota is met, because customs live outside
+  `buildEligiblePool`'s catalogue-only pool. A custom appears only while
+  its own reserved budget still has room. The alternative (customs
+  competing for every free slot too) was rejected as surprising: a user
+  who sets `customSlots = 0` should never see a custom Pokémon appear.
+- **Finding 2 (both engines ran on the main thread) — no injected test
+  dispatcher.** `AnalysisViewModel`'s `combine()` chain now ends in
+  `.flowOn(Dispatchers.Default).stateIn(...)`; `SurpriseMeViewModel.
+  generate()`/`regenerateSlot()` now do `isGenerating.value = true`
+  synchronously, then `viewModelScope.launch(Dispatchers.Default) { ...
+  }` for the whole computation and every `result`/`warning`/
+  `isGenerating` write — deliberately not `withContext(Dispatchers.
+  Default) { compute() }` followed by writes back on the launch's
+  original (Main) context, which would need a second hop back through
+  `Dispatchers.Main` after the background work finishes. Considered
+  adding an injectable `@DefaultDispatcher` qualifier to
+  `CoroutinesModule.kt` (the established pattern for cross-cutting
+  coroutine concerns here, see `@ApplicationScope`) so tests could
+  substitute a deterministic `TestDispatcher`; decided against it for
+  now; `Dispatchers.Default` is hardcoded, matching this codebase's
+  existing convention of calling `Dispatchers.IO` directly in
+  `data/pokeapi`/`data/backup` rather than injecting a dispatcher there
+  either. `SurpriseMeViewModel`'s synchronous `isGenerating.value = true`
+  before the launch is why this is safe to test without one: a test can
+  assert on `vm.uiState.value.isGenerating` immediately after calling
+  `generate()`, with no suspension needed, and the eventual `false` is
+  observed via a real `StateFlow` update from a real background thread —
+  not virtual time — the same category of wait every Room-/DataStore-
+  backed test in this codebase already relies on.
+- **Finding 3 (per-candidate rework in `computeCompositeScore`) —
+  `TeamScoringContext` extracted, no new test.** `computeCompositeScore`
+  took `otherMembers: List<TeamMember>` and rebuilt the offensive
+  coverage union and weakness map from it on every call, even though
+  neither depends on the candidate — only on the team. Extracted that
+  half into `teamScoringContext(chart, otherMembers): TeamScoringContext`,
+  built once per distinct team (once in addition mode, once per
+  replacement candidate — six total, not `candidates × 6`) and passed
+  into `computeCompositeScore` in place of the raw member list.
+  `TeamGenerator.computeScore` additionally reused the context's
+  `baseCoverage` as its own `currentTeamCoverage` argument, deleting a
+  second, independent redundant computation of the exact same set that
+  existed only in that one call site (the generator never excludes a
+  member from the comparison the way the suggestion engine's replacement
+  mode does, so building the context from the exact team scored against
+  makes the two values identical — this does **not** hold for the
+  suggestion engine, where `currentTeamCoverage` is `analyseTeam`'s
+  potentially moves-aware `unionCovered`, deliberately different from
+  the context's always-types-only `baseCoverage`). No new test: this is
+  behaviour-preserving by construction (same inputs, same output shape,
+  work reordered not changed), and every call site funnels through
+  `computeSuggestions`/`generateTeam`/`regenerateSlot`, all three already
+  covered by `SuggestionEngineTest`/`TeamGeneratorTest`'s existing exact-
+  score and exact-ranking assertions.
+- **Finding 4 (Suggestions panel "missing" PWA features) — the original
+  finding was wrong, corrected before implementing it.** As first
+  written, finding 4 claimed the Suggestions panel was missing a
+  type-filter chip row, a "Best coverage"/"Random" mode toggle, and
+  showed 5 cards where the PWA showed 10 — based on a diff against
+  `SuggestionPanel.android.tsx`/`SuggestionFilters.android.tsx` alone.
+  `docs/plan/native-spec.md`'s "Suggestion engine" section states "Return
+  the top 5 by `gain`" for both addition and replacement mode, and
+  mentions neither the type filter nor the mode toggle;
+  `SuggestionFilters.kt`'s own doc comment already said as much
+  ("Deliberately smaller than `legacy-web`'s own `SuggestionFilters.tsx`
+  [...]: neither is in this app's UI spec") — a comment the original
+  review should have read before writing that table and didn't. Five
+  cards is the spec for this rewrite, not a shortfall against the PWA;
+  implementing the retracted items would have reversed a documented
+  Phase 4 decision. What survived the correction: a `solidCoverage`
+  message (independent of the retracted items — shown when every
+  displayed suggestion has zero gain, regardless of how many are shown or
+  how they got filtered) and deleting one genuinely orphaned string
+  resource (`suggestions_exclude_legendaries`). See the corrected finding
+  4 in `docs/post-migration-review.md` for the full record, including the
+  quoted spec text.
+- **Finding 6 (abilities ignored by suggestion/generator scoring) —
+  `weaknesses()` gained an `ability` parameter, a real spec change.**
+  `weaknesses(chart, types)` never took an ability, unlike
+  `sharedWeaknessCounts`/`defensiveProfile` in `CoverageEngine.kt`, which
+  always honoured it — so a team's Analysis screen could show a member
+  as immune to a type (via the coverage grid) while the Suggestions
+  section, on the same screen, still penalized a candidate for
+  "aggravating" that exact weakness. Added `ability: String? = null` to
+  `weaknesses()`, threaded `candidate.ability` and each `otherMembers`
+  member's `.ability` through `computeCompositeScore`/
+  `teamScoringContext`. Also fixed `memberFromEntry` (dropped from Phase
+  4 as `ability = null` for every catalogue-derived candidate) to carry
+  `PokemonEntry.defaultAbility`, so a candidate is scored with the
+  ability it will actually have once applied, not always with none —
+  this let `TeamGenerator.Candidate` drop its own separate `ability`
+  field entirely (both construction paths already produce a `member`
+  whose own `ability` is correct, so the "pick the ability to apply"
+  step this field existed for is a no-op now). This *is* a spec change:
+  composite scores now differ from the ported TypeScript baseline for
+  any candidate or team member with a scoring-relevant ability (the 14
+  entries in `AbilityEffects.kt`'s `ABILITY_EFFECTS`). Every existing
+  fixture in `TestFixtures.kt`/`SuggestionEngineTest.kt`/
+  `TeamGeneratorTest.kt` has `defaultAbility = null` and builds every
+  `TeamMember` with no explicit `ability` either, so this change is
+  invisible to every existing exact-score/exact-ranking assertion — a
+  new `ScoringTest.kt` exercises the new behavior directly (Levitate
+  removing a candidate's own Ground weakness; a teammate's Levitate
+  changing a shared candidate weakness from "aggravated" to merely
+  "new").

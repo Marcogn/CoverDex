@@ -6,6 +6,62 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **Fixed a crash in "Regenerate" (Surprise Me).** `regenerateSlot`'s
+  candidate ranking re-evaluated its composite score (including the random
+  tie-breaking noise) on every comparator invocation instead of once per
+  candidate, which could throw `IllegalArgumentException: Comparison
+  method violates its general contract!` once the eligible pool was large
+  enough — see finding 1 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md). The
+  score is now computed once per candidate and sorted on the stored value.
+- **Surprise Me's "Custom slots" now actually places custom Pokémon.**
+  The stepper always consumed the six-slot budget but the generator never
+  read the constraint, so it silently placed none — see finding 5 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
+  Reserving N custom slots now fills exactly N slots from the saved
+  custom roster, the same "exactly N" semantics every other constraint
+  category already had.
+- **Coverage analysis and team generation no longer run on the main
+  thread.** Both `AnalysisScreen`'s coverage/suggestions pipeline and
+  Surprise Me's generator scored every eligible candidate against the
+  whole team on `Dispatchers.Main.immediate` — real work against a
+  catalogue in the high hundreds, not the handful of entries any unit
+  test's pool has. See finding 2 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
+  Surprise Me now shows a progress indicator and disables its
+  Generate/Regenerate actions while a generation is in flight.
+- **Suggestions in replacement mode (a full team of six) score
+  noticeably faster.** `computeCompositeScore` recomputed the same
+  per-team data from scratch for every candidate — in replacement mode,
+  six times per candidate instead of once overall. See finding 3 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md). Same
+  suggestions, same ranking, same composite scores — this is a pure
+  performance fix.
+- **Suggestions show a "coverage is already solid" note when every
+  displayed card offers zero gain**, instead of five zero-gain cards
+  with no framing. (An earlier draft of this entry also claimed the
+  Suggestions panel was missing a type filter, a random mode, and showed
+  5 cards where it should show 10 — `docs/plan/native-spec.md` says "top
+  5" for this rewrite and specifies neither of the other two features,
+  so those were not implemented; see finding 4's correction in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).)
+  Also removed one orphaned string resource
+  (`suggestions_exclude_legendaries`) left over from Phase 4.
+- **Suggestions and Surprise Me now honour a scoring-relevant ability
+  the same way the Analysis screen's coverage grid already did.** A
+  Levitate-holding teammate's Ground weakness no longer counts as
+  "aggravated" against a candidate that shares it, and a candidate whose
+  own ability removes a weakness is no longer penalized for it — one
+  screen could previously disagree with itself on this. This changes
+  composite scores for any team or candidate with an ability from
+  `AbilityEffects.kt`'s known-effects list; see finding 6 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
+- **Post-migration review of the coverage and suggestion engines.** A
+  code-level audit of the shipped app against the phase plans, diffing every
+  Kotlin port against the TypeScript original recovered from git history.
+  Records six findings and an ordered remediation plan in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
+
 ## [2.0.0] - 2026-09-04
 
 CoverDex is now a native Android app — the full six-phase rewrite

@@ -97,10 +97,15 @@ class SurpriseMeViewModelTest {
 
         vm.regenerateSlot(0)
 
-        // regenerateSlot is synchronous (no coroutine hop), so the very next emission already
-        // reflects it — asserting inequality against `before` would hang if the (unseeded)
-        // generator happens to reselect slot 0's own prior occupant, which is legal.
-        val after = vm.uiState.first { it.result.isNotEmpty() }.result
+        // regenerateSlot now runs on Dispatchers.Default (docs/post-migration-review.md, finding
+        // 2), so the update is no longer synchronous. isGenerating flips to true synchronously,
+        // before regenerateSlot() even returns, and back to false only once the background work
+        // finishes and writes the new result — waiting for it to go false again cannot match the
+        // pre-regeneration state the way waiting on result.isNotEmpty() alone could (that
+        // predicate was already true from the generate() call above). Asserting inequality
+        // against `before` would still be wrong: the (unseeded) generator can legally reselect
+        // slot 0's own prior occupant.
+        val after = vm.uiState.first { !it.isGenerating && it.result.isNotEmpty() }.result
         assertEquals(before.size, after.size)
         for (i in 1 until before.size) {
             assertEquals(before[i].speciesName, after[i].speciesName)

@@ -200,6 +200,10 @@ None yet.
 - [ ] **No suggestions message.** A team with nothing left to suggest (or
   an empty synced catalogue) shows the "no suggestions" message instead
   of an empty section.
+- [ ] **Solid coverage message.** A team whose offensive coverage is
+  already complete shows "Your team coverage is already solid.
+  Alternatives:" above the five suggestion cards (all showing zero
+  gain), rather than five zero-gain cards with no framing.
 - [ ] **Surprise Me — anchors.** From Teams, tap the dice icon. Search and
   lock up to 5 Pokémon; each appears as a removable chip. Locking a 6th
   is blocked with the "all slots locked" warning shown.
@@ -207,6 +211,11 @@ None yet.
   legendary-mythical/Mega/Dynamax counters (each capped so the total plus
   locked anchors never exceeds 6); Generate produces a full team, anchors
   first and unchanged.
+- [ ] **Surprise Me — custom slots actually place custom Pokémon.** With
+  at least one saved custom roster entry, the "Custom" counter appears;
+  setting it to N and generating yields exactly N custom Pokémon in the
+  result (previously it silently placed none while still consuming the
+  six-slot budget — see Known regressions below).
 - [ ] **Surprise Me — regenerate.** Regenerating a single (non-anchor)
   slot changes only that slot; "Regenerate all" produces an entirely new
   team respecting the same anchors and constraints.
@@ -216,10 +225,72 @@ None yet.
 - [ ] **Surprise Me — Keep.** Tapping Keep prompts for a team name, then
   creates a brand-new team with the generated six slots and navigates to
   it — the Teams list shows it immediately.
+- [ ] **Surprise Me — generating shows a progress indicator, not a
+  frozen UI.** Tapping Generate (or Regenerate/Regenerate all) shows a
+  spinner and disables the other generation actions until it finishes —
+  the app never appears to hang, even with a large synced catalogue
+  (previously this ran on the main thread; see Known regressions below).
 
 ### Known regressions
 
-None yet.
+- **Fixed 2026-09-05.** "Regenerate" on a single Surprise Me slot could
+  crash with `IllegalArgumentException: Comparison method violates its
+  general contract!` once the eligible candidate pool was large — found by
+  code review (`docs/post-migration-review.md`, finding 1), not by manual
+  testing; reproduced with a standalone JVM harness before the fix, not on
+  a device. `regenerateSlot`'s candidate ranking now scores each candidate
+  once instead of re-rolling the random tie-breaker on every comparison.
+- **Fixed 2026-09-05.** Surprise Me's "Custom slots" stepper consumed the
+  six-slot budget (`remainingSlots`, `budgetFull`) but never placed a
+  single custom Pokémon — `TeamGenerator.kt` never read
+  `GeneratorConstraints.customSlots` — found by code review
+  (`docs/post-migration-review.md`, finding 5), not by manual testing.
+  `generateTeam` and `regenerateSlot` now treat `customSlots` as a
+  reserved category, filled from the custom roster already loaded into
+  `SurpriseMeViewModel`'s UI state.
+- **Fixed 2026-09-05.** `AnalysisViewModel`'s coverage/suggestions
+  pipeline and both of `SurpriseMeViewModel`'s generator entry points ran
+  on `Dispatchers.Main.immediate` — found by code review
+  (`docs/post-migration-review.md`, finding 2), not by manual testing (no
+  device profiling backs the "real work" claim; it follows from the
+  algorithmic cost against a production-sized catalogue). Both now run on
+  `Dispatchers.Default`; Surprise Me additionally gained a progress
+  indicator and disables its generation actions while one is in flight.
+- **Fixed 2026-09-05.** `computeCompositeScore` redid the same per-team
+  work (offensive coverage union, weakness map) from scratch for every
+  candidate — found by code review
+  (`docs/post-migration-review.md`, finding 3), not measured on a
+  device. In replacement mode (a full team of six) that meant six
+  redundant recomputations per candidate instead of one overall.
+  Behaviour-preserving: same suggestions, same scores, same ranking —
+  covered by the existing `SuggestionEngineTest`/`TeamGeneratorTest`
+  suites, no new test needed.
+- **Corrected 2026-09-05, not a regression.** The post-migration review's
+  original finding 4 claimed the Suggestions panel was missing a
+  type-filter, a best/random mode toggle, and showed 5 cards where the
+  PWA showed 10. `docs/plan/native-spec.md`'s own "Suggestion engine"
+  section says "Return the top 5 by `gain`" for both addition and
+  replacement mode, and none of the other three items appear in it
+  either — the current behaviour is spec-compliant, not a shortfall. See
+  the corrected finding 4 in `docs/post-migration-review.md`. Added only
+  the one narrow, independent item that survived the correction: a
+  "solid coverage" message when every displayed suggestion has zero
+  gain; also removed one genuinely orphaned string resource
+  (`suggestions_exclude_legendaries`, referenced by no composable).
+- **Fixed 2026-09-05.** `weaknesses()` (shared by suggestions and the
+  generator) never took an ability, unlike the coverage grid's own
+  `sharedWeaknessCounts`/`defensiveProfile` — found by code review
+  (`docs/post-migration-review.md`, finding 6), not by manual testing.
+  A team member's ability could remove a weakness on the coverage grid
+  while the Suggestions section, on the same screen, still counted that
+  weakness as "aggravated" by a candidate. `weaknesses()` now takes an
+  `ability` parameter, threaded through from both the candidate and every
+  team member scored against; `memberFromEntry` also now gives a
+  catalogue candidate its real default ability instead of always `null`.
+  This changes composite scores for any team/candidate with a
+  scoring-relevant ability — verify by hand: give a team member Levitate,
+  then check that a Ground-weak suggestion candidate is no longer marked
+  as aggravating that weakness.
 
 ## Phase 5 — Showdown import/export, settings and local backup
 
