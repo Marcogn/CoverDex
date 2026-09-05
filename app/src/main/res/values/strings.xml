@@ -87,7 +87,7 @@
     <string name="suggestions_filter_generation_all">Tutte le generazioni</string>
     <string name="suggestions_filter_generation">Generazione %1$d</string>
     <string name="suggestions_include_customs">Includi Pokémon custom</string>
-    <string name="suggestions_exclude_legendaries">Escludi leggendari/mitici</string>
+    <string name="suggestions_solid_coverage">La copertura del team è già solida. Alternative:</string>
     <string name="suggestions_add_to_team">Aggiungi al team</string>
     <string name="suggestions_replaces">Sostituisci: %1$s</string>
     <string name="suggestions_covers">Copre:</string>

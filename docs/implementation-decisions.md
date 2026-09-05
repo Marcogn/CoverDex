@@ -786,6 +786,28 @@ findings not yet acted on.
   `computeSuggestions`/`generateTeam`/`regenerateSlot`, all three already
   covered by `SuggestionEngineTest`/`TeamGeneratorTest`'s existing exact-
   score and exact-ranking assertions.
+- **Finding 4 (Suggestions panel "missing" PWA features) — the original
+  finding was wrong, corrected before implementing it.** As first
+  written, finding 4 claimed the Suggestions panel was missing a
+  type-filter chip row, a "Best coverage"/"Random" mode toggle, and
+  showed 5 cards where the PWA showed 10 — based on a diff against
+  `SuggestionPanel.android.tsx`/`SuggestionFilters.android.tsx` alone.
+  `docs/plan/native-spec.md`'s "Suggestion engine" section states "Return
+  the top 5 by `gain`" for both addition and replacement mode, and
+  mentions neither the type filter nor the mode toggle;
+  `SuggestionFilters.kt`'s own doc comment already said as much
+  ("Deliberately smaller than `legacy-web`'s own `SuggestionFilters.tsx`
+  [...]: neither is in this app's UI spec") — a comment the original
+  review should have read before writing that table and didn't. Five
+  cards is the spec for this rewrite, not a shortfall against the PWA;
+  implementing the retracted items would have reversed a documented
+  Phase 4 decision. What survived the correction: a `solidCoverage`
+  message (independent of the retracted items — shown when every
+  displayed suggestion has zero gain, regardless of how many are shown or
+  how they got filtered) and deleting one genuinely orphaned string
+  resource (`suggestions_exclude_legendaries`). See the corrected finding
+  4 in `docs/post-migration-review.md` for the full record, including the
+  quoted spec text.
 - **Finding 6 (abilities ignored by suggestion/generator scoring) — not
   yet acted on.** Left for its own follow-up commit since it changes the
   composite score's output, not just its performance or a missing

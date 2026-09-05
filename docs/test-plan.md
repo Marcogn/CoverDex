@@ -200,6 +200,10 @@ None yet.
 - [ ] **No suggestions message.** A team with nothing left to suggest (or
   an empty synced catalogue) shows the "no suggestions" message instead
   of an empty section.
+- [ ] **Solid coverage message.** A team whose offensive coverage is
+  already complete shows "Your team coverage is already solid.
+  Alternatives:" above the five suggestion cards (all showing zero
+  gain), rather than five zero-gain cards with no framing.
 - [ ] **Surprise Me — anchors.** From Teams, tap the dice icon. Search and
   lock up to 5 Pokémon; each appears as a removable chip. Locking a 6th
   is blocked with the "all slots locked" warning shown.
@@ -261,6 +265,18 @@ None yet.
   Behaviour-preserving: same suggestions, same scores, same ranking —
   covered by the existing `SuggestionEngineTest`/`TeamGeneratorTest`
   suites, no new test needed.
+- **Corrected 2026-09-05, not a regression.** The post-migration review's
+  original finding 4 claimed the Suggestions panel was missing a
+  type-filter, a best/random mode toggle, and showed 5 cards where the
+  PWA showed 10. `docs/plan/native-spec.md`'s own "Suggestion engine"
+  section says "Return the top 5 by `gain`" for both addition and
+  replacement mode, and none of the other three items appear in it
+  either — the current behaviour is spec-compliant, not a shortfall. See
+  the corrected finding 4 in `docs/post-migration-review.md`. Added only
+  the one narrow, independent item that survived the correction: a
+  "solid coverage" message when every displayed suggestion has zero
+  gain; also removed one genuinely orphaned string resource
+  (`suggestions_exclude_legendaries`, referenced by no composable).
 
 ## Phase 5 — Showdown import/export, settings and local backup
 

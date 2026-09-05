@@ -151,8 +151,16 @@ fun AnalysisScreen(modifier: Modifier = Modifier, viewModel: AnalysisViewModel =
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
+                val displayed = state.suggestions.take(5)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.suggestions.take(5).forEach { suggestion ->
+                    if (displayed.all { it.gain == 0 }) {
+                        Text(
+                            stringResource(R.string.suggestions_solid_coverage),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    displayed.forEach { suggestion ->
                         SuggestionCard(suggestion = suggestion, onApply = viewModel::applySuggestion)
                     }
                 }

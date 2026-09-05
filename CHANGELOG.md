@@ -37,6 +37,16 @@ versions follow [Semantic Versioning](https://semver.org/).
   [`docs/post-migration-review.md`](docs/post-migration-review.md). Same
   suggestions, same ranking, same composite scores — this is a pure
   performance fix.
+- **Suggestions show a "coverage is already solid" note when every
+  displayed card offers zero gain**, instead of five zero-gain cards
+  with no framing. (An earlier draft of this entry also claimed the
+  Suggestions panel was missing a type filter, a random mode, and showed
+  5 cards where it should show 10 — `docs/plan/native-spec.md` says "top
+  5" for this rewrite and specifies neither of the other two features,
+  so those were not implemented; see finding 4's correction in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).)
+  Also removed one orphaned string resource
+  (`suggestions_exclude_legendaries`) left over from Phase 4.
 - **Post-migration review of the coverage and suggestion engines.** A
   code-level audit of the shipped app against the phase plans, diffing every
   Kotlin port against the TypeScript original recovered from git history.

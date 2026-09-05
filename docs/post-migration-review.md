@@ -158,36 +158,51 @@ Roughly a 5× reduction, and it composes with finding 2 rather than
 replacing it. Behaviour-preserving: the existing
 `SuggestionEngineTest`/`TeamGeneratorTest` suites are the regression net.
 
-### 4. The Suggestions panel is missing features the PWA shipped
+### 4. The Suggestions panel — corrected after further review
 
-Diffing `SuggestionPanel.android.tsx` / `SuggestionFilters.android.tsx`
-against `ui/team/analysis/SuggestionFilters.kt` and `AnalysisScreen.kt:155`:
+**This finding was substantially wrong as first written, and the record
+needs to say so plainly rather than quietly fixing it.** The original
+version of this section, based on a diff against
+`SuggestionPanel.android.tsx`/`SuggestionFilters.android.tsx`, claimed the
+native Suggestions panel was "missing" the PWA's type-filter chips,
+"Best coverage"/"Random" mode toggle, and a 10-card cut (native shows 5).
+Before implementing any of that, `docs/plan/native-spec.md`'s own
+"Suggestion engine" section turned up and settles it:
 
-| PWA behaviour | Native |
-|---|---|
-| Type filter chips (`filterByType`) — narrow suggestions to chosen types | **missing** |
-| "Best coverage" / "Random" mode toggle + "Randomize again" (`pickRandom(filtered, 10)`) | **missing** |
-| `suggestions.noMatch` — "No suggestions match current filters." | **missing** |
-| `suggestions.solidCoverage` — shown when every displayed card has `gain == 0` | **missing** |
-| Shows `filtered.slice(0, 10)` | shows `take(5)` |
+> **Team size < 6 — addition mode.** [...] Return the top 5 by `gain`.
+> **Team size = 6 — replacement mode.** [...] Return the top 5 by `gain`,
+> keyed by species name so a species cannot appear twice.
 
-The corresponding keys are absent from both `res/values/strings.xml` and
-`res/values-en/strings.xml` (`bestCoverage`, `random`, `randomizeAgain`,
-`noMatch`, `solidCoverage`, `newTypesCovered`). The mixed-moves note *was*
-ported (`analysis_basis_mixed`).
+Five cards is the spec, not a shortfall against it — the PWA's `slice(0,
+10)` is exactly the kind of legacy-web behavior this rewrite was never
+bound to reproduce. Neither the type filter nor the best/random toggle
+appears anywhere in `native-spec.md` either, and
+`ui/team/analysis/SuggestionFilters.kt` already carries a doc comment
+saying as much: "Deliberately smaller than `legacy-web`'s own
+`SuggestionFilters.tsx` [...]: neither is in this app's UI spec." That
+comment was sitting in the file this review diffed against and should
+have been read before writing the original table above — it wasn't. So:
+**no type filter, no random mode, no 10-card cut** — implementing any of
+them would be reversing a documented Phase 4 decision, not restoring a
+migration defect.
 
-`computeSuggestions` already returns every ranked candidate uncapped, so
-the type filter and the random mode are pure UI work over data that is
-already there.
+What survives the correction, both narrow and independent of the retracted
+items:
 
-Also orphaned: `suggestions_exclude_legendaries` is defined in both locale
-files and referenced by no composable — the toggle actually lives in
-Settings under the inverted `settings_include_legendaries` framing.
+- **`suggestions.solidCoverage`** ("Your team coverage is solid. Showing
+  alternatives:") — shown by the PWA when every displayed card has
+  `gain == 0`. This doesn't depend on the type filter or the cut count;
+  it's a small, orthogonal contextual message a team with complete
+  offensive coverage would otherwise lack, seeing only a stack of
+  zero-gain cards with no framing. Legitimate, optional, low-risk to add.
+- **`suggestions_exclude_legendaries`** is a genuinely orphaned string
+  resource — defined in both locale files, referenced by no composable
+  (the real toggle lives in Settings under the inverted
+  `settings_include_legendaries` framing). Unrelated to the rest of this
+  finding; worth deleting on its own merits.
 
-**Fix.** Restore the two filters and the two contextual messages, raise the
-cut to 10, and either wire up or delete the orphan string. Whether the
-"random" mode is still wanted is a product call; if not, say so in
-`implementation-decisions.md` rather than leaving it undocumented.
+**Fix.** Add the solid-coverage message; delete the orphan string. Nothing
+else from the original table.
 
 ### 5. The "Custom slots" stepper does nothing
 
@@ -258,8 +273,9 @@ than load-bearing.
 
 **Then — parity and accuracy**
 
-5. Finding 4: restore the type filter, the two contextual messages and the
-   10-card cut; decide on the random mode; clear the orphan string.
+5. Finding 4 (corrected): add the solid-coverage message; clear the orphan
+   string. The type filter, random mode and 10-card cut are **not** part
+   of this — see the correction in finding 4 itself.
 6. Finding 6: thread abilities through the scoring path, as a documented
    spec change.
 
