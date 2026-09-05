@@ -6,31 +6,34 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-CoverDex is being rewritten as a native Android app; see
-[`docs/plan/README.md`](docs/plan/README.md). This section accumulates
-phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
+## [2.0.0] - 2026-09-04
 
-- **The web app and GitHub Pages are discontinued.** The React/Capacitor
-  codebase is parked in `legacy-web/` as a behavioural reference for the
-  rewrite (its test suite stays green throughout) and is deleted once the
-  native app has everything it needs from it.
-- **The Android app is now fully native** — Kotlin, Jetpack Compose,
-  Material 3, Room, Hilt — instead of a Capacitor WebView shell. Same
+CoverDex is now a native Android app — the full six-phase rewrite
+described in [`docs/plan/README.md`](docs/plan/README.md) is complete.
+
+- **CoverDex is now a native Android app.** Kotlin, Jetpack Compose,
+  Material 3, Room, Hilt — no more WebView, no more Capacitor. Same
   `applicationId` (`com.marcogn.coverdex`) so it installs over the old
   build.
-- **Saved teams do not carry over from the old app.** A deliberate, clean
-  break — see `docs/implementation-decisions.md`. Export your teams to
-  Showdown format from the old app before updating, if you still have it
-  installed.
-- Theme (System/Light/Dark) and language (System/Italiano/English)
-  settings, both persisted.
-- **The Pokémon catalogue now syncs in about 8 requests and ~208 KB**,
-  down from roughly 3,875 requests and ~426 MB in the old app — measured,
-  not estimated, see `docs/plan/reference-pokedata.md`. First launch no
-  longer blocks the app behind a loading screen: a small banner shows
-  progress on the Teams screen while everything else stays usable.
-- Settings → Data: dataset status, re-sync, and a "Clear cached data"
-  action that never touches saved teams.
+- **First launch is effectively instant.** The Pokémon catalogue now
+  syncs in about 8 requests and ~208 KB, down from roughly 3,875
+  requests and ~426 MB in the old app — measured, not estimated, see
+  `docs/plan/reference-pokedata.md`. The app is usable immediately behind
+  a small non-blocking progress banner, not a loading screen.
+- **The web app and GitHub Pages are discontinued.** The React/Capacitor
+  codebase was parked in `legacy-web/` as a behavioural reference for the
+  rewrite and has now been deleted — every engine, string and behaviour
+  it defined has a native equivalent.
+- **Saved teams do not carry over from the old app.** A deliberate,
+  one-time clean break (see `docs/implementation-decisions.md`, "Phase
+  0"). **Export your teams to Showdown format from the old app before
+  updating**, if you still have it installed, then re-import them here
+  afterward.
+- **The suggestion engine's generation filter uses each candidate's real
+  generation**, not the hardcoded Pokédex-id ranges the original web app
+  used (`docs/plan/reference-pokedata.md` §4) — an alternate-form Pokémon
+  with a high catalogue id (a Mega evolution, say) now filters by the
+  generation its species actually belongs to, not always "Generation 9".
 - **Teams are real now.** Create, rename, delete a team; each has six
   slots. Every slot has a species picker backed by the synced catalogue,
   type overrides (a ROM-hack-friendly feature the old app also had),
@@ -53,11 +56,6 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
   right on the screen, plus two app-wide preferences in Settings (include
   Mega/Dynamax forms, include legendaries/mythicals). Tapping a card adds
   or replaces it in the team immediately.
-- **The suggestions' generation filter uses each candidate's real
-  generation**, not the hardcoded Pokédex-id ranges the original web app
-  used (`docs/plan/reference-pokedata.md` §4) — an alternate-form Pokémon
-  with a high catalogue id (a Mega evolution, say) now filters by the
-  generation its species actually belongs to, not always "Generation 9".
 - **Surprise Me builds a team for you.** A new screen, reached from Teams
   via the dice icon: lock 0-5 Pokémon you want kept, set how many
   starters/legendaries-mythicals/Mega/Dynamax slots to reserve, Generate,
@@ -69,10 +67,9 @@ phase by phase and is cut to a real `## [2.0.0]` entry in Phase 6.
   recognized Pokémon is shown before you commit, with unresolved moves
   flagged per slot (they still import, as a placeholder to fill in) and
   unresolved species skipped and listed.
-- **Every setting from the old app is here**, plus what Phase 1 already
-  added: include Mega/Dynamax/Gigantamax forms and include legendaries/
-  mythicals in Suggestions, alongside theme, language, "Enable move
-  slots" and the dataset status/sync/clear controls.
+- **Every setting from the old app is here**, alongside theme, language
+  and the dataset status/sync/clear controls: include Mega/Dynamax/
+  Gigantamax forms and include legendaries/mythicals in Suggestions.
 - **Local backup.** Settings → Local backup exports every team and the
   custom roster to a single file (never the Pokédex cache — that's
   re-downloaded) and restores from one, asking for confirmation first

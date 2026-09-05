@@ -2,8 +2,10 @@
 
 A snapshot of what's implemented, what's known to be missing, and any loose
 ends — written for whoever (human or agent) picks this project up next.
-Last verified 2026-09-04, at the end of Phase 5 of the native Android
-migration. Re-verify anything here before relying on it — this file goes
+Last verified 2026-09-05, at the end of Phase 6 of the native Android
+migration — the rewrite described in
+[`docs/plan/README.md`](plan/README.md) is complete. Re-verify anything here
+before relying on it — this file goes
 stale the moment someone ships a change without updating it. It complements,
 not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for rules and
 invariants, [`docs/plan/README.md`](plan/README.md) for the phase-by-phase
@@ -28,9 +30,14 @@ Teams round-trip through Pokémon Showdown's team format (export from a
 team's overflow menu, import from Settings into a brand-new team), every
 setting from the old web app is now present, and Settings has a local
 backup that exports/restores every team and the custom roster to a single
-file. That is the full feature set through Phase 5 of
-[`docs/plan/README.md`](plan/README.md); only Phase 6 (signing, the release
-pipeline, the docs rewrite) is left.
+file. That is the full feature set of `docs/plan/native-spec.md`; the
+six-phase rewrite in [`docs/plan/README.md`](plan/README.md) is complete.
+Only the human repository owner's remaining, non-code steps are left:
+generating the real release keystore, setting the GitHub secrets it needs,
+and running the `Release` workflow for the first real `2.0.0` build — an
+agent session has no safe way to hold a signing key or write repository
+secrets on someone else's behalf (see
+[`docs/release-signing.md`](release-signing.md)).
 
 ## What's implemented
 
@@ -139,15 +146,34 @@ pipeline, the docs rewrite) is left.
 - **`./gradlew testDebugUnitTest lintDebug assembleDebug`** all green in one
   invocation — 226 unit tests, 0 failures (verified locally with a
   temporary, non-persistent SDK this session, same as every prior phase).
+- **The release pipeline** — `signingConfigs["release"]` (Phase 0) reads
+  `RELEASE_KEYSTORE_PATH`/`RELEASE_KEYSTORE_PASSWORD`/`RELEASE_KEY_ALIAS`/
+  `RELEASE_KEY_PASSWORD` env vars and falls back to an unsigned build when
+  they're absent; `.github/workflows/build-apk.yml` (manual signed-build
+  smoke test) and `.github/workflows/release.yml` (validates a `x.y.z`
+  input, cuts `CHANGELOG.md`'s `[Unreleased]` section, bumps
+  `versionCode`/`versionName`, builds, signs, publishes the GitHub Release
+  with the changelog's bold lead-ins, pushes the version bump) are both
+  written and YAML-validated. `docs/release-signing.md` documents the five
+  required secrets and what generating the real keystore is left to the
+  repository owner, not this agent.
+- **`legacy-web/` deleted** — every engine, string and behaviour it defined
+  (coverage maths, ability effects, suggestion scoring and its 0.5/1.0
+  weights, `STARTER_FINALS`, the Showdown format, both language files) was
+  checked against its native Kotlin equivalent before removal; see
+  `docs/implementation-decisions.md`, "Phase 6".
+- **`README.md`, `ROADMAP.md`, `.github/CONTRIBUTING.md`** rewritten to
+  describe the finished native app — no remaining web/PWA/Capacitor/npm
+  references anywhere in the repository outside `docs/plan/` (kept
+  deliberately, as the historical record of how the app was built).
 
 ## What's known to be missing
 
-Everything the app is supposed to do beyond teams, the roster, coverage
-analysis, suggestions, import/export and settings. Per
-[`docs/plan/README.md`](plan/README.md):
-
-- **Phase 6** — signing, the release pipeline, the docs rewrite,
-  `legacy-web/` deleted.
+Nothing from `docs/plan/native-spec.md` — all six phases of
+[`docs/plan/README.md`](plan/README.md) are done. What remains is the
+repository owner's own, non-code responsibility (see above): generating the
+production signing keystore, setting the five GitHub Actions secrets, and
+running the first real `Release` workflow dispatch.
 
 Also deliberately deferred (not a bug, see `docs/implementation-decisions.md`):
 
@@ -174,7 +200,7 @@ say so plainly before they update.
 
 ```bash
 export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
-./gradlew testDebugUnitTest   # 226 tests as of Phase 5
+./gradlew testDebugUnitTest   # 226 tests as of Phase 6
 ./gradlew lintDebug
 ./gradlew assembleDebug
 ```
@@ -188,11 +214,6 @@ overrides propagating into the analysis, the Suggestions section's
 addition/replacement modes and filters, every Surprise Me interaction
 (anchors, constraints, generate, regenerate, Keep), and (new this phase)
 Showdown export/import (clipboard, SAF file pickers, unknown-move/skipped-
-species handling) and a real local-backup export/restore cycle, including
-across a reinstall.
-
-`legacy-web/` has its own, separate health check:
-
-```bash
-cd legacy-web && npm ci && npm test   # 175 tests
-```
+species handling), a real local-backup export/restore cycle including
+across a reinstall, and (new this phase) a real signed release build via
+`.github/workflows/build-apk.yml` or `release.yml`.

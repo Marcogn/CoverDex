@@ -50,13 +50,15 @@ the app is native-only from here on.
   ViewModels, the `HttpURLConnection` client style, the sprite fallback
   composable, the SAF backup pattern, and all three CI workflows.
   **Copy its patterns rather than inventing new ones.**
-- **`legacy-web/`** — this repository's own parked React code (see
-  `legacy-web/README.md`). It is the **behavioural** reference: the
-  coverage maths, the suggestion ranking, the composite score weights, the
-  Showdown format contract, every UI string in both languages. Its Vitest
-  suite (23 files, 175 tests) is the oracle for expected values when
-  porting an engine to Kotlin. Never edited; deleted once Phase 6 confirms
-  everything in it has a native equivalent.
+- **`legacy-web/`** — this repository's own parked React/Capacitor code,
+  the **behavioural** reference for the whole rewrite (the coverage
+  maths, the suggestion ranking, the composite score weights, the
+  Showdown format contract, every UI string in both languages) up through
+  Phase 5. Phase 6 checked every one of those against its native Kotlin
+  equivalent (see `docs/implementation-decisions.md`, "Phase 6") and
+  deleted the directory — it no longer exists in this repository.
+  `docs/plan/` was kept as the historical record of how the rewrite was
+  reasoned about and built.
 
 ## Progress status by phase
 
@@ -66,7 +68,7 @@ the app is native-only from here on.
 - **Phase 3 — Analysis**: ✅ done
 - **Phase 4 — Suggestions and generator**: ✅ done
 - **Phase 5 — Import/export and settings**: ✅ done
-- **Phase 6 — Release**: not started
+- **Phase 6 — Release**: ✅ done
 
 Tick these off as phases land — here and in
 [`docs/plan/README.md`](docs/plan/README.md). Do not implement anything not
@@ -105,27 +107,32 @@ explicitly asks for it.
 
 ## Architecture
 
-The target shape, built out phase by phase — see
-[`docs/plan/README.md`](docs/plan/README.md) for which phase adds what.
-As of Phase 4: `ui/theme`, `ui/navigation`, `ui/teams` (real CRUD, plus the
-dice icon reaching Surprise Me), `ui/team` (team detail, the slot editor,
-`MoveSlotEditor`, `SlotSummaryCard`), `ui/team/analysis` (`AnalysisScreen`'s
-seven sections, `AnalysisViewModel`, `CoverageGridTable`, `PerPokemonCard`,
-`SuggestionCard`, `SuggestionFilters`), `ui/surprise` (`SurpriseMeScreen`,
+The full six-phase shape, as it stands at the end of Phase 6: `ui/theme`,
+`ui/navigation`, `ui/teams` (real CRUD, plus the dice icon reaching Surprise
+Me), `ui/team` (team detail, the slot editor, `MoveSlotEditor`,
+`SlotSummaryCard`), `ui/team/analysis` (`AnalysisScreen`'s seven sections,
+`AnalysisViewModel`, `CoverageGridTable`, `PerPokemonCard`, `SuggestionCard`,
+`SuggestionFilters`), `ui/surprise` (`SurpriseMeScreen`,
 `SurpriseMeViewModel`, the team generator's own screen), `ui/roster` (real
-CRUD, its own editor), `ui/settings` (theme, language and dataset status),
+CRUD, its own editor), `ui/importexport` (`ImportShowdownScreen`,
+`ImportShowdownViewModel`, `ExportShowdownDialog`), `ui/settings` (theme,
+language, dataset status, the Showdown import entry point, and local backup),
 `ui/common` (`PokemonSprite`, `TypeBadge`, `SearchableDropdown`,
 `EditableComboBox`, `TypeDropdown`, `DamageClassDropdown`, the
 `PokemonType`/`DamageClass` `displayName()` extensions), `domain/coverage`
 (the ported coverage engine), `domain/ability` (the ported `AbilityEffects`),
 `domain/suggestion` (the ported suggestion engine + the shared `Scoring.kt`),
 `domain/generator` (the ported team generator, injectable `Random`),
-`data/settings/ThemePreferences.kt` (theme + the persisted "Enable move
-slots" toggle), `data/debug/DebugSeeder.kt` (seeds two teams and two roster
-entries, wired from `CoverDexApplication`), and the full `data/pokeapi`,
-`data/local`, `data/repository`, `domain/pokeapi`, `domain/sprite`,
-`domain/model`, `domain/repository` and `di` packages the tree below
-describes.
+`domain/showdown` (`ShowdownFormat.kt`: export/import, contract-complete),
+`domain/backup` (`BackupPayload.kt`: versioned DTOs + mapping),
+`data/backup` (`BackupArchive.kt` zip read/write, `LocalBackupManager.kt`
+SAF plumbing), `data/settings/SettingsPreferences.kt` (theme, language, the
+persisted "Enable move slots" toggle, and every other app-wide setting —
+include Mega/Dynamax, include legendaries, include customs in analysis),
+`data/debug/DebugSeeder.kt` (seeds two teams and two roster entries, wired
+from `CoverDexApplication`), and the full `data/pokeapi`, `data/local`,
+`data/repository`, `domain/pokeapi`, `domain/sprite`, `domain/model`,
+`domain/repository` and `di` packages the tree below describes.
 
 ```
 com.marcogn.coverdex
@@ -134,7 +141,7 @@ com.marcogn.coverdex
 │   ├── repository/   repository implementations (transactional) + Mappers
 │   ├── pokeapi/      PokeDataClient (HttpURLConnection), DatasetSyncManager
 │   ├── backup/       BackupArchive (zip), SAF import/export
-│   ├── settings/     ThemePreferences (DataStore) + every other app-wide setting, one file
+│   ├── settings/     SettingsPreferences (DataStore) + every other app-wide setting, one file
 │   └── debug/        DebugSeeder, behind BuildConfig.SEED_DEBUG_DATA
 ├── domain/
 │   ├── model/         pure models, enums — no Android imports
@@ -172,10 +179,12 @@ comparable to their `legacy-web` originals.
   resources are bilingual: `res/values/strings.xml` is Italian (the default
   locale), `res/values-en/strings.xml` English. Add a key to both in the
   same commit — a key present in only one silently falls back to Italian.
-  The source of the wording is `legacy-web/src/i18n/locales/{it,en}.json` —
-  port the text, do not reinvent it, except where a screen is genuinely
-  native-only (see `docs/implementation-decisions.md` for the language
-  picker's "System default" option, which has no PWA equivalent).
+  Every string carried over from the old web app was ported from its
+  `i18n/locales/{it,en}.json` wording before `legacy-web/` was deleted in
+  Phase 6; a genuinely new, native-only string (see
+  `docs/implementation-decisions.md` for the language picker's "System
+  default" option, which has no PWA equivalent) has no such source to
+  match and can be written fresh.
 - **No hardcoded user-visible strings**: `stringResource()` in Compose,
   `context.getString()` in ViewModels (inject `@ApplicationContext`).
 - Ids: `String` UUIDs for user data, generated in the repository. The
@@ -275,9 +284,8 @@ tests for Room DAOs, repositories and the backup archive. Anything needing
 the real network, locale switching, the SAF pickers or real image
 rendering is verified by hand — see `docs/test-plan.md`.
 
-`legacy-web/` has its own, separate suite (`cd legacy-web && npm test`) —
-it stays green throughout the migration as the oracle for the Kotlin
-ports, but it is not part of `android-ci.yml` and never will be.
+`legacy-web/` was the oracle for the Kotlin ports throughout the migration
+and has been deleted as of Phase 6 — see "Sibling projects" above.
 
 ## Changelog and release process
 

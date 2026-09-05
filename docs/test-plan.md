@@ -274,3 +274,36 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 6 — Release
+
+- [ ] **`./gradlew signingReport` shows the release config** once the
+  four `RELEASE_KEYSTORE_*`/`RELEASE_KEY_*` env vars are set locally
+  (or check the `build-apk.yml` workflow run's own `signingReport` step)
+  — the release variant's SHA-256 matches the keystore that was generated,
+  not the debug key.
+- [ ] **`build-apk.yml` (manual dispatch) produces an installable, signed
+  APK** — download the `app-release` artifact, install it over the
+  previous debug build on a real device, confirm it launches with data
+  intact (`applicationId` unchanged means this is a real upgrade test,
+  not a fresh install).
+- [ ] **`release.yml` (manual dispatch, a real `x.y.z`) end to end**:
+  the workflow rejects a version not strictly greater than the current
+  `versionName`; on success, `CHANGELOG.md`'s `[Unreleased]` section is
+  gone (folded into a new dated section), `app/build.gradle.kts`'s
+  `versionCode`/`versionName` are bumped and pushed back to `main`, a
+  GitHub Release exists with the changelog's bold lead-ins as its body,
+  and the attached APK installs and runs.
+- [ ] **A fresh install of the released APK, with no prior CoverDex data
+  on the device**, completes the first-launch sync and is fully usable —
+  this is the actual out-of-box experience for anyone who is not
+  upgrading from the Capacitor build.
+- [ ] **An upgrade install from the last Capacitor-era release** (if that
+  APK is still available) shows the documented, deliberate data loss —
+  saved teams and the custom roster are gone, not silently migrated —
+  matching what `README.md`'s upgrade warning and the `2.0.0` changelog
+  entry both say plainly.
+
+### Known regressions
+
+None yet.
