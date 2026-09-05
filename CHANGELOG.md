@@ -14,6 +14,13 @@ versions follow [Semantic Versioning](https://semver.org/).
   enough — see finding 1 in
   [`docs/post-migration-review.md`](docs/post-migration-review.md). The
   score is now computed once per candidate and sorted on the stored value.
+- **Surprise Me's "Custom slots" now actually places custom Pokémon.**
+  The stepper always consumed the six-slot budget but the generator never
+  read the constraint, so it silently placed none — see finding 5 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
+  Reserving N custom slots now fills exactly N slots from the saved
+  custom roster, the same "exactly N" semantics every other constraint
+  category already had.
 - **Post-migration review of the coverage and suggestion engines.** A
   code-level audit of the shipped app against the phase plans, diffing every
   Kotlin port against the TypeScript original recovered from git history.

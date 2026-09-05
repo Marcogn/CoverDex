@@ -207,6 +207,11 @@ None yet.
   legendary-mythical/Mega/Dynamax counters (each capped so the total plus
   locked anchors never exceeds 6); Generate produces a full team, anchors
   first and unchanged.
+- [ ] **Surprise Me — custom slots actually place custom Pokémon.** With
+  at least one saved custom roster entry, the "Custom" counter appears;
+  setting it to N and generating yields exactly N custom Pokémon in the
+  result (previously it silently placed none while still consuming the
+  six-slot budget — see Known regressions below).
 - [ ] **Surprise Me — regenerate.** Regenerating a single (non-anchor)
   slot changes only that slot; "Regenerate all" produces an entirely new
   team respecting the same anchors and constraints.
@@ -226,6 +231,14 @@ None yet.
   testing; reproduced with a standalone JVM harness before the fix, not on
   a device. `regenerateSlot`'s candidate ranking now scores each candidate
   once instead of re-rolling the random tie-breaker on every comparison.
+- **Fixed 2026-09-05.** Surprise Me's "Custom slots" stepper consumed the
+  six-slot budget (`remainingSlots`, `budgetFull`) but never placed a
+  single custom Pokémon — `TeamGenerator.kt` never read
+  `GeneratorConstraints.customSlots` — found by code review
+  (`docs/post-migration-review.md`, finding 5), not by manual testing.
+  `generateTeam` and `regenerateSlot` now treat `customSlots` as a
+  reserved category, filled from the custom roster already loaded into
+  `SurpriseMeViewModel`'s UI state.
 
 ## Phase 5 — Showdown import/export, settings and local backup
 

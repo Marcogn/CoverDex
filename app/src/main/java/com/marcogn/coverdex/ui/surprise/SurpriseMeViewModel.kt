@@ -99,7 +99,7 @@ class SurpriseMeViewModel @Inject constructor(
 
     fun generate() {
         val chart = uiState.value.chart ?: return
-        val res = generateTeam(chart, uiState.value.pool, lockedMembers.value, constraints.value)
+        val res = generateTeam(chart, uiState.value.pool, lockedMembers.value, constraints.value, customs = uiState.value.customs)
         result.value = res.team
         warning.value = res.warning
     }
@@ -110,7 +110,7 @@ class SurpriseMeViewModel @Inject constructor(
         val chart = uiState.value.chart ?: return
         val current = result.value
         if (index !in current.indices) return
-        val newMember = regenerateSlot(chart, uiState.value.pool, current, index, constraints.value)
+        val newMember = regenerateSlot(chart, uiState.value.pool, current, index, constraints.value, customs = uiState.value.customs)
         result.value = current.toMutableList().also { it[index] = newMember }
     }
 

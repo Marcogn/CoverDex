@@ -88,6 +88,31 @@ class TeamGeneratorTest {
         }
     }
 
+    // ---- custom slots ----
+
+    private val customRoster = listOf(
+        buildMember("CustomA", PokemonType.GHOST to null, isCustomSaved = true),
+        buildMember("CustomB", PokemonType.DRAGON to null, isCustomSaved = true),
+        buildMember("CustomC", PokemonType.FAIRY to null, isCustomSaved = true),
+    )
+
+    @Test
+    fun `generateTeam fills exactly customSlots slots from the roster, before any catalogue candidate`() {
+        val constraints = DEFAULT_CONSTRAINTS.copy(customSlots = 2)
+        val result = generateTeam(chart, pool, emptyList(), constraints, Random(1), customs = customRoster)
+        assertEquals(6, result.team.size)
+        assertEquals(2, result.team.count { it.isCustomSaved })
+        // legendaryMythicalSlots/starterSlots are both 0 by default, so the reserved custom
+        // category is the first branch generateTeam's per-slot loop actually takes.
+        assertTrue(result.team.take(2).all { it.isCustomSaved })
+    }
+
+    @Test
+    fun `generateTeam never places a custom Pokemon when customSlots is 0`() {
+        val result = generateTeam(chart, pool, emptyList(), DEFAULT_CONSTRAINTS, Random(1), customs = customRoster)
+        assertFalse(result.team.any { it.isCustomSaved })
+    }
+
     // ---- buildEligiblePool ----
 
     @Test
@@ -127,6 +152,44 @@ class TeamGeneratorTest {
             val newMember = regenerateSlot(chart, pool, team, 5, DEFAULT_CONSTRAINTS, Random(seed))
             val otherNames = team.take(5).map { it.speciesName.lowercase() }
             assertFalse(otherNames.contains(newMember.speciesName.lowercase()))
+        }
+    }
+
+    @Test
+    fun `regenerateSlot falls back to the custom roster when the real pool has nothing eligible`() {
+        val team = sixMemberTeam()
+        val customs = listOf(buildMember("CustomMon", PokemonType.GHOST to null, isCustomSaved = true))
+        val constraints = DEFAULT_CONSTRAINTS.copy(customSlots = 1)
+        // An empty catalogue means buildEligiblePool always returns emptyList(), so the only
+        // possible candidate is the custom below — this isolates the merge of entryPool and
+        // customPool from the scoring competition between the two.
+        val newMember = regenerateSlot(chart, emptyList(), team, 5, constraints, Random(1), customs = customs)
+        assertEquals("CustomMon", newMember.speciesName)
+        assertTrue(newMember.isCustomSaved)
+    }
+
+    @Test
+    fun `regenerateSlot never introduces a custom Pokemon when customSlots is 0`() {
+        val team = sixMemberTeam()
+        val customs = listOf(buildMember("CustomMon", PokemonType.GHOST to null, isCustomSaved = true))
+        for (seed in 0..9) {
+            val newMember = regenerateSlot(chart, pool, team, 5, DEFAULT_CONSTRAINTS, Random(seed), customs = customs)
+            assertFalse(newMember.isCustomSaved)
+        }
+    }
+
+    @Test
+    fun `regenerateSlot respects the customSlots cap already met by the other members`() {
+        val customA = buildMember("CustomMon", PokemonType.GHOST to null, isCustomSaved = true)
+        val customB = buildMember("CustomMon2", PokemonType.DRAGON to null, isCustomSaved = true)
+        val team = sixMemberTeam().mapIndexed { i, m -> if (i == 0) customA else m }
+        val constraints = DEFAULT_CONSTRAINTS.copy(customSlots = 1)
+        // otherMembers (every slot except 5) already includes customA, meeting the customSlots=1
+        // cap, so customB must never be offered as a candidate for slot 5 — even with a real,
+        // non-empty catalogue pool competing for the slot alongside it.
+        for (seed in 0..9) {
+            val newMember = regenerateSlot(chart, pool, team, 5, constraints, Random(seed), customs = listOf(customB))
+            assertFalse(newMember.speciesName == "CustomMon2")
         }
     }
 

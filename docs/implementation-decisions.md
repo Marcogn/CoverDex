@@ -701,3 +701,45 @@ the way this session briefly did:
   the two purely positive "it's native now" bullets — stated plainly
   rather than softened, per `docs/plan/native-spec.md`'s own instruction
   that "Phase 6's release notes must lead with that warning."
+
+## Post-migration review
+
+Findings from `docs/post-migration-review.md`, a code-level audit run
+after Phase 6 closed. Each finding below records the decision made when
+fixing it; the review document itself has the full analysis, including
+findings not yet acted on.
+
+- **Finding 1 (crash) — fixed as a pure bug fix, no decision needed.**
+  `regenerateSlot`'s ranking recomputed its composite score (including
+  random tie-breaking noise) inside the sort comparator instead of once
+  per candidate, which could throw `IllegalArgumentException` once the
+  eligible pool was large. The production pool is in the high hundreds;
+  every existing test pool was under 20 entries, which is why nothing
+  caught it. Fixed by scoring once per candidate before sorting.
+- **Finding 5 (Surprise Me's "Custom slots" stepper did nothing) —
+  implemented rather than removed.** `teamGenerator.ts` accepted a
+  `customs: TeamMember[]` parameter it never referenced, and Phase 4's
+  port dropped it as genuinely dead — but kept
+  `GeneratorConstraints.customSlots` as a ported struct field, so the
+  Surprise Me screen shipped a stepper that consumed the six-slot budget
+  and placed nothing. Decided to implement rather than delete the
+  stepper: it is the one generator feature that serves this app's stated
+  ROM-hack/draft-building audience (`CLAUDE.md`, "What this project
+  is"), and `SurpriseMeViewModel` already loaded the custom roster into
+  its UI state without using it. `generateTeam` and `regenerateSlot` now
+  take a `customs: List<TeamMember> = emptyList()` parameter (default
+  keeps every pre-existing call site, including every test, unchanged)
+  and treat `customSlots` as a reserved category exactly like starter/
+  legendary-mythical/Mega/Dynamax — with one asymmetry, stated here
+  because nothing forced it either way: a custom is **never** chosen
+  opportunistically in an unconstrained "free" slot the way a catalogue
+  Pokémon can be once its own quota is met, because customs live outside
+  `buildEligiblePool`'s catalogue-only pool. A custom appears only while
+  its own reserved budget still has room. The alternative (customs
+  competing for every free slot too) was rejected as surprising: a user
+  who sets `customSlots = 0` should never see a custom Pokémon appear.
+- **Finding 6 (abilities ignored by suggestion/generator scoring) — not
+  yet acted on.** Left for its own follow-up commit since it changes the
+  composite score's output, not just its performance or a missing
+  feature — it needs updated test expectations alongside it, not bundled
+  with an unrelated fix.
