@@ -18,10 +18,16 @@ import com.marcogn.coverdex.domain.model.TypeChart
 const val NEW_WEAKNESS_PENALTY = 0.5
 const val AGGRAVATED_WEAKNESS_PENALTY = 1.0
 
-/** Types weak (>1x) against [types], evaluated by types only — the same defensive check
- * `suggestionEngine.ts` and `teamGenerator.ts` both duplicate as a private `getWeaknesses`. */
-fun weaknesses(chart: TypeChart, types: Pair<PokemonType, PokemonType?>): List<PokemonType> =
-    PokemonType.entries.filter { atk -> defensiveMultiplier(chart, atk, types) > 1.0 }
+/** Types weak (>1x) against [types] with [ability] applied — the same defensive check
+ * `suggestionEngine.ts` and `teamGenerator.ts` both duplicate as a private `getWeaknesses`, except
+ * both TypeScript originals (and this function, before this ability parameter was added) ignored
+ * ability entirely, unlike `sharedWeaknessCounts`/`defensiveProfile` in `CoverageEngine.kt`, which
+ * always honoured it — see `docs/post-migration-review.md`, finding 6, and
+ * `docs/implementation-decisions.md`, "Post-migration review", for why this is a deliberate spec
+ * change (composite scores now differ from the ported baseline for any member/candidate with a
+ * scoring-relevant ability) rather than a pure refactor. */
+fun weaknesses(chart: TypeChart, types: Pair<PokemonType, PokemonType?>, ability: String? = null): List<PokemonType> =
+    PokemonType.entries.filter { atk -> defensiveMultiplier(chart, atk, types, ability) > 1.0 }
 
 data class CompositeScoreResult(
     val compositeScore: Double,
@@ -51,7 +57,7 @@ fun teamScoringContext(chart: TypeChart, otherMembers: List<TeamMember>): TeamSc
 
     val otherWeaknessMap = mutableMapOf<PokemonType, MutableList<String>>()
     for (m in otherMembers) {
-        for (w in weaknesses(chart, m.types)) {
+        for (w in weaknesses(chart, m.types, m.ability)) {
             otherWeaknessMap.getOrPut(w) { mutableListOf() }.add(m.speciesName)
         }
     }
@@ -83,7 +89,7 @@ fun computeCompositeScore(
     val offensiveGain = newUnion.size - currentTeamCoverage.size
     val newlyCovered = newUnion.filter { it !in currentTeamCoverage }
 
-    val candWeaknesses = weaknesses(chart, candidate.types)
+    val candWeaknesses = weaknesses(chart, candidate.types, candidate.ability)
 
     val newWeaknesses = mutableListOf<PokemonType>()
     val aggravatedWeaknesses = mutableListOf<PokemonType>()

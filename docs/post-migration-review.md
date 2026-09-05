@@ -28,15 +28,27 @@ maths is wrong.
 
 The defects are all **at the seams**: one port that silently changed a
 sort into a non-deterministic one, two engines invoked on the main thread,
-and a slice of the suggestion UI that was never carried over. None of these
-is reachable by the existing unit tests, for a structural reason worth
-stating plainly: the test pools are 5–20 entries, the production pool is
-several hundred, and no test asserts anything about threading.
+a shipped stepper that placed nothing, redundant per-candidate rework, and
+one place where ability was honoured on one side of a screen and ignored
+on the other. Most of these are not reachable by the existing unit tests,
+for a structural reason worth stating plainly: the test pools are 5–20
+entries, the production pool is several hundred, and no test asserted
+anything about threading before this review added one.
 
-Separately: **0 of 59 items in [`docs/test-plan.md`](test-plan.md) are
-ticked.** Every phase is marked ✅ in `CLAUDE.md` on the strength of CI and
-unit tests alone. Three of the five findings below are exactly the kind a
-single pass on a real device would have caught immediately.
+Separately: **0 of 59 items in [`docs/test-plan.md`](test-plan.md) were
+ticked** at the time of this review. Every phase is marked ✅ in
+`CLAUDE.md` on the strength of CI and unit tests alone. Findings 1, 2 and
+5 below are exactly the kind a single pass on a real device would have
+caught immediately — that gap has not been closed by this review or the
+fixes that followed it; it is still a real gap.
+
+**All six findings below have since been fixed**, each in its own commit
+on top of this review, including one correction (finding 4, see below) to
+a claim in the original version of this document that turned out to be
+wrong before it was acted on. The findings are kept below as written at
+the time, not rewritten to look correct in hindsight, because the record
+of what was found and how it was fixed is more useful than a document that
+only ever describes a codebase with no known problems in it.
 
 ## Findings
 
@@ -252,20 +264,22 @@ updated test expectations in the same commit. Worth doing; do it on its own.
 
 ## Plan
 
-Ordered by risk removed per unit of work.
+Ordered by risk removed per unit of work. **All six items below are now
+done** — this section is kept as the reasoning behind the order they were
+done in, not a to-do list.
 
 **Now — correctness**
 
-1. Finding 1: memoize the score in `regenerateSlot`, plus the large-pool
+1. ✅ Finding 1: memoize the score in `regenerateSlot`, plus the large-pool
    regression test. One-line fix, removes a crash.
-2. Finding 5: decide and act on `customSlots` — implement, or remove the
-   stepper. Currently misleading either way.
+2. ✅ Finding 5: decide and act on `customSlots` — implement, or remove the
+   stepper. Currently misleading either way. (Implemented.)
 
 **Next — responsiveness**
 
-3. Finding 2: move both engines off the main thread; add the generator's
+3. ✅ Finding 2: move both engines off the main thread; add the generator's
    progress indicator.
-4. Finding 3: hoist the per-team precomputation out of the candidate loop.
+4. ✅ Finding 3: hoist the per-team precomputation out of the candidate loop.
 
 Doing 4 before 3 is tempting and wrong: getting the work off the main
 thread is what fixes the jank, and the optimisation is then a bonus rather
@@ -273,20 +287,26 @@ than load-bearing.
 
 **Then — parity and accuracy**
 
-5. Finding 4 (corrected): add the solid-coverage message; clear the orphan
-   string. The type filter, random mode and 10-card cut are **not** part
-   of this — see the correction in finding 4 itself.
-6. Finding 6: thread abilities through the scoring path, as a documented
+5. ✅ Finding 4 (corrected): add the solid-coverage message; clear the
+   orphan string. The type filter, random mode and 10-card cut are **not**
+   part of this — see the correction in finding 4 itself.
+6. ✅ Finding 6: thread abilities through the scoring path, as a documented
    spec change.
 
 **Underneath all of it**
 
-7. Work `docs/test-plan.md` on a real device. 59 unchecked items is the
+7. ⬜ Work `docs/test-plan.md` on a real device. 59 unchecked items is the
    single largest gap in confidence in this repository, and findings 1, 2
-   and 5 are all things a first run-through would have surfaced.
-8. Add the two test shapes that would have caught these: an engine test at
-   production pool scale (several hundred entries), and a ViewModel test
-   asserting the engines are not invoked on the collecting dispatcher.
+   and 5 are all things a first run-through would have surfaced. **Still
+   not done** — nothing in this review or its fixes ran on a device or an
+   emulator; see "What was not done" above and the same caveat repeated on
+   every fix commit.
+8. ✅ Add the two test shapes that would have caught these: an engine test
+   at production pool scale (several hundred entries — `TeamGeneratorTest`'s
+   `largeTiedScorePool`), and a ViewModel test asserting the engines are
+   not invoked on the collecting dispatcher (`AnalysisViewModelTest`'s
+   `coverage is computed without ever advancing the Main test dispatcher`,
+   `SurpriseMeViewModelTest`'s `isGenerating` transition test).
 
 ## Areas swept, no defects found
 

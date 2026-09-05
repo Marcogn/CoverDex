@@ -48,13 +48,17 @@ data class SuggestionOptions(
 /** Turns a catalogue entry into a candidate [TeamMember] with no moves — candidates are always
  * evaluated by types only. Ports `memberFromEntry`; `spriteUrl` is dropped, since this codebase
  * derives sprite URLs from [TeamMember.pokedexId] rather than storing them (see
- * `domain/sprite/SpriteUrlResolver.kt`), unlike the TypeScript `TeamMember.spriteUrl` field. */
+ * `domain/sprite/SpriteUrlResolver.kt`), unlike the TypeScript `TeamMember.spriteUrl` field.
+ * [TeamMember.ability] is [PokemonEntry.defaultAbility] rather than the TypeScript's always-absent
+ * ability field — a deliberate native addition (not a port), since a candidate scored without the
+ * ability it would actually carry once applied is exactly finding 6 in
+ * `docs/post-migration-review.md`. */
 fun memberFromEntry(e: PokemonEntry): TeamMember = TeamMember(
     id = "cand-${e.id}",
     pokedexId = e.id,
     speciesName = e.displayName,
     types = e.types,
-    ability = null,
+    ability = e.defaultAbility,
     moves = List(4) { null },
     isCustomSaved = false,
 )

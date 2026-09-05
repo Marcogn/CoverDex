@@ -808,8 +808,32 @@ findings not yet acted on.
   resource (`suggestions_exclude_legendaries`). See the corrected finding
   4 in `docs/post-migration-review.md` for the full record, including the
   quoted spec text.
-- **Finding 6 (abilities ignored by suggestion/generator scoring) — not
-  yet acted on.** Left for its own follow-up commit since it changes the
-  composite score's output, not just its performance or a missing
-  feature — it needs updated test expectations alongside it, not bundled
-  with an unrelated fix.
+- **Finding 6 (abilities ignored by suggestion/generator scoring) —
+  `weaknesses()` gained an `ability` parameter, a real spec change.**
+  `weaknesses(chart, types)` never took an ability, unlike
+  `sharedWeaknessCounts`/`defensiveProfile` in `CoverageEngine.kt`, which
+  always honoured it — so a team's Analysis screen could show a member
+  as immune to a type (via the coverage grid) while the Suggestions
+  section, on the same screen, still penalized a candidate for
+  "aggravating" that exact weakness. Added `ability: String? = null` to
+  `weaknesses()`, threaded `candidate.ability` and each `otherMembers`
+  member's `.ability` through `computeCompositeScore`/
+  `teamScoringContext`. Also fixed `memberFromEntry` (dropped from Phase
+  4 as `ability = null` for every catalogue-derived candidate) to carry
+  `PokemonEntry.defaultAbility`, so a candidate is scored with the
+  ability it will actually have once applied, not always with none —
+  this let `TeamGenerator.Candidate` drop its own separate `ability`
+  field entirely (both construction paths already produce a `member`
+  whose own `ability` is correct, so the "pick the ability to apply"
+  step this field existed for is a no-op now). This *is* a spec change:
+  composite scores now differ from the ported TypeScript baseline for
+  any candidate or team member with a scoring-relevant ability (the 14
+  entries in `AbilityEffects.kt`'s `ABILITY_EFFECTS`). Every existing
+  fixture in `TestFixtures.kt`/`SuggestionEngineTest.kt`/
+  `TeamGeneratorTest.kt` has `defaultAbility = null` and builds every
+  `TeamMember` with no explicit `ability` either, so this change is
+  invisible to every existing exact-score/exact-ranking assertion — a
+  new `ScoringTest.kt` exercises the new behavior directly (Levitate
+  removing a candidate's own Ground weakness; a teammate's Levitate
+  changing a shared candidate weakness from "aggravated" to merely
+  "new").

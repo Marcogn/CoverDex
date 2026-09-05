@@ -68,14 +68,17 @@ private fun isMegaOrDynamax(entry: PokemonEntry): Boolean = isMega(entry) || isD
 private fun findEntry(allPokemon: List<PokemonEntry>, m: TeamMember): PokemonEntry? =
     allPokemon.find { it.displayName == m.speciesName || it.name == m.speciesName.lowercase() }
 
-/** A generator candidate: either a catalogue entry (scored via [memberFromEntry], its ability
- * taken from [PokemonEntry.defaultAbility]) or a custom roster [TeamMember] (its own ability kept
- * as-is). [entry] is `null` for a custom — that is the single source of truth this file uses to
- * tell the two apart, since a custom is never legendary/mythical, a starter, a Mega or a Dynamax. */
-private data class Candidate(val member: TeamMember, val entry: PokemonEntry?, val ability: String?)
+/** A generator candidate: either a catalogue entry (scored via [memberFromEntry], which already
+ * carries [PokemonEntry.defaultAbility] as its own [TeamMember.ability]) or a custom roster
+ * [TeamMember] (its own ability, unchanged). [entry] is `null` for a custom — that is the single
+ * source of truth this file uses to tell the two apart, since a custom is never legendary/
+ * mythical, a starter, a Mega or a Dynamax. No separate ability field: [member]'s own already
+ * carries the right value in both cases, so there is nothing left to override when a candidate is
+ * picked. */
+private data class Candidate(val member: TeamMember, val entry: PokemonEntry?)
 
-private fun candidateFromEntry(entry: PokemonEntry): Candidate = Candidate(memberFromEntry(entry), entry, entry.defaultAbility)
-private fun candidateFromCustom(member: TeamMember): Candidate = Candidate(member, null, member.ability)
+private fun candidateFromEntry(entry: PokemonEntry): Candidate = Candidate(memberFromEntry(entry), entry)
+private fun candidateFromCustom(member: TeamMember): Candidate = Candidate(member, null)
 
 /** Composite score for [candidate] against a team summarized by [context] (see
  * [teamScoringContext]), plus a small random tie-breaking factor. Ports `teamGenerator.ts`'s own
@@ -192,7 +195,7 @@ fun generateTeam(
         // own note below on the sort that must not do the same thing the same way.
         val best = candidates.maxByOrNull { candidate -> computeScore(chart, candidate.member, context, random) }!!
 
-        team.add(best.member.copy(ability = best.ability))
+        team.add(best.member)
         usedSpecies.add(best.member.speciesName.lowercase())
 
         if (best.entry != null) {
@@ -277,5 +280,5 @@ fun regenerateSlot(
     val topN = minOf(5, scored.size)
     val picked = scored[random.nextInt(topN)].first
 
-    return picked.member.copy(ability = picked.ability)
+    return picked.member
 }

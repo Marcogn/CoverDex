@@ -47,6 +47,15 @@ versions follow [Semantic Versioning](https://semver.org/).
   [`docs/post-migration-review.md`](docs/post-migration-review.md).)
   Also removed one orphaned string resource
   (`suggestions_exclude_legendaries`) left over from Phase 4.
+- **Suggestions and Surprise Me now honour a scoring-relevant ability
+  the same way the Analysis screen's coverage grid already did.** A
+  Levitate-holding teammate's Ground weakness no longer counts as
+  "aggravated" against a candidate that shares it, and a candidate whose
+  own ability removes a weakness is no longer penalized for it — one
+  screen could previously disagree with itself on this. This changes
+  composite scores for any team or candidate with an ability from
+  `AbilityEffects.kt`'s known-effects list; see finding 6 in
+  [`docs/post-migration-review.md`](docs/post-migration-review.md).
 - **Post-migration review of the coverage and suggestion engines.** A
   code-level audit of the shipped app against the phase plans, diffing every
   Kotlin port against the TypeScript original recovered from git history.

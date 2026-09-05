@@ -277,6 +277,20 @@ None yet.
   "solid coverage" message when every displayed suggestion has zero
   gain; also removed one genuinely orphaned string resource
   (`suggestions_exclude_legendaries`, referenced by no composable).
+- **Fixed 2026-09-05.** `weaknesses()` (shared by suggestions and the
+  generator) never took an ability, unlike the coverage grid's own
+  `sharedWeaknessCounts`/`defensiveProfile` — found by code review
+  (`docs/post-migration-review.md`, finding 6), not by manual testing.
+  A team member's ability could remove a weakness on the coverage grid
+  while the Suggestions section, on the same screen, still counted that
+  weakness as "aggravated" by a candidate. `weaknesses()` now takes an
+  `ability` parameter, threaded through from both the candidate and every
+  team member scored against; `memberFromEntry` also now gives a
+  catalogue candidate its real default ability instead of always `null`.
+  This changes composite scores for any team/candidate with a
+  scoring-relevant ability — verify by hand: give a team member Levitate,
+  then check that a Ground-weak suggestion candidate is no longer marked
+  as aggravating that weakness.
 
 ## Phase 5 — Showdown import/export, settings and local backup
 
