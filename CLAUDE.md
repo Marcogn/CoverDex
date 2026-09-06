@@ -16,6 +16,9 @@ before editing anything, then read the phase plan you are executing.
 - [`docs/test-plan.md`](docs/test-plan.md) — manual, on-device verification.
   One new section per phase; one "Known regressions" entry per real bug found.
 - [`CHANGELOG.md`](CHANGELOG.md) — one entry per release, updated as you go.
+- [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
+  — the next phase's plan: what is wrong with the engines today (measured,
+  with the dataset evidence) and exactly what to build.
 
 ## What this project is
 
@@ -69,6 +72,9 @@ the app is native-only from here on.
 - **Phase 4 — Suggestions and generator**: ✅ done
 - **Phase 5 — Import/export and settings**: ✅ done
 - **Phase 6 — Release**: ✅ done
+- **Phase 7 — Engine accuracy, abilities/items, BST ranking**: 📋 planned,
+  not started — see
+  [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
 
 Tick these off as phases land — here and in
 [`docs/plan/README.md`](docs/plan/README.md). Do not implement anything not
