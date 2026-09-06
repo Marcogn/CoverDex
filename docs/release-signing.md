@@ -55,29 +55,34 @@ credentials from repository secrets, never from a file in the repo:
 base64 -w0 coverdex-release.keystore
 ```
 
-Copy that output into a repository secret named `RELEASE_KEYSTORE_BASE64`.
+Copy that output into a repository secret named `ANDROID_KEYSTORE_BASE64`.
 Add these secrets under the repo's **Settings → Secrets and variables →
 Actions**:
 
 | Secret | Value |
 |---|---|
-| `RELEASE_KEYSTORE_BASE64` | the base64 output above |
-| `RELEASE_KEYSTORE_PASSWORD` | the store password from step 1 |
-| `RELEASE_KEY_ALIAS` | `coverdex` (or whatever alias was used) |
-| `RELEASE_KEY_PASSWORD` | the key password from step 1 |
+| `ANDROID_KEYSTORE_BASE64` | the base64 output above |
+| `ANDROID_KEYSTORE_PASSWORD` | the store password from step 1 |
+| `ANDROID_KEY_ALIAS` | `coverdex` (or whatever alias was used) |
+| `ANDROID_KEY_PASSWORD` | the key password from step 1 |
 | `RELEASE_PUSH_TOKEN` | a fine-grained PAT scoped to this repo, Contents: Read and write — used only by `release.yml`'s final version-bump commit |
 
-`app/build.gradle.kts`'s `signingConfigs { create("release") { ... } }`
-block (written in Phase 0) reads `RELEASE_KEYSTORE_PATH`/
-`RELEASE_KEYSTORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD` as
-environment variables — the workflows decode the base64 secret into a
-temporary file at `$RUNNER_TEMP/release.keystore` and pass its path as
-`RELEASE_KEYSTORE_PATH`. A local `./gradlew assembleRelease` with none of
-these set still succeeds — the release build type is simply left unsigned
-in that case, Android's own default.
+Note the naming split: the four signing secrets above are prefixed
+`ANDROID_` (matching how they were actually created in this repo's
+settings), while `app/build.gradle.kts`'s `signingConfigs { create("release")
+{ ... } }` block (written in Phase 0) still reads plain `RELEASE_KEYSTORE_PATH`/
+`RELEASE_KEYSTORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`
+environment variables — an internal contract between the workflows and
+Gradle, unrelated to the secret names and left as-is. The workflows are what
+bridge the two: they read the `ANDROID_*` secrets and re-expose them to
+Gradle as those `RELEASE_*` environment variables, decoding the base64
+secret into a temporary file at `$RUNNER_TEMP/release.keystore` and passing
+its path as `RELEASE_KEYSTORE_PATH`. A local `./gradlew assembleRelease`
+with none of these set still succeeds — the release build type is simply
+left unsigned in that case, Android's own default.
 
 > The sibling project's (Hall of Memories) first three release attempts all
-> failed on `RELEASE_KEYSTORE_BASE64` not being valid base64. Both
+> failed on `ANDROID_KEYSTORE_BASE64` not being valid base64. Both
 > `build-apk.yml` and `release.yml` print the decoded keystore's byte size
 > and SHA-256 right after decoding it, precisely so a signing failure later
 > in the same run ("Given final block not properly padded", "Invalid
