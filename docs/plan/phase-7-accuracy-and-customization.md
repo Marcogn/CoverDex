@@ -1,6 +1,6 @@
 # Phase 7 — Engine accuracy, ability/item modelling, BST-aware suggestions
 
-**Status:** planned, not started.
+**Status:** done.
 **Executed by:** one agent session, in the task order below.
 **Read first:** [`../../CLAUDE.md`](../../CLAUDE.md), [`README.md`](README.md)
 (working rules), [`native-spec.md`](native-spec.md),

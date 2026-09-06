@@ -174,7 +174,7 @@ pinning and invalidation — is
 [`reference-pokedata.md`](reference-pokedata.md), and it is not repeated
 here. What matters at the spec level:
 
-- The sync is **~8 requests and ~208 KB**, and is fast enough that it does
+- The sync is **~12 requests and ~565 KB**, and is fast enough that it does
   not gate the UI behind a full-screen loader the way the PWA does. Show
   progress inline; let the user reach Settings while it runs.
 - Sprite URLs are **derived, never stored**, from the Pokémon's id.

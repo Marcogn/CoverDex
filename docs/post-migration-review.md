@@ -331,3 +331,54 @@ ranking comparator; `analyseTeam`'s mixed-mode handling; `generateTeam`'s
 quota logic; `applySuggestion`'s slot resolution (custom roster entries
 always carry `pokedexId = null`, so a custom's ability is not overwritten);
 the type chart's 18×18 completeness.
+
+## Phase 7 audit
+
+Findings surfaced while implementing
+`docs/plan/phase-7-accuracy-and-customization.md`, deliberately not fixed
+in that phase — each with why.
+
+1. **`Suggestion.gain` means different things in the two ranking modes.**
+   Addition mode sets it to `newlyCovered.size` (types the union coverage
+   gains); replacement mode sets it to `offensiveGain`, which can be
+   negative (`newUnion.size - currentTeamCoverage.size`, i.e. it already
+   accounts for the coverage the replaced member is losing). A caller
+   reading `gain` without checking `kind` first will misinterpret it.
+   Deferred: fixing it means picking one shared meaning and updating
+   every UI string/test that reads `gain`, which is a larger change than
+   this phase's scope (ability/item modelling, BST ranking, the
+   suggestion count).
+2. **`weaknesses()` counts weakness *types*, not their magnitude** — a
+   ×4 weakness and a ×2 weakness both contribute exactly `1` to
+   `NEW_WEAKNESS_PENALTY`/`AGGRAVATED_WEAKNESS_PENALTY`. This is exactly
+   why a Water/Ground candidate (one ×4 Grass weakness) can outscore a
+   candidate with two separate ×2 weaknesses despite taking worse damage
+   overall — see §0.1 of the Phase 7 plan for the full worked case. Left
+   alone deliberately: the repository owner's decision for this phase was
+   a tie-break only (§5.1), not a change to the composite score formula
+   itself, which `Scoring.kt`'s own doc comment calls load-bearing and
+   shared with the team generator.
+3. **Replacement mode computes `replacementContexts[0]`'s composite score
+   twice** — once to seed `bestResult`/`bestScore` before the loop, once
+   again inside the loop's first iteration. Harmless (the loop's `>`
+   comparison never lets a tied first result win twice), but wasted work
+   on every suggestion recomputation. Small enough to fold into a future
+   pass on `SuggestionEngine.kt` rather than justify its own PR.
+4. **`deduped`'s `seen.add(speciesName.lowercase())` silently drops a
+   custom Pokémon named after a catalogue species.** If a user's custom
+   roster entry is named e.g. "Pikachu" (case-insensitively), and a real
+   Pikachu is also in the candidate pool, only whichever one the pool
+   iteration order visits first survives deduplication — the other never
+   appears as a suggestion, with no error or indication why. Deferred:
+   fixing this needs a real identity concept for candidates (e.g. keying
+   on `pokedexId` when present, name only as a fallback for customs),
+   which touches the same dedup logic every existing
+   `SuggestionEngineTest` case already exercises — worth its own
+   change, not a drive-by fix bundled into ability/item/BST work.
+5. **Generational type charts and generational typings are not modelled**
+   (`type_efficacy_past.csv`, `pokemon_types_past.csv` — both exist at the
+   pinned dataset revision and are not downloaded). Recorded in
+   `ROADMAP.md` under "Ideas not yet committed to": the app has no "which
+   game/generation am I analysing against" concept anywhere else, and
+   adding one is a larger design decision than anything else in this
+   phase, not a bug to slip in alongside it.

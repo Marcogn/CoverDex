@@ -837,3 +837,91 @@ findings not yet acted on.
   removing a candidate's own Ground weakness; a teammate's Levitate
   changing a shared candidate weakness from "aggravated" to merely
   "new").
+
+## Phase 7 — Engine accuracy, abilities/items, BST ranking
+
+- **BST is the suggestion ranking's tie-break only, never a term in the
+  composite score.** Discussed explicitly with the repository owner
+  before implementation: making a candidate's raw strength part of the
+  score itself would change what "the best pick" means for a team that
+  is *not* yet solid (a real coverage gain could be outranked by a
+  bigger Pokémon with no gain at all), and would touch the `0.5`/`1.0`
+  weights `Scoring.kt`'s own doc comment calls "load-bearing and shared
+  with the generator". The comparator instead adds exactly one new step
+  — `bestScore, then isFinal, then baseStatTotal descending, then
+  catalogue id ascending` — so it only ever decides among candidates that
+  already tied on real coverage/weakness math.
+- **Held items are the defensive subset only, and `items.csv` is never
+  downloaded.** Also an explicit decision with the repository owner:
+  modelling every item (offensive boosts, berries with non-type effects,
+  weather items) would need the full item catalogue (a further ~60 KB)
+  for a coverage app that only cares about type effectiveness. The 18
+  modelled items (Air Balloon, Iron Ball, Ring Target, one resist berry
+  per type) are a hardcoded table, the same shape as `ABILITY_EFFECTS`.
+  **The plan document's own §4.1 table has a gap** — it lists 16 resist
+  berries plus Chilan and omits Coba Berry (Flying) — caught during
+  implementation by cross-checking "one berry per type except Normal"
+  against `PokemonType.entries`; `ItemEffects.kt`'s `ITEM_EFFECTS` map is
+  the correct, complete 18-item version and a dedicated test
+  (`ITEM_EFFECTS has one resist berry per type except Normal, plus
+  Chilan for Normal`) asserts the full set going forward.
+- **The item field has no canonical-per-species picker, unlike ability.**
+  `AbilityPicker`'s canonical/custom split exists because a species'
+  abilities are a small, fixed, PokéAPI-known set; any Pokémon can hold
+  any item, so there is no equivalent "canonical list" to offer —
+  `ItemPicker` is free text with suggestions from the modelled subset
+  only, the same shape as the ability field's own custom mode.
+- **`AbilityPicker`'s free-text suggestion list does not show the
+  "has an effect" marker that the canonical dropdown does.**
+  `EditableComboBox` commits whatever suggestion string the user taps
+  verbatim as the field's value — appending a marker (e.g. "Overgrow ●")
+  to a suggestion would corrupt the stored ability with that marker
+  attached. The canonical dropdown avoids this because its `onClick`
+  commits `ability.displayName` independently of the `Text` content
+  shown in the row; the free-text list has no such separation available
+  without changing `EditableComboBox`'s own contract, which several
+  other screens already depend on. Scope decision: the badge only
+  appears on canonical picks.
+- **`KNOWN_ABILITIES_WITH_EFFECTS` is regenerated from `ABILITY_EFFECTS`
+  instead of hand-maintained, and its exact strings changed as a result.**
+  Before Phase 7 it was a hand-tweaked list with one inconsistency of its
+  own ("well-baked body", replacing only the *second* hyphen in
+  `well-baked-body` with a space, keeping the first) — a leftover, unused
+  artifact from the `legacy-web` port that nothing in the app actually
+  reads (confirmed by grep before touching it). It's now
+  `ABILITY_EFFECTS.keys.map { it.replace('-', ' ') }`, so `well-baked-body`
+  becomes "well baked body" (both hyphens replaced) rather than the old
+  mixed convention. Harmless: nothing consumes this constant, and its own
+  test was rewritten to assert the regenerated shape, not the old one.
+- **Wonder Guard was promoted from `AbilityEffect.BadgeOnly` to a real
+  effect (`OnlySuperEffective`), not left as a display note.** The
+  pre-Phase-7 table treated it as UI-only, so `defensiveProfile`/
+  `defensiveMultiplier` were actively wrong for the one Pokémon (Shedinja)
+  the ability applies to: a resisted or neutral hit should deal zero
+  damage, but the engine reported the real chart multiplier instead. This
+  is a genuine behavior change (a Wonder Guard holder's non-neutral
+  matchups now show up in `defensiveProfile.immunities`, not scattered
+  across weaknesses/resistances), found by auditing `ABILITY_EFFECTS`
+  against PokéAPI's own `short_effect` text rather than assumed.
+- **Gen I's canonical BST is the sum of five stats, not six** — no
+  Special Attack/Special Defense split existed before Generation II, so
+  mirroring the single "Special" stat into both halves (making a false
+  six-stat total) would inflate every Gen-I Pokémon's total and change
+  relative ordering among special-heavy species. `bstResolverFor`/
+  `assembleDataset`'s `bstAt` both apply this rule, and it is the reason
+  a Gen-I total must never be compared numerically against a later
+  generation's — documented on `PastBst` itself since it is the one way
+  this feature can go quietly wrong.
+- **`SuggestionEngine.EntryLookup`'s displayName-first precedence can, in
+  a contrived case, disagree with the pre-Phase-7 single-pass
+  `pool.find { it.displayName == x || it.name == x.lowercase() }`** — if
+  one entry's raw identifier lowercased happens to equal another entry's
+  exact display name, the old code (which evaluates both conditions per
+  pool element, first match wins by *pool position*) could return a
+  different entry than the new two-map lookup (which always checks
+  *every* displayName match before falling back to *any* name match,
+  regardless of position). This divergence needs a contrived, unrealistic
+  fixture to observe — real `displayName`/`name` pairs never collide this
+  way — and the plan's own §5.4 explicitly frames "displayName match
+  first" as the behavior to preserve, so the two-map version is the
+  intended, not merely tolerated, semantics.

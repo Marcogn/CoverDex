@@ -2,9 +2,10 @@
 
 A snapshot of what's implemented, what's known to be missing, and any loose
 ends — written for whoever (human or agent) picks this project up next.
-Last verified 2026-09-05, at the end of Phase 6 of the native Android
-migration — the rewrite described in
-[`docs/plan/README.md`](plan/README.md) is complete. Re-verify anything here
+Last verified 2026-09-06, at the end of Phase 7 (engine accuracy,
+abilities/items, BST-aware suggestions) — the native rewrite described in
+[`docs/plan/README.md`](plan/README.md) and its Phase 7 follow-up are both
+complete. Re-verify anything here
 before relying on it — this file goes
 stale the moment someone ships a change without updating it. It complements,
 not replaces, the other docs: [`CLAUDE.md`](../CLAUDE.md) for rules and
@@ -30,8 +31,17 @@ Teams round-trip through Pokémon Showdown's team format (export from a
 team's overflow menu, import from Settings into a brand-new team), every
 setting from the old web app is now present, and Settings has a local
 backup that exports/restores every team and the custom roster to a single
-file. That is the full feature set of `docs/plan/native-spec.md`; the
-six-phase rewrite in [`docs/plan/README.md`](plan/README.md) is complete.
+file. Since Phase 7, abilities and moves show their real names (not raw
+PokéAPI slugs), the ability field offers a species' canonical abilities
+with a free-text custom fallback, held items affecting type coverage can
+be assigned and round-trip through Showdown/backup, base stats feed a
+tie-break in the suggestion ranking so a solid team's alternatives lead
+with strong Pokémon instead of the lowest catalogue id, the number of
+suggestions shown is configurable, and ten previously-unmodelled
+abilities (plus an offensive gap) now affect the coverage calculation.
+That is the full feature set of `docs/plan/native-spec.md` plus Phase 7's
+accuracy/customization work; the native rewrite in
+[`docs/plan/README.md`](plan/README.md) is complete.
 Only the human repository owner's remaining, non-code steps are left:
 generating the real release keystore, setting the GitHub secrets it needs,
 and running the `Release` workflow for the first real `2.0.0` build — an
@@ -166,17 +176,67 @@ secrets on someone else's behalf (see
   describe the finished native app — no remaining web/PWA/Capacitor/npm
   references anywhere in the repository outside `docs/plan/` (kept
   deliberately, as the historical record of how the app was built).
+- **Phase 7 — Room schema v3** (`poke_species.baseStatTotal`,
+  `team_member.item`, `custom_pokemon.item`, plus the new
+  `poke_pokemon_ability`/`poke_species_bst_past` cache tables), reached
+  from v2 by `MIGRATION_2_3` and exercised by `Migration2To3Test`; the
+  dataset schema version bump forces every existing install to re-sync
+  and pick up base stats and canonical per-form abilities.
+- **Phase 7 — correct ability/move names and the canonical-plus-custom
+  ability picker.** `PokemonEntry.defaultAbility`, every `TeamMember`'s
+  ability, and every move name now come from PokéAPI's own English name
+  data instead of a naive hyphen-to-space conversion; `ui/common/
+  AbilityPicker.kt` offers a species' real abilities (normal, then
+  hidden) with a "Custom ability…" fallback that still accepts anything,
+  same contract as before.
+- **Phase 7 — ten previously-unmodelled abilities plus an offensive
+  gap.** Heatproof, Water Bubble, Purifying Salt, Filter, Solid Rock,
+  Prism Armor, Primordial Sea, Desolate Land, Delta Stream, Tera Shell
+  now affect the coverage calculation; Wonder Guard is a real effect, not
+  a display-only badge; Scrappy/Mind's Eye and the `-ate`/Normalize
+  abilities are honoured in the offensive coverage grid.
+- **Phase 7 — held items, defensive subset.** `domain/item/ItemEffects.kt`
+  models Air Balloon, Iron Ball, Ring Target and one resist berry per
+  type; `TeamMember.item` round-trips through Room, Showdown export/
+  import and local backups (format version 2).
+- **Phase 7 — BST-aware suggestion ranking and a configurable suggestion
+  count.** The ranking's tie-break (after composite score and
+  final-evolution status) is now base stat total, generation-aware via
+  `bstResolverFor`, before falling back to catalogue id; Settings has a
+  5-10 stepper for how many suggestions the Analysis tab shows.
+- **Phase 7 — the coverage/suggestion engine verified exhaustively**, not
+  spot-checked: every one of the 324 type-chart cells, and
+  `defensiveMultiplier`/`defensiveProfile` against the complete 171-typing
+  space (18 single types + all 153 unordered dual-type pairs) — see
+  `docs/post-migration-review.md`, "Phase 7 audit", for the findings this
+  surfaced that were deliberately deferred rather than fixed in-phase.
 
 ## What's known to be missing
 
-Nothing from `docs/plan/native-spec.md` — all six phases of
-[`docs/plan/README.md`](plan/README.md) are done. What remains is the
-repository owner's own, non-code responsibility (see above): generating the
-production signing keystore, setting the five GitHub Actions secrets, and
-running the first real `Release` workflow dispatch.
+Nothing from `docs/plan/native-spec.md` or `docs/plan/
+phase-7-accuracy-and-customization.md` — all six phases of
+[`docs/plan/README.md`](plan/README.md), plus Phase 7, are done. What
+remains is the repository owner's own, non-code responsibility (see
+above): generating the production signing keystore, setting the five
+GitHub Actions secrets, and running the first real `Release` workflow
+dispatch.
 
-Also deliberately deferred (not a bug, see `docs/implementation-decisions.md`):
+Also deliberately deferred (not a bug, see `docs/implementation-decisions.md`
+and, for the Phase 7 items, `docs/post-migration-review.md`'s "Phase 7
+audit"):
 
+- **Phase 7** — generational type charts and generational typings
+  (`type_efficacy_past.csv`/`pokemon_types_past.csv`, downloaded but
+  unread) — a genuine feature with no existing "which generation's rules"
+  concept to hang it on, tracked in `ROADMAP.md`.
+- **Phase 7** — `Suggestion.gain`'s meaning differs between addition and
+  replacement mode, `weaknesses()` counts weakness types rather than
+  magnitude (so a x4 and a x2 weakness score identically), replacement
+  mode computes one context's score twice, and a custom roster entry
+  named after a catalogue species can be silently deduplicated away — all
+  four are pre-existing suggestion-engine characteristics found while
+  auditing it for Phase 7, each with its own reason for not being folded
+  into that phase; see `docs/post-migration-review.md`.
 - **Phase 2** — the slot editor's species picker never offers the custom
   roster as a search source, unlike `legacy-web`'s own "Include saved
   custom Pokémon in search" checkbox — `phase-2-teams-and-roster.md`'s own
@@ -200,7 +260,7 @@ say so plainly before they update.
 
 ```bash
 export ANDROID_HOME=...    # if a local SDK is available; otherwise rely on CI
-./gradlew testDebugUnitTest   # 226 tests as of Phase 6
+./gradlew testDebugUnitTest   # 329 tests as of Phase 7
 ./gradlew lintDebug
 ./gradlew assembleDebug
 ```
@@ -215,5 +275,8 @@ addition/replacement modes and filters, every Surprise Me interaction
 (anchors, constraints, generate, regenerate, Keep), and (new this phase)
 Showdown export/import (clipboard, SAF file pickers, unknown-move/skipped-
 species handling), a real local-backup export/restore cycle including
-across a reinstall, and (new this phase) a real signed release build via
-`.github/workflows/build-apk.yml` or `release.yml`.
+across a reinstall, a real signed release build via
+`.github/workflows/build-apk.yml` or `release.yml`, and (new this phase)
+the canonical-plus-custom ability picker, the item field and its
+Showdown/backup round-trip, and an upgrade from a Room-v2 install picking
+up base stats and canonical abilities on re-sync.

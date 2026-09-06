@@ -36,8 +36,8 @@ sync finishes, and never asks for your data.
   every calculation adapts to match, without touching the real data.
 - **Speaks Showdown.** Import a team you already built on Pokémon
   Showdown, or export yours in the same format to share or battle with.
-- **Actually offline.** Pokémon data downloads once — about 8 requests
-  and ~208 KB — then CoverDex never needs the internet again.
+- **Actually offline.** Pokémon data downloads once — about 12 requests
+  and ~565 KB — then CoverDex never needs the internet again.
 
 ## Get CoverDex
 
@@ -66,9 +66,13 @@ on-device and every later launch is instant, fully offline included.
   instant results as you type.
 - **Per-slot type overrides** for ROM hack typings, kept separate from
   the underlying species data.
-- **Ability field** with known coverage effects (immunities,
-  multipliers) reflected directly in the analysis, plus free-text entry
-  for anything a randomizer throws at you.
+- **Ability field** offering a species' real abilities by name, with
+  known coverage effects (immunities, multipliers) reflected directly in
+  the analysis, plus a "Custom ability…" free-text fallback for anything
+  a randomizer throws at you.
+- **Held items** that affect type coverage (Air Balloon, Iron Ball, Ring
+  Target, type-resist berries), round-tripping through Showdown and
+  local backups.
 - **Four move slots per Pokémon**, from the synced catalogue or entered
   as custom moves, with move-aware offensive coverage when you use them.
 - **A personal custom-Pokémon roster** for anything that doesn't exist

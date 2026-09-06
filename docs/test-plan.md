@@ -378,3 +378,60 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 7 — Engine accuracy, abilities/items, BST-aware suggestions
+
+- [ ] **The ability picker's canonical list.** Pick a real species in a
+  slot — the ability field opens as a dropdown of its real abilities
+  (normal slots first, then any hidden one marked "(hidden)"), each
+  showing its correct name (e.g. "Sap Sipper", not `sap-sipper`). An
+  ability with a coverage effect is marked with a small dot.
+- [ ] **"Custom ability…" still accepts anything.** Selecting the
+  picker's last entry swaps to a free-text field with suggestions from
+  the full catalogue; typing an ability that exists in no PokéAPI table
+  (a ROM hack assignment) is still accepted and saved verbatim. A "back
+  to canonical" action returns to the species' own list.
+- [ ] **A hand-typed/roster Pokémon's ability field goes straight to free
+  text** — no canonical list to show since it has no catalogue species.
+- [ ] **Ability and move names show correct capitalization everywhere** —
+  spot-check `Well-Baked Body`, `Double-Edge`, `U-turn`, `Will-O-Wisp` in
+  the ability/move pickers and on the Analysis tab's per-Pokémon cards.
+- [ ] **The item field.** A new field below ability in the slot editor
+  and roster editor accepts free text with suggestions from the modelled
+  set (Air Balloon, Iron Ball, Ring Target, the type-resist berries).
+  Setting one shows on the team screen's slot card ("@ Item") and on the
+  Analysis tab's per-Pokémon card with its effect summary when it has
+  one (e.g. Air Balloon → "immune to Ground").
+- [ ] **Items round-trip.** Export a team with an item set to Showdown
+  format (overflow menu) — the exported text reads `Species @ Item`.
+  Re-import it (Settings → Import) and confirm the item is preserved. A
+  local backup (Settings → Backup) exported and restored also keeps
+  every item.
+- [ ] **The abilities the Phase 7 audit added actually change the
+  Analysis tab.** Give a slot Wonder Guard and confirm its per-Pokémon
+  card shows every incoming type bucketed as either "immune" (anything
+  not super-effective) or its real weakness (anything that is) — not the
+  old "badge with no calculation effect". Give a slot Scrappy or Mind's
+  Eye and a Normal move, then check the offensive coverage grid shows a
+  neutral (not 0×) hit against Ghost-type opponents.
+- [ ] **Suggestions on an already-solid team lead with strong Pokémon.**
+  Build a team whose type coverage is already complete (the Analysis
+  tab's suggestions section shows the "coverage is already solid" note)
+  — the alternatives listed should be generally strong species, not the
+  lowest-numbered Pokédex entries of whatever typing ties on score. Each
+  card shows its base stat total under the score.
+- [ ] **The suggestion-count setting.** Settings → Team Suggestions has a
+  "Number of suggestions shown" stepper, 5 to 10, default 5; changing it
+  immediately changes how many cards the Analysis tab's Suggestions
+  section shows.
+- [ ] **A fresh install and an upgrade from a Phase-6-era (Room v2)
+  database both work.** A fresh install syncs and shows base stats and
+  canonical abilities as above. An existing install (upgrading from a
+  build before this phase) re-syncs automatically on next launch (the
+  cache schema version bump forces this) and ends up in the same state —
+  no crash, no stale "sap-sipper"-style ability text left over from
+  before the fix, existing teams and roster entries untouched.
+
+### Known regressions
+
+None yet.

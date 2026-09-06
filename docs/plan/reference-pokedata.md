@@ -58,6 +58,11 @@ smaller.
 
 ### What the sync downloads — measured
 
+The first eight files are Phase 1's original set; the last four were added
+in Phase 7 for base stats and correct English ability/move names (see
+`phase-7-accuracy-and-customization.md` §2) — still read at the same
+pinned `DATASET_REVISION` as everything else.
+
 | File | Size | Rows | Columns used |
 |---|---:|---:|---|
 | `pokemon.csv` | 47,082 B | 1351 | `id`, `identifier`, `species_id`, `is_default` |
@@ -68,12 +73,19 @@ smaller.
 | `moves.csv` | 42,322 B | 937 | `id`, `identifier`, `type_id`, `power`, `damage_class_id` |
 | `types.csv` | 321 B | 21 | `id`, `identifier` |
 | `type_efficacy.csv` | 2,883 B | 324 | `damage_type_id`, `target_type_id`, `damage_factor` |
-| **Total** | **212,818 B** | | **8 requests** |
+| `pokemon_stats.csv` | 94,392 B | 8106 | `pokemon_id`, `stat_id`, `base_stat` |
+| `pokemon_stats_past.csv` | 3,046 B | 235 | `pokemon_id`, `generation_id`, `stat_id`, `base_stat` |
+| `ability_names.csv` | 65,239 B | 3739 (374 English) | `ability_id`, `local_language_id`, `name` |
+| `move_names.csv` | 202,670 B | 9532 (937 English) | `move_id`, `local_language_id`, `name` |
+| **Total** | **578,165 B** | | **12 requests** |
 
-**≈ 208 KiB and 8 requests, against ≈ 426 MB and 3875 requests.** Roughly
-2000× fewer bytes and 480× fewer requests. On any usable connection the
-sync finishes before a progress bar is worth showing — which is what
-"recupero fulmineo" means here, and it is the reason this plan exists.
+**≈ 565 KiB and 12 requests, against ≈ 426 MB and 3875 requests** —
+still roughly 750× fewer bytes and 320× fewer requests than the JSON
+mirror. `move_names.csv` alone is over a third of the total; it buys
+correct move capitalisation (`Double-Edge`, `U-turn`, `Will-O-Wisp`) that
+`prettify()` cannot produce — see `phase-7-accuracy-and-customization.md`
+§0.3. On any usable connection the sync still finishes well under a
+second, which is what "recupero fulmineo" means here.
 
 ### Exact headers, as measured
 
@@ -91,6 +103,10 @@ moves.csv              id,identifier,generation_id,type_id,power,pp,accuracy,pri
                        contest_effect_id,super_contest_effect_id
 types.csv              id,identifier,generation_id,damage_class_id
 type_efficacy.csv      damage_type_id,target_type_id,damage_factor
+pokemon_stats.csv      pokemon_id,stat_id,base_stat,effort
+pokemon_stats_past.csv pokemon_id,generation_id,stat_id,base_stat,effort
+ability_names.csv      ability_id,local_language_id,name
+move_names.csv         move_id,local_language_id,name
 ```
 
 Do not index columns positionally. Parse the header row and look columns up
@@ -280,7 +296,7 @@ real debugging time there.
 - **Do not set `Accept-Encoding` on `HttpURLConnection`.** Left alone it
   negotiates gzip and decompresses transparently. Set it by hand and you
   get raw gzip bytes. This matters more here than it did in Hall of
-  Memories: CSV compresses extremely well, so the 208 KB figure above is
+  Memories: CSV compresses extremely well, so the 565 KB figure above is
   what crosses the wire uncompressed and roughly a quarter of that with
   the gzip you get for free.
 - **Parse the CSV properly.** `moves.csv` and friends are plain enough that
