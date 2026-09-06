@@ -18,4 +18,9 @@ data class TeamMember(
     val ability: String?,
     val moves: List<PokemonMove?>,
     val isCustomSaved: Boolean,
+    /** Free text, same "type it or pick it" contract as [ability] — modelled effects exist only
+     * for the defensive subset in `domain/item/ItemEffects.kt`. Added in Phase 7; `null` for
+     * every member that predates it and for a suggestion candidate ([memberFromEntry] never sets
+     * one). See docs/plan/phase-7-accuracy-and-customization.md §4. */
+    val item: String? = null,
 )

@@ -61,6 +61,51 @@ versions follow [Semantic Versioning](https://semver.org/).
   Kotlin port against the TypeScript original recovered from git history.
   Records six findings and an ordered remediation plan in
   [`docs/post-migration-review.md`](docs/post-migration-review.md).
+- **Abilities show their real name, not the raw PokéAPI slug.** Picking a
+  species used to fill the ability field with `sap-sipper` instead of
+  "Sap Sipper" — the ability picker one row below showed the correct
+  name, so the same ability read two different ways on the same screen.
+  Every ability and move name now comes from PokéAPI's own English name
+  data instead of a naive hyphen-to-space conversion, which also fixes
+  names that conversion gets wrong outright (Well-Baked Body, Double-Edge,
+  U-turn, Will-O-Wisp, ...).
+- **The ability field is now a canonical picker with a custom fallback.**
+  Picking a species offers its real abilities (normal slots, then hidden)
+  by name; a "Custom ability…" option opens the full catalogue with free
+  text still accepted, so a ROM hack's non-canonical ability assignment
+  stays typeable. An option that actually changes the weakness/resistance
+  map is marked.
+- **Ten previously unmodelled abilities now affect the coverage
+  calculation**: Heatproof, Water Bubble, Purifying Salt, Filter, Solid
+  Rock, Prism Armor, Primordial Sea, Desolate Land, Delta Stream, Tera
+  Shell. Dry Skin's missed Fire weakness (1.25×) is now applied alongside
+  its existing Water immunity. Wonder Guard is now a real effect instead
+  of a display-only badge — only a super-effective hit deals any damage,
+  matching Shedinja's actual mechanic. Scrappy and Mind's Eye now let
+  Normal/Fighting moves hit Ghost-types in the offensive coverage grid,
+  and Aerilate/Pixilate/Refrigerate/Galvanize/Normalize now rewrite a
+  Normal-type move's coverage the way they do in the real games.
+- **Held items affecting type coverage can now be assigned.** A new item
+  field (free text, same "type it or pick it" contract as ability) models
+  Air Balloon, Iron Ball, Ring Target and one resist berry per type. Items
+  round-trip through Showdown export/import and local backups.
+- **Suggestions on an already-strong team now lead with the strongest
+  alternative, not the lowest Pokédex id.** Once a team's type coverage is
+  complete every remaining candidate ties on the composite score, and the
+  ranking used to fall through straight to ascending catalogue id —
+  surfacing Raticate ahead of far stronger options for no reason connected
+  to team building. A tied ranking now breaks by base stat total first
+  (current-generation value, or the historical one for a chosen
+  generation filter), with catalogue id as the final tie-break only.
+  Suggestion cards show the candidate's base stat total and a plain-
+  language explanation of the score.
+- **The number of suggestions shown is now configurable**, 5 to 10
+  (Settings → Team Suggestions), default 5 — previously hardcoded.
+- **The dataset sync downloads four more small CSVs** (base stats,
+  historical base stats, English ability names, English move names),
+  ~213 KB → ~578 KB total — still a handful of requests, still well under
+  a second on any real connection. See
+  [`docs/plan/reference-pokedata.md`](docs/plan/reference-pokedata.md) §2.
 
 ## [2.0.0] - 2026-09-04
 

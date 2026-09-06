@@ -3,7 +3,9 @@ package com.marcogn.coverdex.ui.team.analysis
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.CacheStatus
 import com.marcogn.coverdex.domain.model.MoveEntry
+import com.marcogn.coverdex.domain.model.PastBst
 import com.marcogn.coverdex.domain.model.PokemonEntry
+import com.marcogn.coverdex.domain.model.SpeciesAbility
 import com.marcogn.coverdex.domain.model.SyncState
 import com.marcogn.coverdex.domain.model.TypeChart
 import com.marcogn.coverdex.domain.repository.PokedexRepository
@@ -37,4 +39,6 @@ class FakePokedexRepository(
     override suspend fun allSpecies(): List<PokemonEntry> = pool
     override suspend fun allMoves(): List<MoveEntry> = emptyList()
     override suspend fun typeChart(): TypeChart = chart
+    override suspend fun abilitiesForSpecies(pokemonId: Int): List<SpeciesAbility> = emptyList()
+    override suspend fun allPastBst(): List<PastBst> = emptyList()
 }

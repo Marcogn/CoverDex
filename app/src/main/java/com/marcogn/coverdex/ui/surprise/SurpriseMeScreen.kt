@@ -44,6 +44,7 @@ import com.marcogn.coverdex.ui.common.CoverDexTopBar
 import com.marcogn.coverdex.ui.common.DropdownOption
 import com.marcogn.coverdex.ui.common.PokemonSprite
 import com.marcogn.coverdex.ui.common.SearchableDropdown
+import com.marcogn.coverdex.ui.common.StepperCounter
 import com.marcogn.coverdex.ui.common.TypeBadge
 import com.marcogn.coverdex.ui.teams.TeamNameDialog
 
@@ -123,41 +124,46 @@ fun SurpriseMeScreen(
                     stringResource(R.string.surprise_me_remaining_slots, state.remainingSlots),
                     style = MaterialTheme.typography.titleSmall,
                 )
-                ConstraintCounter(
+                StepperCounter(
                     label = stringResource(R.string.surprise_me_starters),
                     value = state.constraints.starterSlots,
+                    canDecrement = state.constraints.starterSlots > 0,
                     canIncrement = !state.budgetFull,
-                    onIncrement = { viewModel.updateConstraints { it.copy(starterSlots = it.starterSlots + 1) } },
                     onDecrement = { viewModel.updateConstraints { it.copy(starterSlots = (it.starterSlots - 1).coerceAtLeast(0)) } },
+                    onIncrement = { viewModel.updateConstraints { it.copy(starterSlots = it.starterSlots + 1) } },
                 )
-                ConstraintCounter(
+                StepperCounter(
                     label = stringResource(R.string.surprise_me_legendaries_mythicals),
                     value = state.constraints.legendaryMythicalSlots,
+                    canDecrement = state.constraints.legendaryMythicalSlots > 0,
                     canIncrement = !state.budgetFull,
-                    onIncrement = { viewModel.updateConstraints { it.copy(legendaryMythicalSlots = it.legendaryMythicalSlots + 1) } },
                     onDecrement = { viewModel.updateConstraints { it.copy(legendaryMythicalSlots = (it.legendaryMythicalSlots - 1).coerceAtLeast(0)) } },
+                    onIncrement = { viewModel.updateConstraints { it.copy(legendaryMythicalSlots = it.legendaryMythicalSlots + 1) } },
                 )
-                ConstraintCounter(
+                StepperCounter(
                     label = stringResource(R.string.surprise_me_mega_evolutions),
                     value = state.constraints.megaSlots,
+                    canDecrement = state.constraints.megaSlots > 0,
                     canIncrement = !state.budgetFull,
-                    onIncrement = { viewModel.updateConstraints { it.copy(megaSlots = it.megaSlots + 1) } },
                     onDecrement = { viewModel.updateConstraints { it.copy(megaSlots = (it.megaSlots - 1).coerceAtLeast(0)) } },
+                    onIncrement = { viewModel.updateConstraints { it.copy(megaSlots = it.megaSlots + 1) } },
                 )
-                ConstraintCounter(
+                StepperCounter(
                     label = stringResource(R.string.surprise_me_dynamax_gmax),
                     value = state.constraints.dynamaxSlots,
+                    canDecrement = state.constraints.dynamaxSlots > 0,
                     canIncrement = !state.budgetFull,
-                    onIncrement = { viewModel.updateConstraints { it.copy(dynamaxSlots = it.dynamaxSlots + 1) } },
                     onDecrement = { viewModel.updateConstraints { it.copy(dynamaxSlots = (it.dynamaxSlots - 1).coerceAtLeast(0)) } },
+                    onIncrement = { viewModel.updateConstraints { it.copy(dynamaxSlots = it.dynamaxSlots + 1) } },
                 )
                 if (state.customs.isNotEmpty()) {
-                    ConstraintCounter(
+                    StepperCounter(
                         label = stringResource(R.string.surprise_me_custom_pokemon),
                         value = state.constraints.customSlots,
+                        canDecrement = state.constraints.customSlots > 0,
                         canIncrement = !state.budgetFull,
-                        onIncrement = { viewModel.updateConstraints { it.copy(customSlots = it.customSlots + 1) } },
                         onDecrement = { viewModel.updateConstraints { it.copy(customSlots = (it.customSlots - 1).coerceAtLeast(0)) } },
+                        onIncrement = { viewModel.updateConstraints { it.copy(customSlots = it.customSlots + 1) } },
                     )
                 }
             }
@@ -241,25 +247,6 @@ fun SurpriseMeScreen(
 @Composable
 private fun RemoveAnchorIcon() {
     androidx.compose.material3.Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
-}
-
-@Composable
-private fun ConstraintCounter(
-    label: String,
-    value: Int,
-    canIncrement: Boolean,
-    onIncrement: () -> Unit,
-    onDecrement: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        IconButton(onClick = onDecrement, enabled = value > 0) { Text("−") }
-        Text(value.toString(), modifier = Modifier.width(24.dp), textAlign = TextAlign.Center)
-        IconButton(onClick = onIncrement, enabled = canIncrement) { Text("+") }
-    }
 }
 
 @Composable

@@ -3,7 +3,9 @@ package com.marcogn.coverdex.domain.repository
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.CacheStatus
 import com.marcogn.coverdex.domain.model.MoveEntry
+import com.marcogn.coverdex.domain.model.PastBst
 import com.marcogn.coverdex.domain.model.PokemonEntry
+import com.marcogn.coverdex.domain.model.SpeciesAbility
 import com.marcogn.coverdex.domain.model.SyncState
 import com.marcogn.coverdex.domain.model.TypeChart
 import kotlinx.coroutines.flow.Flow
@@ -45,4 +47,18 @@ interface PokedexRepository {
     suspend fun allMoves(): List<MoveEntry>
 
     suspend fun typeChart(): TypeChart
+
+    /** A species form's canonical abilities (normal slots plus hidden, if any), ordered hidden
+     * last — backs the ability picker's canonical list. Empty for a form with no
+     * `pokemon_abilities` rows (see `DatasetAssembly.kt`'s `resolveDefaultAbility` doc) or for a
+     * `pokemonId` not in the cache. Added in Phase 7, see
+     * docs/plan/phase-7-accuracy-and-customization.md §3.2. */
+    suspend fun abilitiesForSpecies(pokemonId: Int): List<SpeciesAbility>
+
+    /** Every historical base-stat-total override, a small table (a few hundred rows at most) —
+     * callers build a per-generation lookup from this, the same one-shot-list shape as
+     * [allMoves]. A form absent here never had a historical change; its BST is
+     * [PokemonEntry.baseStatTotal] at every generation. Added in Phase 7 for the suggestion
+     * ranking's BST tie-break, see docs/plan/phase-7-accuracy-and-customization.md §2.2/§5.2. */
+    suspend fun allPastBst(): List<PastBst>
 }

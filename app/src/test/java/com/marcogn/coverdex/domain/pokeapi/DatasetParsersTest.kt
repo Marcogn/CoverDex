@@ -122,4 +122,40 @@ class DatasetParsersTest {
 
         assertEquals(setOf(0, 50, 100, 200), factors)
     }
+
+    @Test
+    fun `parses pokemon stats csv into six rows per form`() {
+        val rows = parsePokemonStats(fixture("pokemon_stats.csv"))
+        val bulbasaurStats = rows.filter { it.pokemonId == 1 }.associate { it.statId to it.baseStat }
+
+        assertEquals(mapOf(1 to 45, 2 to 49, 3 to 49, 4 to 65, 5 to 65, 6 to 45), bulbasaurStats)
+    }
+
+    @Test
+    fun `parses pokemon stats past csv, generationId is the last generation the value held`() {
+        val rows = parsePokemonStatsPast(fixture("pokemon_stats_past.csv"))
+
+        val deoxysAttack = rows.first { it.pokemonId == 10001 }
+        assertEquals(5, deoxysAttack.generationId)
+        assertEquals(4, deoxysAttack.statId)
+        assertEquals(150, deoxysAttack.baseStat)
+    }
+
+    @Test
+    fun `parses ability names csv, keeping only the English rows`() {
+        val rows = parseAbilityNames(fixture("ability_names.csv"))
+
+        assertEquals("Overgrow", rows.first { it.id == 65 }.name)
+        assertEquals("Well-Baked Body", rows.first { it.id == 202 }.name)
+        assertEquals(3, rows.size)
+    }
+
+    @Test
+    fun `parses move names csv, keeping only the English rows`() {
+        val rows = parseMoveNames(fixture("move_names.csv"))
+
+        assertEquals("Pound", rows.first { it.id == 1 }.name)
+        assertEquals("Double-Edge", rows.first { it.id == 250 }.name)
+        assertEquals(4, rows.size)
+    }
 }

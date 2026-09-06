@@ -32,10 +32,11 @@ import androidx.compose.ui.unit.dp
 import com.marcogn.coverdex.R
 import com.marcogn.coverdex.domain.ability.AbilityEffect
 import com.marcogn.coverdex.domain.ability.getAbilityEffects
-import com.marcogn.coverdex.domain.ability.normalizeAbilityName
 import com.marcogn.coverdex.domain.coverage.attackingTypesForMember
 import com.marcogn.coverdex.domain.coverage.defensiveMultiplier
 import com.marcogn.coverdex.domain.coverage.memberHasMoves
+import com.marcogn.coverdex.domain.item.ItemEffect
+import com.marcogn.coverdex.domain.item.getItemEffects
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.model.TypeChart
@@ -83,7 +84,7 @@ fun PerPokemonCard(member: TeamMember, chart: TypeChart, modifier: Modifier = Mo
                 val resist025x = mutableListOf<PokemonType>()
                 val immune = mutableListOf<PokemonType>()
                 for (atk in PokemonType.entries) {
-                    when (val mult = defensiveMultiplier(chart, atk, member.types, member.ability)) {
+                    when (val mult = defensiveMultiplier(chart, atk, member.types, member.ability, member.item)) {
                         0.0 -> immune.add(atk)
                         else -> when {
                             mult >= 4.0 -> weak4x.add(atk)
@@ -99,16 +100,20 @@ fun PerPokemonCard(member: TeamMember, chart: TypeChart, modifier: Modifier = Mo
                     // (stringResource-backed) — resolved here, in the composable context, rather
                     // than inside the plain joinToString lambda below, which cannot call them.
                     val immuneToLabel = stringResource(R.string.analysis_immune_to)
+                    val superEffectiveHitsLabel = stringResource(R.string.analysis_super_effective_hits)
+                    val neverSuperEffectiveLabel = stringResource(R.string.analysis_never_super_effective)
                     val typeNames = PokemonType.entries.associateWith { it.displayName() }
                     val effects = getAbilityEffects(member.ability)
-                    val isWonderGuard = normalizeAbilityName(member.ability) == "wonder-guard"
+                    val isWonderGuard = effects?.any { it is AbilityEffect.OnlySuperEffective } == true
                     val summary = effects
-                        ?.filter { it !is AbilityEffect.BadgeOnly }
+                        ?.filter { it !is AbilityEffect.BadgeOnly && it !is AbilityEffect.OnlySuperEffective }
                         ?.joinToString(", ") { effect ->
                             when (effect) {
                                 is AbilityEffect.Immunity -> "$immuneToLabel ${typeNames.getValue(effect.type)}"
                                 is AbilityEffect.Multiplier -> "×${effect.factor} ${typeNames.getValue(effect.type)}"
-                                is AbilityEffect.BadgeOnly -> ""
+                                is AbilityEffect.SuperEffectiveMultiplier -> "×${effect.factor} $superEffectiveHitsLabel"
+                                AbilityEffect.NeverSuperEffective -> neverSuperEffectiveLabel
+                                is AbilityEffect.BadgeOnly, AbilityEffect.OnlySuperEffective -> ""
                             }
                         }
                     DefRow(stringResource(R.string.slot_ability_label)) {
@@ -118,6 +123,27 @@ fun PerPokemonCard(member: TeamMember, chart: TypeChart, modifier: Modifier = Mo
                         }
                         if (isWonderGuard) {
                             Text(" — ${stringResource(R.string.analysis_wonder_guard_note)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                        }
+                    }
+                }
+
+                if (!member.item.isNullOrEmpty()) {
+                    val immuneToLabel = stringResource(R.string.analysis_immune_to)
+                    val groundsHolderLabel = stringResource(R.string.analysis_item_grounds_holder)
+                    val removesImmunitiesLabel = stringResource(R.string.analysis_item_removes_immunities)
+                    val typeNames = PokemonType.entries.associateWith { it.displayName() }
+                    val itemSummary = getItemEffects(member.item)?.joinToString(", ") { effect ->
+                        when (effect) {
+                            is ItemEffect.Immunity -> "$immuneToLabel ${typeNames.getValue(effect.type)}"
+                            ItemEffect.GroundsHolder -> groundsHolderLabel
+                            ItemEffect.RemovesTypeImmunities -> removesImmunitiesLabel
+                            is ItemEffect.ResistBerry -> "×0.5 ${typeNames.getValue(effect.type)}"
+                        }
+                    }
+                    DefRow(stringResource(R.string.slot_item_label)) {
+                        Text(member.item, style = MaterialTheme.typography.bodySmall)
+                        if (!itemSummary.isNullOrEmpty()) {
+                            Text(" — $itemSummary", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
                         }
                     }
                 }

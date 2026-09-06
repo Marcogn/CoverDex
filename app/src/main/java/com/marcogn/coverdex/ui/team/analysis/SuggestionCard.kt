@@ -68,6 +68,19 @@ fun SuggestionCard(suggestion: Suggestion, onApply: (Suggestion) -> Unit, modifi
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Text(
+            stringResource(R.string.suggestions_score_hint),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        suggestion.baseStatTotal?.let { bst ->
+            Text(
+                stringResource(R.string.suggestions_base_stat_total, bst),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         if (suggestion.newlyCovered.isNotEmpty()) {
             TypeRow(label = stringResource(R.string.suggestions_covers), types = suggestion.newlyCovered)

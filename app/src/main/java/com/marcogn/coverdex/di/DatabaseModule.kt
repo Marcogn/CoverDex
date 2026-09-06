@@ -8,6 +8,7 @@ import com.marcogn.coverdex.data.local.dao.CustomPokemonDao
 import com.marcogn.coverdex.data.local.dao.PokedexDao
 import com.marcogn.coverdex.data.local.dao.TeamDao
 import com.marcogn.coverdex.data.local.migration.MIGRATION_1_2
+import com.marcogn.coverdex.data.local.migration.MIGRATION_2_3
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,7 +26,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): CoverDexDatabase =
         Room.databaseBuilder(context, CoverDexDatabase::class.java, CoverDexDatabase.DATABASE_NAME)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides

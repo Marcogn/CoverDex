@@ -80,6 +80,10 @@
     <string name="analysis_team_best">Miglior team</string>
     <string name="analysis_immune_to">immune a</string>
     <string name="analysis_wonder_guard_note">Solo le mosse super-efficaci infliggono danni</string>
+    <string name="analysis_super_effective_hits">i colpi super-efficaci</string>
+    <string name="analysis_never_super_effective">mai super-efficace contro questo Pokémon</string>
+    <string name="analysis_item_grounds_holder">mette a terra il possessore</string>
+    <string name="analysis_item_removes_immunities">rimuove le immunità di tipo</string>
     <string name="analysis_pokemon_column_header">Pokémon</string>
 
     <!-- Suggestions (Phase 4) -->
@@ -96,6 +100,8 @@
     <string name="suggestions_already_weak">già debole: %1$s</string>
     <string name="suggestions_no_new_weaknesses">Nessuna nuova debolezza condivisa introdotta</string>
     <string name="suggestions_score">Punteggio: %1$s</string>
+    <string name="suggestions_score_hint">Copertura guadagnata meno debolezze introdotte</string>
+    <string name="suggestions_base_stat_total">Statistiche totali: %1$d</string>
 
     <!-- Surprise Me (Phase 4) -->
     <string name="surprise_me_title">Sorprendimi 🎲</string>
@@ -145,6 +151,11 @@
     <string name="slot_type2_label">Tipo 2</string>
     <string name="slot_type_none">Nessuno</string>
     <string name="slot_ability_label">Abilità</string>
+    <string name="slot_item_label">Strumento</string>
+    <string name="ability_picker_hidden_suffix"> (nascosta)</string>
+    <string name="ability_picker_custom_option">Abilità custom…</string>
+    <string name="ability_picker_back_to_canonical">Torna alle abilità canoniche</string>
+    <string name="ability_picker_effect_marker">●</string>
     <string name="slot_moves_title">Mosse</string>
     <string name="slot_move_pick_placeholder">Scegli o digita una mossa…</string>
     <string name="slot_move_custom_name_placeholder">Nome mossa personalizzata</string>
@@ -167,6 +178,7 @@
     <string name="settings_section_team_suggestions">Suggerimenti Team</string>
     <string name="settings_include_mega">Includi forme Mega/Dynamax/Gigantamax</string>
     <string name="settings_include_legendary">Includi Leggendari e Mitici</string>
+    <string name="settings_suggestion_count">Numero di suggerimenti mostrati</string>
     <string name="settings_section_appearance">Aspetto</string>
     <string name="settings_theme_system">Predefinito sistema</string>
     <string name="settings_theme_light">Chiaro</string>

@@ -2,3 +2,4 @@ id,identifier,generation_id,type_id,power,pp,accuracy,priority,target_id,damage_
 1,pound,1,1,40,35,100,0,10,2,1,,5,1,5
 32,horn-drill,1,1,,5,30,0,10,2,39,,1,14,9
 150,splash,1,1,,40,,0,7,1,86,,3,28,16
+250,double-edge,1,1,120,15,100,0,10,2,,,,,

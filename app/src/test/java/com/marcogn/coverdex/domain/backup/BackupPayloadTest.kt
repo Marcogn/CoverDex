@@ -96,6 +96,47 @@ class BackupPayloadTest {
     }
 
     @Test
+    fun `item round-trips through the backup DTO`() {
+        val original = buildMember("Landorus", PokemonType.GROUND to PokemonType.FLYING).copy(item = "Air Balloon")
+
+        val roundTripped = original.toBackupDto().toDomain()
+
+        assertEquals("Air Balloon", roundTripped.item)
+        assertEquals(original, roundTripped)
+    }
+
+    @Test
+    fun `a v1 backup file (no item key at all) still decodes, item defaulting to null`() {
+        // Hand-written, not produced via toJson() — a v1 file genuinely never had this key,
+        // which is a different case from an explicit "item": null (CLAUDE.md's kotlinx.serialization
+        // gotcha: a default only fills a MISSING key, not an explicit null).
+        val v1Json = """
+            {
+              "formatVersion": 1,
+              "exportedAtEpochMillis": 1700000100000,
+              "teams": [],
+              "customPokemon": [
+                {
+                  "id": "c1",
+                  "pokedexId": null,
+                  "speciesName": "Custom Mon",
+                  "type1": "dragon",
+                  "type2": "steel",
+                  "ability": null,
+                  "moves": [null, null, null, null],
+                  "isCustomSaved": true
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val decoded = v1Json.toBackupPayload()
+
+        assertEquals(1, decoded.formatVersion)
+        assertEquals(null, decoded.customPokemon.single().item)
+    }
+
+    @Test
     fun `an unresolvable move type falls back to Normal instead of crashing`() {
         val move = PokemonMove(id = "m1", name = "Weird Move", type = PokemonType.FIRE, power = 40, damageClass = DamageClass.PHYSICAL, isCustom = false)
         val corrupted = move.toBackupDto().copy(type = "not-a-real-type")

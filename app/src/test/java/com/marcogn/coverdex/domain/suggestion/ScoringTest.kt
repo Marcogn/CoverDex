@@ -34,6 +34,14 @@ class ScoringTest {
     }
 
     @Test
+    fun `weaknesses honours a held item too, not just the ability (Phase 7 item threading)`() {
+        val withoutItem = weaknesses(chart, PokemonType.ELECTRIC to null)
+        val withAirBalloon = weaknesses(chart, PokemonType.ELECTRIC to null, item = "air-balloon")
+        assertTrue(withoutItem.contains(PokemonType.GROUND))
+        assertFalse(withAirBalloon.contains(PokemonType.GROUND))
+    }
+
+    @Test
     fun `weaknesses with an unknown ability behaves exactly like no ability`() {
         val withoutAbility = weaknesses(chart, PokemonType.ELECTRIC to null)
         val withUnknownAbility = weaknesses(chart, PokemonType.ELECTRIC to null, "not-a-real-ability")

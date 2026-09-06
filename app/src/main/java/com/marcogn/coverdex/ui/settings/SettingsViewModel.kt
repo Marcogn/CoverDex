@@ -30,6 +30,9 @@ data class SettingsUiState(
     /** Set only on a failed export/import — cleared on the next attempt. Never a success message:
      * a successful restore is visible immediately in the Teams/Roster lists it just replaced. */
     val backupMessage: String? = null,
+    /** How many ranked suggestions the Analysis tab shows, 5-10 — Phase 7, see
+     * docs/plan/phase-7-accuracy-and-customization.md §6. */
+    val suggestionCount: Int = 5,
 )
 
 @HiltViewModel
@@ -44,10 +47,14 @@ class SettingsViewModel @Inject constructor(
 
     val uiState: StateFlow<SettingsUiState> = combine(
         combine(pokedexRepository.cacheStatus, pokedexRepository.syncState) { cacheStatus, syncState -> cacheStatus to syncState },
-        combine(settingsPreferences.includeMegaDynamax, settingsPreferences.excludeLegendaries) { includeMega, excludeLegendaries -> includeMega to excludeLegendaries },
+        combine(
+            settingsPreferences.includeMegaDynamax,
+            settingsPreferences.excludeLegendaries,
+            settingsPreferences.suggestionCount,
+        ) { includeMega, excludeLegendaries, suggestionCount -> Triple(includeMega, excludeLegendaries, suggestionCount) },
         backupBusy,
         backupMessage,
-    ) { (cacheStatus, syncState), (includeMegaDynamax, excludeLegendaries), busy, message ->
+    ) { (cacheStatus, syncState), (includeMegaDynamax, excludeLegendaries, suggestionCount), busy, message ->
         SettingsUiState(
             cacheStatus = cacheStatus,
             syncState = syncState,
@@ -55,6 +62,7 @@ class SettingsViewModel @Inject constructor(
             includeLegendaries = !excludeLegendaries,
             backupBusy = busy,
             backupMessage = message,
+            suggestionCount = suggestionCount,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
@@ -70,6 +78,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setIncludeLegendaries(enabled: Boolean) {
         viewModelScope.launch { settingsPreferences.setExcludeLegendaries(!enabled) }
+    }
+
+    fun setSuggestionCount(count: Int) {
+        viewModelScope.launch { settingsPreferences.setSuggestionCount(count) }
     }
 
     fun exportBackup(destination: Uri) {

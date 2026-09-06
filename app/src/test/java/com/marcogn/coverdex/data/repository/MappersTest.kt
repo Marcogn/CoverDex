@@ -2,13 +2,17 @@ package com.marcogn.coverdex.data.repository
 
 import com.marcogn.coverdex.data.local.entity.PokeAbilityEntity
 import com.marcogn.coverdex.data.local.entity.PokeMoveEntity
+import com.marcogn.coverdex.data.local.entity.PokePokemonAbilityEntity
+import com.marcogn.coverdex.data.local.entity.PokeSpeciesBstPastEntity
 import com.marcogn.coverdex.data.local.entity.PokeSpeciesEntity
 import com.marcogn.coverdex.data.local.entity.TypeEfficacyEntity
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.DamageClass
 import com.marcogn.coverdex.domain.model.MoveEntry
+import com.marcogn.coverdex.domain.model.PastBst
 import com.marcogn.coverdex.domain.model.PokemonEntry
 import com.marcogn.coverdex.domain.model.PokemonType
+import com.marcogn.coverdex.domain.model.SpeciesAbility
 import com.marcogn.coverdex.domain.model.TypeChart
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -36,6 +40,21 @@ class MappersTest {
         val roundTripped = entry.toEntity().toDomain()
 
         assertEquals(entry, roundTripped)
+    }
+
+    @Test
+    fun `baseStatTotal round-trips through the entity`() {
+        val entry = PokemonEntry(
+            id = 1, name = "bulbasaur", displayName = "Bulbasaur", speciesId = 1, speciesName = "bulbasaur",
+            types = PokemonType.GRASS to PokemonType.POISON, isLegendary = false, isMythical = false,
+            isFinalEvolution = false, generationIntroduced = 1, defaultAbility = "overgrow", isDefaultForm = true,
+            baseStatTotal = 318,
+        )
+
+        val entity = entry.toEntity()
+
+        assertEquals(318, entity.baseStatTotal)
+        assertEquals(entry, entity.toDomain())
     }
 
     @Test
@@ -117,5 +136,25 @@ class MappersTest {
     fun `an ability entity maps with no failure path, unlike species and moves`() {
         val ability = PokeAbilityEntity(id = 1, name = "x", displayName = "X", searchName = "x")
         assertEquals(AbilityEntry(1, "x", "X"), ability.toDomain())
+    }
+
+    @Test
+    fun `SpeciesAbility round-trips through its entity`() {
+        val ability = SpeciesAbility(pokemonId = 1, slug = "overgrow", displayName = "Overgrow", isHidden = false, slot = 1)
+
+        val entity = ability.toEntity()
+
+        assertEquals(PokePokemonAbilityEntity(pokemonId = 1, slot = 1, abilitySlug = "overgrow", displayName = "Overgrow", isHidden = false), entity)
+        assertEquals(ability, entity.toDomain())
+    }
+
+    @Test
+    fun `PastBst round-trips through its entity`() {
+        val past = PastBst(pokemonId = 144, generationId = 1, bst = 460)
+
+        val entity = past.toEntity()
+
+        assertEquals(PokeSpeciesBstPastEntity(pokemonId = 144, generationId = 1, bst = 460), entity)
+        assertEquals(past, entity.toDomain())
     }
 }

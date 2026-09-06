@@ -38,6 +38,10 @@ private class FakeDatasetSource(private val shouldFail: Boolean = false) : Datas
             DatasetFile.MOVES to fixture("moves.csv"),
             DatasetFile.TYPES to fixture("types.csv"),
             DatasetFile.TYPE_EFFICACY to fixture("type_efficacy.csv"),
+            DatasetFile.POKEMON_STATS to fixture("pokemon_stats.csv"),
+            DatasetFile.POKEMON_STATS_PAST to fixture("pokemon_stats_past.csv"),
+            DatasetFile.ABILITY_NAMES to fixture("ability_names.csv"),
+            DatasetFile.MOVE_NAMES to fixture("move_names.csv"),
         )
     }
 }

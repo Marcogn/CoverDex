@@ -23,6 +23,7 @@ says so explicitly and tells you what to do about it.
 | 4 | [`phase-4-suggestions-and-generator.md`](phase-4-suggestions-and-generator.md) | Suggestion engine, composite scoring, Surprise Me generator |
 | 5 | [`phase-5-import-export-and-settings.md`](phase-5-import-export-and-settings.md) | Showdown import/export, settings, theme and language, local backup |
 | 6 | [`phase-6-release.md`](phase-6-release.md) | Signing, release pipeline, docs rewrite, `legacy-web/` deleted |
+| 7 | [`phase-7-accuracy-and-customization.md`](phase-7-accuracy-and-customization.md) | Base stats + correct English ability/move names in the dataset, canonical-vs-custom ability picking, held items (defensive subset), BST tie-break for suggestions, configurable suggestion count, and the ability-effect gaps the Phase 7 audit found |
 
 Read before starting any phase: [`../../CLAUDE.md`](../../CLAUDE.md),
 [`native-spec.md`](native-spec.md), this file, the phase file itself, and

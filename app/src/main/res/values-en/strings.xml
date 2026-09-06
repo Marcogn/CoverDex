@@ -80,6 +80,10 @@
     <string name="analysis_team_best">Team best</string>
     <string name="analysis_immune_to">immune to</string>
     <string name="analysis_wonder_guard_note">Only super-effective moves deal damage</string>
+    <string name="analysis_super_effective_hits">super-effective hits</string>
+    <string name="analysis_never_super_effective">never super-effective against this Pokémon</string>
+    <string name="analysis_item_grounds_holder">grounds the holder</string>
+    <string name="analysis_item_removes_immunities">removes type immunities</string>
     <string name="analysis_pokemon_column_header">Pokémon</string>
 
     <!-- Suggestions (Phase 4) -->
@@ -96,6 +100,8 @@
     <string name="suggestions_already_weak">already weak: %1$s</string>
     <string name="suggestions_no_new_weaknesses">No new shared weaknesses introduced</string>
     <string name="suggestions_score">Score: %1$s</string>
+    <string name="suggestions_score_hint">Coverage gained minus weaknesses introduced</string>
+    <string name="suggestions_base_stat_total">Base stat total: %1$d</string>
 
     <!-- Surprise Me (Phase 4) -->
     <string name="surprise_me_title">Surprise Me 🎲</string>
@@ -145,6 +151,11 @@
     <string name="slot_type2_label">Type 2</string>
     <string name="slot_type_none">None</string>
     <string name="slot_ability_label">Ability</string>
+    <string name="slot_item_label">Item</string>
+    <string name="ability_picker_hidden_suffix"> (hidden)</string>
+    <string name="ability_picker_custom_option">Custom ability…</string>
+    <string name="ability_picker_back_to_canonical">Back to canonical abilities</string>
+    <string name="ability_picker_effect_marker">●</string>
     <string name="slot_moves_title">Moves</string>
     <string name="slot_move_pick_placeholder">Pick or type a move…</string>
     <string name="slot_move_custom_name_placeholder">Custom move name</string>
@@ -167,6 +178,7 @@
     <string name="settings_section_team_suggestions">Team Suggestions</string>
     <string name="settings_include_mega">Include Mega/Dynamax/Gigantamax forms</string>
     <string name="settings_include_legendary">Include Legendary &amp; Mythical Pokémon</string>
+    <string name="settings_suggestion_count">Number of suggestions shown</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme_system">System default</string>
     <string name="settings_theme_light">Light</string>

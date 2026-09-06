@@ -28,8 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.marcogn.coverdex.BuildConfig
 import com.marcogn.coverdex.R
+import com.marcogn.coverdex.data.settings.MAX_SUGGESTION_COUNT
+import com.marcogn.coverdex.data.settings.MIN_SUGGESTION_COUNT
 import com.marcogn.coverdex.domain.model.ThemeMode
 import com.marcogn.coverdex.ui.common.CoverDexTopBar
+import com.marcogn.coverdex.ui.common.StepperCounter
 import com.marcogn.coverdex.ui.theme.ThemeViewModel
 
 @Composable
@@ -59,6 +62,15 @@ fun SettingsScreen(
                     label = stringResource(R.string.settings_include_legendary),
                     checked = uiState.includeLegendaries,
                     onCheckedChange = settingsViewModel::setIncludeLegendaries,
+                )
+                StepperCounter(
+                    label = stringResource(R.string.settings_suggestion_count),
+                    value = uiState.suggestionCount,
+                    canDecrement = uiState.suggestionCount > MIN_SUGGESTION_COUNT,
+                    canIncrement = uiState.suggestionCount < MAX_SUGGESTION_COUNT,
+                    onDecrement = { settingsViewModel.setSuggestionCount(uiState.suggestionCount - 1) },
+                    onIncrement = { settingsViewModel.setSuggestionCount(uiState.suggestionCount + 1) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
             SettingsSection(title = stringResource(R.string.settings_section_appearance)) {

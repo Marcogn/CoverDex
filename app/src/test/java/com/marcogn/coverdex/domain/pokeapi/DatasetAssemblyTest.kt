@@ -26,6 +26,10 @@ class DatasetAssemblyTest {
             movesCsv = fixture("moves.csv"),
             typesCsv = fixture("types.csv"),
             typeEfficacyCsv = fixture("type_efficacy.csv"),
+            pokemonStatsCsv = fixture("pokemon_stats.csv"),
+            pokemonStatsPastCsv = fixture("pokemon_stats_past.csv"),
+            abilityNamesCsv = fixture("ability_names.csv"),
+            moveNamesCsv = fixture("move_names.csv"),
         )
     }
 
@@ -45,11 +49,13 @@ class DatasetAssemblyTest {
     }
 
     @Test
-    fun `default ability resolves to the lowest-slot non-hidden ability`() {
+    fun `default ability resolves to the lowest-slot non-hidden ability, as a display name`() {
         val bulbasaur = dataset.species.first { it.id == 1 }
 
-        // slot 1 non-hidden = overgrow (65); slot 3 hidden = chlorophyll (34), not picked.
-        assertEquals("overgrow", bulbasaur.defaultAbility)
+        // slot 1 non-hidden = overgrow (65); slot 3 hidden = chlorophyll (34), not picked. The
+        // value is the display name ("Overgrow"), not the raw slug — Phase 7 fixed
+        // defaultAbility carrying the PokeAPI identifier verbatim (phase-7-...md §0.2).
+        assertEquals("Overgrow", bulbasaur.defaultAbility)
     }
 
     @Test
@@ -57,8 +63,8 @@ class DatasetAssemblyTest {
         val zygardeMega = dataset.species.first { it.id == 10301 }
 
         // 10301 (zygarde-mega) has no ability rows of its own; its species (718) default form
-        // (718, zygarde-50) resolves to aura-break (188).
-        assertEquals("aura-break", zygardeMega.defaultAbility)
+        // (718, zygarde-50) resolves to aura-break (188), shown as "Aura Break".
+        assertEquals("Aura Break", zygardeMega.defaultAbility)
     }
 
     @Test
@@ -129,17 +135,101 @@ class DatasetAssemblyTest {
     }
 
     @Test
-    fun `abilities list is built from abilities csv with prettified display names`() {
+    fun `abilities list is built from ability_names csv, not prettify`() {
         val overgrow = dataset.abilities.first { it.id == 65 }
-
         assertEquals("overgrow", overgrow.name)
         assertEquals("Overgrow", overgrow.displayName)
+
+        // well-baked-body is the case prettify() gets wrong ("Well Baked Body") — the real name,
+        // from ability_names.csv, keeps the hyphen. See phase-7-...md §0.3.
+        val wellBakedBody = dataset.abilities.first { it.id == 202 }
+        assertEquals("Well-Baked Body", wellBakedBody.displayName)
+    }
+
+    @Test
+    fun `an ability absent from ability_names csv falls back to prettify`() {
+        // chlorophyll (34) is deliberately absent from the trimmed ability_names.csv fixture.
+        val chlorophyll = dataset.abilities.first { it.id == 34 }
+        assertEquals(prettify("chlorophyll"), chlorophyll.displayName)
+    }
+
+    @Test
+    fun `moves list is built from move_names csv, not prettify`() {
+        val doubleEdge = dataset.moves.first { it.id == 250 }
+        // prettify("double-edge") would give "Double Edge" — the real name keeps the hyphen.
+        assertEquals("Double-Edge", doubleEdge.displayName)
+    }
+
+    @Test
+    fun `baseStatTotal is the sum of the six current stats`() {
+        val bulbasaur = dataset.species.first { it.id == 1 }
+        assertEquals(45 + 49 + 49 + 65 + 65 + 45, bulbasaur.baseStatTotal)
+
+        val deoxysAttack = dataset.species.first { it.id == 10001 }
+        assertEquals(50 + 180 + 20 + 180 + 20 + 150, deoxysAttack.baseStatTotal)
+    }
+
+    @Test
+    fun `a form with no pokemon_stats row has baseStatTotal zero, not a crash`() {
+        // id 999 ("teststat") has a pokemon.csv/pokemon_types.csv row but no pokemon_stats.csv
+        // row at all.
+        val noStats = dataset.species.first { it.id == 999 }
+        assertEquals(0, noStats.baseStatTotal)
+    }
+
+    @Test
+    fun `pastBst carries the generation-1 five-stat total, always emitted when a special row exists`() {
+        val articunoGen1 = dataset.pastBst.first { it.pokemonId == 144 && it.generationId == 1 }
+
+        // hp(90) + attack(85) + defense(100) + speed(85) + special(100, from the past row) = 460,
+        // NOT the current six-stat 580 — Gen I has no Sp.Atk/Sp.Def split.
+        assertEquals(460, articunoGen1.bst)
+    }
+
+    @Test
+    fun `pastBst carries a later-generation stat change when the total actually differs`() {
+        val deoxysAttackGen5 = dataset.pastBst.first { it.pokemonId == 10001 && it.generationId == 5 }
+
+        // Special Attack was 150 through gen 5 (currently 180); every other stat unchanged.
+        assertEquals(50 + 180 + 20 + 150 + 20 + 150, deoxysAttackGen5.bst)
+    }
+
+    @Test
+    fun `a form with no historical stat changes has no pastBst rows`() {
+        assertTrue(dataset.pastBst.none { it.pokemonId == 1 })
+        assertTrue(dataset.pastBst.none { it.pokemonId == 718 })
+    }
+
+    @Test
+    fun `pokemonAbilities carries every canonical ability row with its display name`() {
+        val bulbasaurAbilities = dataset.pokemonAbilities.filter { it.pokemonId == 1 }
+
+        assertEquals(2, bulbasaurAbilities.size)
+        val nonHidden = bulbasaurAbilities.first { !it.isHidden }
+        assertEquals("overgrow", nonHidden.slug)
+        assertEquals("Overgrow", nonHidden.displayName)
+        assertEquals(1, nonHidden.slot)
+
+        val hidden = bulbasaurAbilities.first { it.isHidden }
+        assertEquals("chlorophyll", hidden.slug)
+        assertEquals("Chlorophyll", hidden.displayName)
     }
 
     @Test
     fun `prettify splits on hyphens and capitalizes each part`() {
         assertEquals("Mr Mime", prettify("mr-mime"))
         assertEquals("Fire Punch", prettify("fire-punch"))
+    }
+
+    @Test
+    fun `every assembled form has a valid typing - non-null type1, and type2 never equal to it`() {
+        // Cheap structural guard for the invariant §7.3.3 asks for (the real 171-typing coverage
+        // lives in CoverageEngineTest against the full type space, not against 1351+ forms —
+        // see phase-7-accuracy-and-customization.md §7.3.2's own reasoning for why).
+        for (species in dataset.species) {
+            assertTrue(PokemonType.entries.contains(species.types.first))
+            assertTrue(species.types.second == null || species.types.second != species.types.first)
+        }
     }
 
     @Test

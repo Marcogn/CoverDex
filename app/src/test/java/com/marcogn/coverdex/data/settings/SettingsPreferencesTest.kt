@@ -86,4 +86,36 @@ class SettingsPreferencesTest {
 
         assertEquals(true, preferences.includeCustomsAnalysis.first())
     }
+
+    @Test
+    fun `suggestionCount defaults to 5 and round-trips within bounds`() = runTest {
+        assertEquals(5, preferences.suggestionCount.first())
+
+        preferences.setSuggestionCount(8)
+
+        assertEquals(8, preferences.suggestionCount.first())
+    }
+
+    @Test
+    fun `setSuggestionCount clamps a value below the minimum on write`() = runTest {
+        preferences.setSuggestionCount(1)
+
+        assertEquals(5, preferences.suggestionCount.first())
+    }
+
+    @Test
+    fun `setSuggestionCount clamps a value above the maximum on write`() = runTest {
+        preferences.setSuggestionCount(999)
+
+        assertEquals(10, preferences.suggestionCount.first())
+    }
+
+    @Test
+    fun `a hand-edited out-of-range stored value is clamped on read too`() = runTest {
+        context.settingsDataStore.edit { it[SUGGESTION_COUNT_KEY] = 0 }
+        assertEquals(5, preferences.suggestionCount.first())
+
+        context.settingsDataStore.edit { it[SUGGESTION_COUNT_KEY] = 42 }
+        assertEquals(10, preferences.suggestionCount.first())
+    }
 }

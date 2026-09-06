@@ -36,7 +36,8 @@ import com.marcogn.coverdex.R
 import com.marcogn.coverdex.domain.model.PokemonMove
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
-import com.marcogn.coverdex.ui.common.EditableComboBox
+import com.marcogn.coverdex.ui.common.AbilityPicker
+import com.marcogn.coverdex.ui.common.ItemPicker
 import com.marcogn.coverdex.ui.common.TypeDropdown
 import com.marcogn.coverdex.ui.team.MoveSlotEditor
 import java.util.UUID
@@ -49,6 +50,7 @@ private data class RosterDraft(
     val type1: PokemonType,
     val type2: PokemonType?,
     val ability: String?,
+    val item: String?,
     val moves: List<PokemonMove?>,
 ) {
     fun toTeamMember(): TeamMember = TeamMember(
@@ -57,6 +59,7 @@ private data class RosterDraft(
         speciesName = speciesName,
         types = type1 to type2,
         ability = ability,
+        item = item,
         moves = moves,
         isCustomSaved = true,
     )
@@ -68,6 +71,7 @@ private data class RosterDraft(
             type1 = PokemonType.NORMAL,
             type2 = null,
             ability = null,
+            item = null,
             moves = List(MOVE_COUNT) { null },
         )
 
@@ -77,6 +81,7 @@ private data class RosterDraft(
             type1 = member.types.first,
             type2 = member.types.second,
             ability = member.ability,
+            item = member.item,
             moves = member.moves,
         )
     }
@@ -99,8 +104,6 @@ fun RosterEditorScreen(
     val existingMember by viewModel.existingMember.collectAsState()
     val showMoves by viewModel.showMoves.collectAsState()
     var draft by remember(existingMember) { mutableStateOf(existingMember?.let { RosterDraft.from(it) } ?: RosterDraft.blank()) }
-    var abilityQuery by remember(draft.id) { mutableStateOf(draft.ability.orEmpty()) }
-    val abilityResults by remember(abilityQuery) { viewModel.searchAbilities(abilityQuery) }.collectAsState(initial = emptyList())
 
     BackHandler(onBack = onBackClick)
 
@@ -163,14 +166,20 @@ fun RosterEditorScreen(
                 )
             }
 
-            EditableComboBox(
-                value = abilityQuery,
-                onValueChange = { value ->
-                    abilityQuery = value
-                    draft = draft.copy(ability = value.ifBlank { null })
-                },
-                label = stringResource(R.string.slot_ability_label),
-                suggestions = abilityResults.map { it.displayName },
+            AbilityPicker(
+                resetKey = draft.id,
+                pokedexId = null,
+                ability = draft.ability,
+                onAbilityChange = { draft = draft.copy(ability = it) },
+                searchAbilities = viewModel::searchAbilities,
+                loadCanonicalAbilities = { emptyList() },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            ItemPicker(
+                resetKey = draft.id,
+                item = draft.item,
+                onItemChange = { draft = draft.copy(item = it) },
                 modifier = Modifier.fillMaxWidth(),
             )
 

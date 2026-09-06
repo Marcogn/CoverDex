@@ -146,6 +146,20 @@ class AnalysisViewModelTest {
     }
 
     @Test
+    fun `suggestionCount reflects SettingsPreferences and defaults to 5`() = runTest(mainDispatcherRule.dispatcher) {
+        settingsPreferences.setShowMoves(false)
+        val teamId = teamRepository.createTeam("T-suggestion-count")
+
+        val vm = viewModel(teamId, pool = mockPokemonList())
+        val default = vm.uiState.first { it.chart != null }
+        assertEquals(5, default.suggestionCount)
+
+        settingsPreferences.setSuggestionCount(8)
+        val updated = vm.uiState.first { it.suggestionCount == 8 }
+        assertEquals(8, updated.suggestionCount)
+    }
+
+    @Test
     fun `coverage is computed without ever advancing the Main test dispatcher`() = runTest(mainDispatcherRule.dispatcher) {
         // mainDispatcherRule.dispatcher is a StandardTestDispatcher, which only runs work queued
         // on it when explicitly advanced (advanceUntilIdle()/runCurrent()) — this test never

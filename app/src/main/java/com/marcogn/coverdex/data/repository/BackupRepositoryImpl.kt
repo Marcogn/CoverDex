@@ -72,6 +72,7 @@ class BackupRepositoryImpl @Inject constructor(
                 type2 = member.types.second?.apiName,
                 ability = member.ability,
                 createdAtEpochMillis = restoreTimeBase + index,
+                item = member.item,
             )
             customMoveEntities += member.movesToCustomEntities()
         }

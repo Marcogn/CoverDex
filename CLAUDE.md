@@ -16,6 +16,9 @@ before editing anything, then read the phase plan you are executing.
 - [`docs/test-plan.md`](docs/test-plan.md) — manual, on-device verification.
   One new section per phase; one "Known regressions" entry per real bug found.
 - [`CHANGELOG.md`](CHANGELOG.md) — one entry per release, updated as you go.
+- [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
+  — the next phase's plan: what is wrong with the engines today (measured,
+  with the dataset evidence) and exactly what to build.
 
 ## What this project is
 
@@ -69,6 +72,8 @@ the app is native-only from here on.
 - **Phase 4 — Suggestions and generator**: ✅ done
 - **Phase 5 — Import/export and settings**: ✅ done
 - **Phase 6 — Release**: ✅ done
+- **Phase 7 — Engine accuracy, abilities/items, BST ranking**: ✅ done —
+  see [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
 
 Tick these off as phases land — here and in
 [`docs/plan/README.md`](docs/plan/README.md). Do not implement anything not
@@ -88,8 +93,10 @@ explicitly asks for it.
   tell users to export their teams to Showdown format first. See
   `docs/implementation-decisions.md`.
 - **The dataset sync reads PokéAPI's own CSV source data, not its JSON
-  mirror.** ~8 requests and ~208 KB instead of ~3875 requests and ~426 MB
-  — measured, not estimated. See `docs/plan/reference-pokedata.md`.
+  mirror.** ~12 requests and ~565 KB (8 requests/~208 KB through Phase 6;
+  Phase 7 added base stats and correct English ability/move names)
+  instead of ~3875 requests and ~426 MB — measured, not estimated. See
+  `docs/plan/reference-pokedata.md`.
 - **Sprite URLs are derived, never stored**, from a Pokémon's id alone.
 - **Species/type-override/ability/move values on a team slot are
   denormalized snapshots**, not references into the cached catalogue.
@@ -107,7 +114,8 @@ explicitly asks for it.
 
 ## Architecture
 
-The full six-phase shape, as it stands at the end of Phase 6: `ui/theme`,
+The shape as it stands at the end of Phase 7 (the six-phase native rewrite
+plus the engine-accuracy/customization phase that followed it): `ui/theme`,
 `ui/navigation`, `ui/teams` (real CRUD, plus the dice icon reaching Surprise
 Me), `ui/team` (team detail, the slot editor, `MoveSlotEditor`,
 `SlotSummaryCard`), `ui/team/analysis` (`AnalysisScreen`'s seven sections,
@@ -116,23 +124,31 @@ Me), `ui/team` (team detail, the slot editor, `MoveSlotEditor`,
 `SurpriseMeViewModel`, the team generator's own screen), `ui/roster` (real
 CRUD, its own editor), `ui/importexport` (`ImportShowdownScreen`,
 `ImportShowdownViewModel`, `ExportShowdownDialog`), `ui/settings` (theme,
-language, dataset status, the Showdown import entry point, and local backup),
-`ui/common` (`PokemonSprite`, `TypeBadge`, `SearchableDropdown`,
-`EditableComboBox`, `TypeDropdown`, `DamageClassDropdown`, the
+language, dataset status, the Showdown import entry point, local backup, and
+the Phase 7 suggestion-count stepper), `ui/common` (`PokemonSprite`,
+`TypeBadge`, `SearchableDropdown`, `EditableComboBox`, `TypeDropdown`,
+`DamageClassDropdown`, `AbilityPicker`/`ItemPicker` (Phase 7's
+canonical-plus-custom ability field and the item field), `StepperCounter`
+(the shared `−`/`+` row Surprise Me and Settings both use), the
 `PokemonType`/`DamageClass` `displayName()` extensions), `domain/coverage`
-(the ported coverage engine), `domain/ability` (the ported `AbilityEffects`),
-`domain/suggestion` (the ported suggestion engine + the shared `Scoring.kt`),
-`domain/generator` (the ported team generator, injectable `Random`),
-`domain/showdown` (`ShowdownFormat.kt`: export/import, contract-complete),
-`domain/backup` (`BackupPayload.kt`: versioned DTOs + mapping),
-`data/backup` (`BackupArchive.kt` zip read/write, `LocalBackupManager.kt`
-SAF plumbing), `data/settings/SettingsPreferences.kt` (theme, language, the
-persisted "Enable move slots" toggle, and every other app-wide setting —
-include Mega/Dynamax, include legendaries, include customs in analysis),
-`data/debug/DebugSeeder.kt` (seeds two teams and two roster entries, wired
-from `CoverDexApplication`), and the full `data/pokeapi`, `data/local`,
-`data/repository`, `domain/pokeapi`, `domain/sprite`, `domain/model`,
-`domain/repository` and `di` packages the tree below describes.
+(the ported coverage engine, extended in Phase 7 with the ability/item
+effect pipeline), `domain/ability` (`AbilityEffects` — the ported table plus
+Phase 7's ten added defensive abilities and the offensive gap), `domain/item`
+(Phase 7's `ItemEffects` — the defensive-items-only subset),
+`domain/suggestion` (the ported suggestion engine + the shared `Scoring.kt`,
+now BST-tie-break-aware), `domain/generator` (the ported team generator,
+injectable `Random`), `domain/showdown` (`ShowdownFormat.kt`: export/import,
+contract-complete, items round-trip as of Phase 7),
+`domain/backup` (`BackupPayload.kt`: versioned DTOs + mapping, format v2 as
+of Phase 7), `data/backup` (`BackupArchive.kt` zip read/write,
+`LocalBackupManager.kt` SAF plumbing), `data/settings/SettingsPreferences.kt`
+(theme, language, the persisted "Enable move slots" toggle, and every other
+app-wide setting — include Mega/Dynamax, include legendaries, include
+customs in analysis, the Phase 7 suggestion count), `data/debug/DebugSeeder.kt`
+(seeds two teams and two roster entries, wired from `CoverDexApplication`),
+and the full `data/pokeapi`, `data/local`, `data/repository`, `domain/pokeapi`,
+`domain/sprite`, `domain/model`, `domain/repository` and `di` packages the
+tree below describes.
 
 ```
 com.marcogn.coverdex
@@ -148,7 +164,8 @@ com.marcogn.coverdex
 │   ├── pokeapi/        CsvParser, per-file parsers, dataset assembly, SyncStage
 │   ├── sprite/          SpriteUrlResolver (pure, unit-tested)
 │   ├── coverage/       the ported coverage engine
-│   ├── ability/          AbilityEffects (ported verbatim)
+│   ├── ability/          AbilityEffects (ported verbatim + Phase 7 additions)
+│   ├── item/             ItemEffects (Phase 7, defensive items only)
 │   ├── suggestion/     the ported suggestion engine + shared Scoring
 │   ├── generator/       the ported team generator ("Surprise Me")
 │   ├── showdown/        export/import, contract-complete
@@ -214,7 +231,7 @@ there.
 - **Do not set `Accept-Encoding` on `HttpURLConnection`.** Left alone it
   negotiates gzip and decompresses transparently; set it by hand and you
   get raw gzip bytes. Matters more here than in the sibling app: CSV
-  compresses very well, so the measured ~208 KB in
+  compresses very well, so the measured ~565 KB in
   `docs/plan/reference-pokedata.md` is what crosses the wire uncompressed.
 - **kotlinx.serialization defaults do not cover an explicit `null`.** A
   default value only fills a *missing* key; `"field": null` still throws
@@ -261,6 +278,15 @@ there.
   `sourceSets["debug"].assets` instead, which is what actually makes
   `Migration1To2Test` pass. See `docs/implementation-decisions.md`,
   "Phase 2", for how this was verified rather than assumed.
+- **`ALTER TABLE ... ADD COLUMN` needs a `DEFAULT` when the column is
+  `NOT NULL`.** SQLite (and therefore Room's own migration SQL) rejects a
+  `NOT NULL` column added this way with no default — every pre-existing
+  row would have nothing to put there. `MIGRATION_2_3`'s
+  `poke_species.baseStatTotal` column needs `DEFAULT 0` in the raw SQL
+  *and* a matching `@ColumnInfo(defaultValue = "0")` on the Kotlin field,
+  or `MigrationTestHelper`'s schema validation flags the mismatch. A
+  nullable added column (`team_member.item`, `custom_pokemon.item`) needs
+  neither — `NULL` is already a valid default for every existing row.
 
 ## Build/test commands
 

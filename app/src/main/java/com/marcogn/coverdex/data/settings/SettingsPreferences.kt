@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.marcogn.coverdex.domain.model.ThemeMode
@@ -23,6 +24,11 @@ internal val SHOW_MOVES_KEY = booleanPreferencesKey("show_moves")
 internal val INCLUDE_MEGA_DYNAMAX_KEY = booleanPreferencesKey("include_mega_dynamax")
 internal val EXCLUDE_LEGENDARIES_KEY = booleanPreferencesKey("exclude_legendaries")
 internal val INCLUDE_CUSTOMS_ANALYSIS_KEY = booleanPreferencesKey("include_customs_analysis")
+internal val SUGGESTION_COUNT_KEY = intPreferencesKey("suggestion_count")
+
+internal const val MIN_SUGGESTION_COUNT = 5
+internal const val MAX_SUGGESTION_COUNT = 10
+internal const val DEFAULT_SUGGESTION_COUNT = MIN_SUGGESTION_COUNT
 
 /**
  * Every app-wide setting, persisted with Preferences DataStore, each observable as a [Flow] —
@@ -85,5 +91,20 @@ class SettingsPreferences @Inject constructor(@ApplicationContext private val co
 
     suspend fun setIncludeCustomsAnalysis(enabled: Boolean) {
         context.settingsDataStore.edit { preferences -> preferences[INCLUDE_CUSTOMS_ANALYSIS_KEY] = enabled }
+    }
+
+    /** How many ranked suggestions the Analysis tab's seventh section shows — Phase 7, see
+     * docs/plan/phase-7-accuracy-and-customization.md §6. Clamped to
+     * [MIN_SUGGESTION_COUNT]..[MAX_SUGGESTION_COUNT] on read too, not just on write: a
+     * hand-edited or pre-Phase-7-incompatible store must degrade to a valid value, never crash or
+     * render an unbounded list. */
+    val suggestionCount: Flow<Int> = context.settingsDataStore.data.map { preferences ->
+        (preferences[SUGGESTION_COUNT_KEY] ?: DEFAULT_SUGGESTION_COUNT).coerceIn(MIN_SUGGESTION_COUNT, MAX_SUGGESTION_COUNT)
+    }
+
+    suspend fun setSuggestionCount(count: Int) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[SUGGESTION_COUNT_KEY] = count.coerceIn(MIN_SUGGESTION_COUNT, MAX_SUGGESTION_COUNT)
+        }
     }
 }

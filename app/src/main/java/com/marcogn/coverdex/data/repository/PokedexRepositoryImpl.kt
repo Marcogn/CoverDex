@@ -6,7 +6,9 @@ import com.marcogn.coverdex.data.pokeapi.DatasetSyncManager
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.CacheStatus
 import com.marcogn.coverdex.domain.model.MoveEntry
+import com.marcogn.coverdex.domain.model.PastBst
 import com.marcogn.coverdex.domain.model.PokemonEntry
+import com.marcogn.coverdex.domain.model.SpeciesAbility
 import com.marcogn.coverdex.domain.model.SyncState
 import com.marcogn.coverdex.domain.model.TypeChart
 import com.marcogn.coverdex.domain.pokeapi.DATASET_SCHEMA_VERSION
@@ -73,4 +75,9 @@ class PokedexRepositoryImpl @Inject constructor(
     override suspend fun allMoves(): List<MoveEntry> = pokedexDao.getAllMoves().mapNotNull { it.toDomain() }
 
     override suspend fun typeChart(): TypeChart = pokedexDao.getAllTypeEfficacy().toTypeChart()
+
+    override suspend fun abilitiesForSpecies(pokemonId: Int): List<SpeciesAbility> =
+        pokedexDao.getAbilitiesForSpecies(pokemonId).map { it.toDomain() }
+
+    override suspend fun allPastBst(): List<PastBst> = pokedexDao.getAllBstPast().map { it.toDomain() }
 }

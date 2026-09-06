@@ -225,24 +225,50 @@ class SuggestionEngineTest {
     }
 
     @Test
-    fun `secondary sort on a compositeScore tie is by ascending catalogue id`() {
-        val team = listOf(
-            buildMember("Pikachu", PokemonType.ELECTRIC to null),
-            buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING),
-            buildMember("Gyarados", PokemonType.WATER to PokemonType.FLYING),
-            buildMember("Garchomp", PokemonType.DRAGON to PokemonType.GROUND),
-            buildMember("Mawile", PokemonType.STEEL to PokemonType.FAIRY),
+    fun `on a compositeScore tie, the higher baseStatTotal ranks first, ahead of catalogue id`() {
+        // A hand-built pool, not mockPokemonList() — engineered so both candidates score
+        // identically (docs/plan/phase-7-accuracy-and-customization.md §5.1's own regression:
+        // a solid team's remaining candidates tie on compositeScore and used to fall back
+        // straight to ascending id, surfacing Raticate/Persian/Kangaskhan regardless of how
+        // strong the alternative actually was).
+        fun normalCandidate(id: Int, bst: Int) = PokemonEntry(
+            id = id, name = "normal$id", displayName = "Normal$id", speciesId = id, speciesName = "normal$id",
+            types = PokemonType.NORMAL to null, isLegendary = false, isMythical = false, isFinalEvolution = true,
+            generationIntroduced = 1, defaultAbility = null, isDefaultForm = true, baseStatTotal = bst,
         )
-        val suggestions = computeSuggestions(chart, team, pool, emptyList(), SuggestionOptions(includeCustoms = false))
-        for (i in 1 until suggestions.size) {
-            if (suggestions[i - 1].compositeScore == suggestions[i].compositeScore) {
-                val prevEntry = pool.find { it.displayName == suggestions[i - 1].candidateLabel }
-                val currEntry = pool.find { it.displayName == suggestions[i].candidateLabel }
-                if (prevEntry != null && currEntry != null && prevEntry.isFinalEvolution == currEntry.isFinalEvolution) {
-                    assertTrue(prevEntry.id <= currEntry.id)
-                }
-            }
-        }
+        // Lower id, lower BST.
+        val weak = normalCandidate(id = 1, bst = 300)
+        // Higher id, higher BST — must outrank `weak` despite the higher id.
+        val strong = normalCandidate(id = 2, bst = 500)
+        val handBuiltPool = listOf(weak, strong)
+        val team = listOf(buildMember("Pikachu", PokemonType.ELECTRIC to null))
+
+        val suggestions = computeSuggestions(chart, team, handBuiltPool, emptyList(), SuggestionOptions(includeCustoms = false))
+
+        assertEquals(2, suggestions.size)
+        assertEquals(suggestions[0].compositeScore, suggestions[1].compositeScore, 0.0)
+        assertEquals("Normal2", suggestions[0].candidateLabel)
+        assertEquals(500, suggestions[0].baseStatTotal)
+        assertEquals("Normal1", suggestions[1].candidateLabel)
+    }
+
+    @Test
+    fun `on a compositeScore AND baseStatTotal tie, ascending catalogue id still decides`() {
+        fun normalCandidate(id: Int) = PokemonEntry(
+            id = id, name = "normal$id", displayName = "Normal$id", speciesId = id, speciesName = "normal$id",
+            types = PokemonType.NORMAL to null, isLegendary = false, isMythical = false, isFinalEvolution = true,
+            generationIntroduced = 1, defaultAbility = null, isDefaultForm = true, baseStatTotal = 300,
+        )
+        val handBuiltPool = listOf(normalCandidate(id = 5), normalCandidate(id = 3))
+        val team = listOf(buildMember("Pikachu", PokemonType.ELECTRIC to null))
+
+        val suggestions = computeSuggestions(chart, team, handBuiltPool, emptyList(), SuggestionOptions(includeCustoms = false))
+
+        assertEquals(2, suggestions.size)
+        assertEquals(suggestions[0].compositeScore, suggestions[1].compositeScore, 0.0)
+        assertEquals(suggestions[0].baseStatTotal, suggestions[1].baseStatTotal)
+        assertEquals("Normal3", suggestions[0].candidateLabel)
+        assertEquals("Normal5", suggestions[1].candidateLabel)
     }
 
     // ---- composite scoring (compositeScoring.test.ts) ----

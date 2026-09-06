@@ -1,8 +1,11 @@
 package com.marcogn.coverdex.domain.coverage
 
-import com.marcogn.coverdex.domain.ability.AbilityEffect
-import com.marcogn.coverdex.domain.ability.AbilityEffectSide
+import com.marcogn.coverdex.domain.ability.applyAbilityEffects
+import com.marcogn.coverdex.domain.ability.bypassesGhostImmunity
 import com.marcogn.coverdex.domain.ability.getAbilityEffects
+import com.marcogn.coverdex.domain.ability.overriddenMoveType
+import com.marcogn.coverdex.domain.item.ItemEffect
+import com.marcogn.coverdex.domain.item.getItemEffects
 import com.marcogn.coverdex.domain.model.DamageClass
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
@@ -19,32 +22,50 @@ import com.marcogn.coverdex.domain.model.TypeChart
 
 /**
  * Compute defensive effectiveness on a defender with one or two types. Multiplies effectiveness
- * across both defender types (stacking — never additive). When an ability is provided, immunity
- * and multiplier effects are applied.
+ * across both defender types (stacking — never additive), then applies [ability] and [item]
+ * effects in the fixed order docs/plan/phase-7-accuracy-and-customization.md §4.2 specifies:
+ *
+ * 1. The type chart product, above.
+ * 2. Item [ItemEffect.RemovesTypeImmunities]/[ItemEffect.GroundsHolder] cancel a `0.0` that came
+ *    from the type chart itself — Ring Target for any type, Iron Ball only for a Ground attack.
+ * 3. Ability immunity (skipped entirely for a Ground attack when Iron Ball is held — it
+ *    neutralizes an ability-granted Ground immunity too, e.g. Levitate/Earth Eater, not just the
+ *    type chart's).
+ * 4. Item [ItemEffect.Immunity] (Air Balloon) — same Iron Ball exception as step 3.
+ * 5. Ability multiplier (Thick Fat, Heatproof, Dry Skin's Fire 1.25x, ...).
+ * 6. Ability super-effective reducer/cap (Filter/Solid Rock/Prism Armor, Delta Stream) — only
+ *    once the running value is already `> 1.0`.
+ * 7. Item [ItemEffect.ResistBerry] — `x0.5` once the running value is `> 1.0`, or unconditionally
+ *    for Chilan Berry ([ItemEffect.ResistBerry.alwaysApplies]).
+ *
+ * Steps 3+5+6 are one call to [applyAbilityEffects]; steps 2/4/7 are items, interleaved around it
+ * rather than folded into the same helper, since Iron Ball's step-3/4 skip couldn't otherwise be
+ * expressed without a callback.
  */
 fun defensiveMultiplier(
     chart: TypeChart,
     attackingType: PokemonType,
     defenderTypes: Pair<PokemonType, PokemonType?>,
     ability: String? = null,
+    item: String? = null,
 ): Double {
     val t1 = chart.multiplier(attackingType, defenderTypes.first)
     val t2 = defenderTypes.second?.let { chart.multiplier(attackingType, it) } ?: 1.0
-    var result = t1 * t2
+    val chartProduct = t1 * t2
 
-    val effects = getAbilityEffects(ability)
-    if (effects != null) {
-        for (effect in effects) {
-            when (effect) {
-                is AbilityEffect.Immunity -> if (effect.type == attackingType) return 0.0
-                is AbilityEffect.Multiplier ->
-                    if (effect.side == AbilityEffectSide.DEFENSIVE && effect.type == attackingType) result *= effect.factor
-                is AbilityEffect.BadgeOnly -> Unit
-            }
-        }
-    }
+    val itemEffects = getItemEffects(item).orEmpty()
+    val groundsHolder = attackingType == PokemonType.GROUND && itemEffects.any { it is ItemEffect.GroundsHolder }
+    val removesTypeImmunities = itemEffects.any { it is ItemEffect.RemovesTypeImmunities }
 
-    return result
+    val afterTypeChartCancel = if (chartProduct == 0.0 && (removesTypeImmunities || groundsHolder)) 1.0 else chartProduct
+
+    if (!groundsHolder && itemEffects.any { it is ItemEffect.Immunity && it.type == attackingType }) return 0.0
+
+    val abilityEffects = if (groundsHolder) null else getAbilityEffects(ability)
+    val afterAbility = applyAbilityEffects(afterTypeChartCancel, attackingType, abilityEffects)
+
+    val resistBerry = itemEffects.filterIsInstance<ItemEffect.ResistBerry>().find { it.type == attackingType }
+    return if (resistBerry != null && (resistBerry.alwaysApplies || afterAbility > 1.0)) afterAbility * 0.5 else afterAbility
 }
 
 private fun damagingMoveTypes(member: TeamMember): List<PokemonType> =
@@ -52,11 +73,14 @@ private fun damagingMoveTypes(member: TeamMember): List<PokemonType> =
         .filter { it.damageClass != DamageClass.STATUS && (it.power ?: 0) > 0 }
         .map { it.type }
 
-/** Types this member can hit super-effectively (>=2x). */
+/** Types this member can hit super-effectively (>=2x). [useMoves] gates the -ate/Normalize
+ * offensive rewrite too, not just which attacking types are used: type-based coverage (no moves
+ * entered) has no real "Normal-type move" for those abilities to rewrite, only the member's own
+ * typing — see docs/plan/phase-7-accuracy-and-customization.md §7.2. */
 fun offensiveCoverageForMember(chart: TypeChart, member: TeamMember, useMoves: Boolean): Set<PokemonType> {
     val out = mutableSetOf<PokemonType>()
     val attackingTypes = if (useMoves) {
-        damagingMoveTypes(member)
+        damagingMoveTypes(member).map { overriddenMoveType(member.ability, it) }
     } else {
         listOfNotNull(member.types.first, member.types.second)
     }
@@ -113,7 +137,11 @@ fun analyseTeam(chart: TypeChart, members: List<TeamMember>): TeamCoverage {
     val best = PokemonType.entries.associateWithTo(mutableMapOf()) { 0.0 }
     for (m in members) {
         val useMoves = modePerMember[m.id] == CoverageMode.MOVES
-        val attackingTypes = if (useMoves) damagingMoveTypes(m) else listOfNotNull(m.types.first, m.types.second)
+        val attackingTypes = if (useMoves) {
+            damagingMoveTypes(m).map { overriddenMoveType(m.ability, it) }
+        } else {
+            listOfNotNull(m.types.first, m.types.second)
+        }
         for (atk in attackingTypes) {
             for (def in PokemonType.entries) {
                 val mult = chart.multiplier(atk, def)
@@ -137,12 +165,13 @@ fun defensiveProfile(
     chart: TypeChart,
     types: Pair<PokemonType, PokemonType?>,
     ability: String? = null,
+    item: String? = null,
 ): DefensiveProfile {
     val weaknesses = mutableListOf<PokemonType>()
     val resistances = mutableListOf<PokemonType>()
     val immunities = mutableListOf<PokemonType>()
     for (atk in PokemonType.entries) {
-        when (val m = defensiveMultiplier(chart, atk, types, ability)) {
+        when (val m = defensiveMultiplier(chart, atk, types, ability, item)) {
             0.0 -> immunities.add(atk)
             else -> if (m > 1.0) weaknesses.add(atk) else if (m < 1.0) resistances.add(atk)
         }
@@ -157,7 +186,7 @@ fun defensiveProfile(
  * UI calls one shared function for both, per the same "call the shared function, don't repeat
  * the filter" principle `phase-3-analysis.md` states for `collectAttackingTypes`. */
 fun sharedWeaknessCounts(chart: TypeChart, members: List<TeamMember>): Map<PokemonType, Int> =
-    PokemonType.entries.associateWith { atk -> members.count { defensiveMultiplier(chart, atk, it.types, it.ability) > 1.0 } }
+    PokemonType.entries.associateWith { atk -> members.count { defensiveMultiplier(chart, atk, it.types, it.ability, it.item) > 1.0 } }
 
 /** Types that hit 2+ members for super-effective damage. */
 fun sharedWeaknesses(chart: TypeChart, members: List<TeamMember>): List<PokemonType> =
@@ -170,11 +199,31 @@ fun sharedWeaknesses(chart: TypeChart, members: List<TeamMember>): List<PokemonT
  * so it is unit-testable rather than buried in Compose code, per this codebase's own "pure logic
  * lives in domain/" convention (see `docs/implementation-decisions.md`, "Phase 3"). */
 fun offensiveMultipliersForMember(chart: TypeChart, member: TeamMember): Map<PokemonType, Double> {
-    val attackingTypes = attackingTypesForMember(member)
-    return PokemonType.entries.associateWith { def -> attackingTypes.maxOfOrNull { atk -> chart.multiplier(atk, def) } ?: 0.0 }
+    val rawAttackingTypes = attackingTypesForMember(member)
+    // The -ate/Normalize rewrite only applies to a real move, same gate as
+    // offensiveCoverageForMember's useMoves check above.
+    val attackingTypes = if (memberHasMoves(member)) {
+        rawAttackingTypes.map { overriddenMoveType(member.ability, it) }
+    } else {
+        rawAttackingTypes
+    }
+    val bypassGhost = bypassesGhostImmunity(member.ability)
+    return PokemonType.entries.associateWith { def ->
+        attackingTypes.maxOfOrNull { atk ->
+            val mult = chart.multiplier(atk, def)
+            // Scrappy/Mind's Eye: Normal/Fighting moves hit Ghost neutrally instead of being
+            // blocked. Never crosses the >=2x coverage threshold, so this is grid-display only —
+            // see overriddenMoveType's/bypassesGhostImmunity's own docs.
+            if (bypassGhost && mult == 0.0 && def == PokemonType.GHOST && (atk == PokemonType.NORMAL || atk == PokemonType.FIGHTING)) {
+                1.0
+            } else {
+                mult
+            }
+        } ?: 0.0
+    }
 }
 
 /** The defensive grid's "most vulnerable" row: the worst (highest) multiplier any member takes
  * from each attacking type. */
 fun mostVulnerableByType(chart: TypeChart, members: List<TeamMember>): Map<PokemonType, Double> =
-    PokemonType.entries.associateWith { atk -> members.maxOfOrNull { m -> defensiveMultiplier(chart, atk, m.types, m.ability) } ?: 0.0 }
+    PokemonType.entries.associateWith { atk -> members.maxOfOrNull { m -> defensiveMultiplier(chart, atk, m.types, m.ability, m.item) } ?: 0.0 }

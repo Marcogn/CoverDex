@@ -23,8 +23,11 @@ private const val CONNECT_TIMEOUT_MS = 10_000
 private const val READ_TIMEOUT_MS = 15_000
 private const val RETRY_DELAY_MS = 500L
 
-/** The 8 pinned CSV files that make up the whole dataset — see
- * docs/plan/reference-pokedata.md §2 for exact sizes and headers. */
+/** The 12 pinned CSV files that make up the whole dataset — see
+ * docs/plan/reference-pokedata.md §2 for exact sizes and headers. The last four were added in
+ * Phase 7 (docs/plan/phase-7-accuracy-and-customization.md §2) for base stats and correct
+ * English ability/move names; they are read at the same pinned [DATASET_REVISION] as the
+ * original eight. */
 enum class DatasetFile(val fileName: String) {
     POKEMON("pokemon.csv"),
     SPECIES("pokemon_species.csv"),
@@ -34,6 +37,10 @@ enum class DatasetFile(val fileName: String) {
     MOVES("moves.csv"),
     TYPES("types.csv"),
     TYPE_EFFICACY("type_efficacy.csv"),
+    POKEMON_STATS("pokemon_stats.csv"),
+    POKEMON_STATS_PAST("pokemon_stats_past.csv"),
+    ABILITY_NAMES("ability_names.csv"),
+    MOVE_NAMES("move_names.csv"),
 }
 
 /** Source of the 8 pinned CSV files. The only reason this is an interface rather than just

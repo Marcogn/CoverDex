@@ -7,8 +7,10 @@ import androidx.navigation.toRoute
 import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.coverage.analyseTeam
 import com.marcogn.coverdex.domain.coverage.sharedWeaknessCounts
+import com.marcogn.coverdex.domain.model.PastBst
 import com.marcogn.coverdex.domain.model.PokemonEntry
 import com.marcogn.coverdex.domain.model.Team
+import com.marcogn.coverdex.domain.model.bstResolverFor
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.model.TypeChart
 import com.marcogn.coverdex.domain.repository.CustomPokemonRepository
@@ -47,7 +49,7 @@ private val MEGA_DYNAMAX_FORM_REGEX = Regex("-mega|-gmax|-dynamax|-mega-x|-mega-
  * what `TeamDetailPage.tsx`'s `analysisMembers` memo does, so the engine uniformly falls back to
  * type-based coverage.
  */
-private data class DatasetCore(val chart: TypeChart?, val pool: List<PokemonEntry>)
+private data class DatasetCore(val chart: TypeChart?, val pool: List<PokemonEntry>, val pastBst: List<PastBst>)
 
 private data class CoreData(
     val team: Team?,
@@ -73,7 +75,8 @@ class AnalysisViewModel @Inject constructor(
     private val datasetCore = combine(
         pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.typeChart() else null },
         pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.allSpecies() else emptyList() },
-    ) { chart, pool -> DatasetCore(chart, pool) }
+        pokedexRepository.cacheStatus.map { status -> if (status.isUsable) pokedexRepository.allPastBst() else emptyList() },
+    ) { chart, pool, pastBst -> DatasetCore(chart, pool, pastBst) }
 
     private val core = combine(
         teamRepository.team(teamId),
@@ -88,7 +91,8 @@ class AnalysisViewModel @Inject constructor(
         settingsPreferences.includeCustomsAnalysis,
         settingsPreferences.excludeLegendaries,
         generationFilter,
-    ) { core, includeCustoms, excludeLegendaries, genFilter ->
+        settingsPreferences.suggestionCount,
+    ) { core, includeCustoms, excludeLegendaries, genFilter, suggestionCount ->
         val filled = core.team?.members?.filterNotNull() ?: emptyList()
         val members = if (core.showMoves) filled else filled.map { it.copy(moves = List(4) { null }) }
         val coverage = core.dataset.chart?.let { analyseTeam(it, members) }
@@ -115,6 +119,7 @@ class AnalysisViewModel @Inject constructor(
                     excludeLegendaries = excludeLegendaries,
                     generation = genFilter,
                 ),
+                bstFor = bstResolverFor(core.dataset.pastBst, genFilter),
             )
         } ?: emptyList()
 
@@ -128,6 +133,7 @@ class AnalysisViewModel @Inject constructor(
             suggestions = suggestions,
             includeCustomsAnalysis = includeCustoms,
             generationFilter = genFilter,
+            suggestionCount = suggestionCount,
         )
     }
         // analyseTeam/computeSuggestions/sharedWeaknessCounts are real work against a catalogue
