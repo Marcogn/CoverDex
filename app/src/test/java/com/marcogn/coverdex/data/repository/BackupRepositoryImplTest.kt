@@ -69,6 +69,17 @@ class BackupRepositoryImplTest {
     }
 
     @Test
+    fun `a roster entry's item survives an export-then-import round-trip`() = runTest {
+        customPokemonRepository.save(pikachu().copy(id = "custom-pikachu", isCustomSaved = true, item = "Light Ball"))
+
+        val payload = backupRepository.exportPayload()
+        backupRepository.importPayload(payload)
+
+        val restored = customPokemonRepository.roster.first().single()
+        assertEquals("Light Ball", restored.item)
+    }
+
+    @Test
     fun `importing a payload fully replaces existing teams, preserving ids`() = runTest {
         val originalTeamId = teamRepository.createTeam("Original")
         teamRepository.saveMember(originalTeamId, 0, pikachu())

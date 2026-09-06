@@ -41,11 +41,13 @@ private fun MoveEntry.toPokemonMove(): PokemonMove = PokemonMove(
     isCustom = false,
 )
 
-/** Convert a [TeamMember] to a Showdown-style block. Fields not tracked (item, EVs, nature) are
+/** Convert a [TeamMember] to a Showdown-style block. [TeamMember.item] round-trips as the
+ * standard `Species @ Item` line (Phase 7 — see
+ * docs/plan/phase-7-accuracy-and-customization.md §4.3); EVs and nature are still untracked and
  * emitted as placeholders that are valid to re-import. */
 fun exportMemberToShowdown(m: TeamMember): String {
     val lines = mutableListOf<String>()
-    lines += "${m.speciesName} @ "
+    lines += "${m.speciesName} @ ${m.item ?: ""}"
     lines += "Ability: ${m.ability ?: ""}"
     lines += "EVs: "
     lines += " Nature"
@@ -83,6 +85,7 @@ fun parseShowdownBlock(
     var speciesName = "Unknown"
     var overrideTypes: Pair<PokemonType, PokemonType?>? = null
     var ability: String? = null
+    var item: String? = null
     val moves = arrayOfNulls<PokemonMove>(4)
     var moveIdx = 0
     val unknown = mutableListOf<String>()
@@ -117,6 +120,10 @@ fun parseShowdownBlock(
                 // Species line, possibly with "@ item".
                 val speciesLine = line.substringBefore("@").trim()
                 if (speciesLine.isNotEmpty()) speciesName = speciesLine
+                if (line.contains("@")) {
+                    val itemValue = line.substringAfter("@").trim()
+                    if (itemValue.isNotEmpty()) item = itemValue
+                }
             }
         }
     }
@@ -130,6 +137,7 @@ fun parseShowdownBlock(
         speciesName = speciesName,
         types = types,
         ability = ability,
+        item = item,
         moves = moves.toList(),
         isCustomSaved = false,
     )

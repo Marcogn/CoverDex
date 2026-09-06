@@ -11,8 +11,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /** The current format this build writes and the newest one it can read — see
- * [BackupFormatTooNewException]. */
-const val CURRENT_BACKUP_FORMAT_VERSION = 1
+ * [BackupFormatTooNewException]. Bumped to 2 in Phase 7 for [BackupTeamMemberDto.item]; a v1
+ * file has no `item` key at all (missing, not an explicit `null`), so it still decodes cleanly
+ * with [BackupTeamMemberDto.item] falling back to its default — see
+ * docs/plan/phase-7-accuracy-and-customization.md §4.3. */
+const val CURRENT_BACKUP_FORMAT_VERSION = 2
 
 /** Thrown when a backup's `formatVersion` is newer than this build understands — a clear, typed
  * rejection rather than a parse crash or silent data loss. */
@@ -62,6 +65,8 @@ data class BackupTeamMemberDto(
     /** Always length 4, `null` for an empty move slot. */
     val moves: List<BackupMoveDto?>,
     val isCustomSaved: Boolean,
+    /** Added in format version 2 — see [CURRENT_BACKUP_FORMAT_VERSION]. */
+    val item: String? = null,
 )
 
 @Serializable
@@ -94,6 +99,7 @@ fun TeamMember.toBackupDto(): BackupTeamMemberDto = BackupTeamMemberDto(
     ability = ability,
     moves = moves.map { it?.toBackupDto() },
     isCustomSaved = isCustomSaved,
+    item = item,
 )
 
 fun BackupTeamMemberDto.toDomain(): TeamMember = TeamMember(
@@ -104,6 +110,7 @@ fun BackupTeamMemberDto.toDomain(): TeamMember = TeamMember(
     ability = ability,
     moves = moves.map { it?.toDomain() },
     isCustomSaved = isCustomSaved,
+    item = item,
 )
 
 fun Team.toBackupDto(): BackupTeamDto = BackupTeamDto(

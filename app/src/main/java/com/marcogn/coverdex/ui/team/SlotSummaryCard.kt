@@ -50,6 +50,15 @@ fun SlotSummaryCard(
                         TypeBadge(member.types.first)
                         member.types.second?.let { TypeBadge(it) }
                     }
+                    if (!member.item.isNullOrEmpty()) {
+                        Text(
+                            "@ ${member.item}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }

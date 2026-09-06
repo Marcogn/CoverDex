@@ -26,8 +26,13 @@ const val AGGRAVATED_WEAKNESS_PENALTY = 1.0
  * `docs/implementation-decisions.md`, "Post-migration review", for why this is a deliberate spec
  * change (composite scores now differ from the ported baseline for any member/candidate with a
  * scoring-relevant ability) rather than a pure refactor. */
-fun weaknesses(chart: TypeChart, types: Pair<PokemonType, PokemonType?>, ability: String? = null): List<PokemonType> =
-    PokemonType.entries.filter { atk -> defensiveMultiplier(chart, atk, types, ability) > 1.0 }
+fun weaknesses(
+    chart: TypeChart,
+    types: Pair<PokemonType, PokemonType?>,
+    ability: String? = null,
+    item: String? = null,
+): List<PokemonType> =
+    PokemonType.entries.filter { atk -> defensiveMultiplier(chart, atk, types, ability, item) > 1.0 }
 
 data class CompositeScoreResult(
     val compositeScore: Double,
@@ -57,7 +62,7 @@ fun teamScoringContext(chart: TypeChart, otherMembers: List<TeamMember>): TeamSc
 
     val otherWeaknessMap = mutableMapOf<PokemonType, MutableList<String>>()
     for (m in otherMembers) {
-        for (w in weaknesses(chart, m.types, m.ability)) {
+        for (w in weaknesses(chart, m.types, m.ability, m.item)) {
             otherWeaknessMap.getOrPut(w) { mutableListOf() }.add(m.speciesName)
         }
     }
@@ -89,7 +94,7 @@ fun computeCompositeScore(
     val offensiveGain = newUnion.size - currentTeamCoverage.size
     val newlyCovered = newUnion.filter { it !in currentTeamCoverage }
 
-    val candWeaknesses = weaknesses(chart, candidate.types, candidate.ability)
+    val candWeaknesses = weaknesses(chart, candidate.types, candidate.ability, candidate.item)
 
     val newWeaknesses = mutableListOf<PokemonType>()
     val aggravatedWeaknesses = mutableListOf<PokemonType>()

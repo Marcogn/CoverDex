@@ -82,6 +82,7 @@ fun TeamMember.toEntity(teamId: String, slotIndex: Int): TeamMemberEntity = Team
     type2 = types.second?.apiName,
     ability = ability,
     isCustomSaved = isCustomSaved,
+    item = item,
 )
 
 fun TeamMember.movesToEntities(): List<TeamMemberMoveEntity> =
@@ -94,6 +95,7 @@ fun TeamMember.toCustomEntity(): CustomPokemonEntity = CustomPokemonEntity(
     type2 = types.second?.apiName,
     ability = ability,
     createdAtEpochMillis = System.currentTimeMillis(),
+    item = item,
 )
 
 fun TeamMember.movesToCustomEntities(): List<CustomPokemonMoveEntity> =
@@ -107,6 +109,7 @@ fun TeamMemberWithMoves.toDomain(): TeamMember {
         speciesName = member.speciesName,
         types = parseType(member.type1) to member.type2?.let { parseType(it) },
         ability = member.ability,
+        item = member.item,
         moves = (0 until MOVE_COUNT).map { index -> movesByIndex[index]?.toDomain() },
         isCustomSaved = member.isCustomSaved,
     )
@@ -120,6 +123,7 @@ fun CustomPokemonWithMoves.toDomain(): TeamMember {
         speciesName = custom.name,
         types = parseType(custom.type1) to custom.type2?.let { parseType(it) },
         ability = custom.ability,
+        item = custom.item,
         moves = (0 until MOVE_COUNT).map { index -> movesByIndex[index]?.toDomain() },
         isCustomSaved = true,
     )

@@ -96,6 +96,7 @@ class ShowdownFormatTest {
         assertEquals(PokemonType.FIRE to PokemonType.FLYING, imp.member.types)
         assertEquals(4, imp.member.moves.filterNotNull().size)
         assertEquals(emptyList<String>(), imp.unknownMoveNames)
+        assertEquals("Charcoal", imp.member.item)
     }
 
     @Test
@@ -235,5 +236,50 @@ class ShowdownFormatTest {
         val paste = listOf("Pikachu", "Ability: ", "- Thunderbolt").joinToString("\n")
         val imp = parseShowdownBlock(paste, ::resolveMove, ::resolveSpecies)
         assertNull(imp.member.ability)
+    }
+
+    // ---- item handling (Phase 7 — phase-7-accuracy-and-customization.md §4.3) ----
+
+    @Test
+    fun `parses the item from the species line's @ suffix`() {
+        val paste = listOf("Charizard @ Air Balloon", "Ability: Blaze", "- Flamethrower").joinToString("\n")
+        val imp = parseShowdownBlock(paste, ::resolveMove, ::resolveSpecies)
+        assertEquals("Air Balloon", imp.member.item)
+    }
+
+    @Test
+    fun `exports Species @ Item when an item is set`() {
+        val m = buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING).copy(item = "Charcoal")
+        val out = exportMemberToShowdown(m)
+        assertTrue(out.lines().first() == "Charizard @ Charcoal")
+    }
+
+    @Test
+    fun `exports the bare @ line when no item is set, same as before Phase 7`() {
+        val m = buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING)
+        val out = exportMemberToShowdown(m)
+        assertTrue(out.lines().first() == "Charizard @ ")
+    }
+
+    @Test
+    fun `round-trip export with an item then re-import preserves it`() {
+        val original = buildMember("Charizard", PokemonType.FIRE to PokemonType.FLYING).copy(item = "Life Orb")
+        val text = exportMemberToShowdown(original)
+        val imp = parseShowdownBlock(text, ::resolveMove, ::resolveSpecies)
+        assertEquals("Life Orb", imp.member.item)
+    }
+
+    @Test
+    fun `no @ on the species line at all, member item is null`() {
+        val paste = listOf("Pikachu", "- Thunderbolt").joinToString("\n")
+        val imp = parseShowdownBlock(paste, ::resolveMove, ::resolveSpecies)
+        assertNull(imp.member.item)
+    }
+
+    @Test
+    fun `empty item value after @, member item is null`() {
+        val paste = listOf("Pikachu @ ", "- Thunderbolt").joinToString("\n")
+        val imp = parseShowdownBlock(paste, ::resolveMove, ::resolveSpecies)
+        assertNull(imp.member.item)
     }
 }

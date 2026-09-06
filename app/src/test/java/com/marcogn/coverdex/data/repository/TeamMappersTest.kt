@@ -44,6 +44,17 @@ class TeamMappersTest {
     }
 
     @Test
+    fun `item round-trips through the team member entity`() {
+        val original = member().copy(item = "Air Balloon")
+
+        val entity = original.toEntity(teamId = "t1", slotIndex = 0)
+        assertEquals("Air Balloon", entity.item)
+
+        val rebuilt = TeamMemberWithMoves(entity, original.movesToEntities()).toDomain()
+        assertEquals(original, rebuilt)
+    }
+
+    @Test
     fun `a single-typed member's entity has a null type2`() {
         val original = member().copy(types = PokemonType.FIRE to null)
 
@@ -123,5 +134,16 @@ class TeamMappersTest {
         assertEquals(original.speciesName, entity.name)
         assertEquals(1, moveEntities.size)
         assertEquals(original.moves[0]?.name, moveEntities.first().name)
+    }
+
+    @Test
+    fun `item round-trips through the custom roster entity`() {
+        val original = member().copy(item = "Chilan Berry")
+
+        val entity = original.toCustomEntity()
+        assertEquals("Chilan Berry", entity.item)
+
+        val rebuilt = CustomPokemonWithMoves(entity, original.movesToCustomEntities()).toDomain()
+        assertEquals("Chilan Berry", rebuilt.item)
     }
 }

@@ -82,6 +82,8 @@
     <string name="analysis_wonder_guard_note">Solo le mosse super-efficaci infliggono danni</string>
     <string name="analysis_super_effective_hits">i colpi super-efficaci</string>
     <string name="analysis_never_super_effective">mai super-efficace contro questo Pokémon</string>
+    <string name="analysis_item_grounds_holder">mette a terra il possessore</string>
+    <string name="analysis_item_removes_immunities">rimuove le immunità di tipo</string>
     <string name="analysis_pokemon_column_header">Pokémon</string>
 
     <!-- Suggestions (Phase 4) -->
@@ -147,6 +149,7 @@
     <string name="slot_type2_label">Tipo 2</string>
     <string name="slot_type_none">Nessuno</string>
     <string name="slot_ability_label">Abilità</string>
+    <string name="slot_item_label">Strumento</string>
     <string name="ability_picker_hidden_suffix"> (nascosta)</string>
     <string name="ability_picker_custom_option">Abilità custom…</string>
     <string name="ability_picker_back_to_canonical">Torna alle abilità canoniche</string>

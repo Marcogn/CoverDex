@@ -412,6 +412,58 @@ class CoverageEngineTest {
         assertEquals(0.0, multipliers.getValue(PokemonType.GHOST), 0.0)
     }
 
+    // --- held items (§4, phase-7-accuracy-and-customization.md) ---
+
+    @Test
+    fun `air-balloon makes the holder immune to Ground regardless of a normal weakness`() {
+        // Fire is normally 2x weak to Ground in the fixture.
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.FIRE to null, item = "air-balloon"), 0.0)
+    }
+
+    @Test
+    fun `iron-ball grounds a Flying-type, cancelling the type chart's own Ground immunity`() {
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.FLYING to null), 0.0)
+        assertEquals(1.0, defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.FLYING to null, item = "iron-ball"), 0.0)
+    }
+
+    @Test
+    fun `iron-ball also cancels an ability-granted Ground immunity (Levitate)`() {
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.GHOST to PokemonType.POISON, ability = "levitate"), 0.0)
+        assertEquals(
+            2.0,
+            defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.GHOST to PokemonType.POISON, ability = "levitate", item = "iron-ball"),
+            0.0,
+        )
+    }
+
+    @Test
+    fun `ring-target removes a type-chart immunity`() {
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.FLYING to null), 0.0)
+        assertEquals(1.0, defensiveMultiplier(chart, PokemonType.GROUND, PokemonType.FLYING to null, item = "ring-target"), 0.0)
+    }
+
+    @Test
+    fun `a resist berry halves an already super-effective hit of its type`() {
+        // Fire vs Grass is 2x; Occa Berry resists Fire.
+        assertEquals(1.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GRASS to null, item = "occa-berry"), 0.0)
+    }
+
+    @Test
+    fun `a resist berry does not touch a neutral or resisted hit`() {
+        assertEquals(1.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.NORMAL to null, item = "occa-berry"), 0.0)
+        assertEquals(0.5, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.FIRE to null, item = "occa-berry"), 0.0)
+    }
+
+    @Test
+    fun `chilan berry halves Normal damage even though Normal is never super-effective`() {
+        assertEquals(0.5, defensiveMultiplier(chart, PokemonType.NORMAL, PokemonType.WATER to null, item = "chilan-berry"), 0.0)
+    }
+
+    @Test
+    fun `an unmodelled item has no effect`() {
+        assertEquals(2.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GRASS to null, item = "leftovers"), 0.0)
+    }
+
     @Test
     fun `immunity overrides even when the type chart already shows 0 (motor-drive vs ground)`() {
         assertEquals(0.0, defensiveMultiplier(chart, PokemonType.ELECTRIC, PokemonType.GROUND to null, "motor-drive"), 0.0)

@@ -42,6 +42,7 @@ import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.sprite.SpriteContext
 import com.marcogn.coverdex.ui.common.AbilityPicker
 import com.marcogn.coverdex.ui.common.DropdownOption
+import com.marcogn.coverdex.ui.common.ItemPicker
 import com.marcogn.coverdex.ui.common.PokemonSprite
 import com.marcogn.coverdex.ui.common.SearchableDropdown
 import com.marcogn.coverdex.ui.common.TypeBadge
@@ -57,6 +58,7 @@ private data class SlotDraft(
     val type1: PokemonType,
     val type2: PokemonType?,
     val ability: String?,
+    val item: String?,
     val moves: List<PokemonMove?>,
     val isCustomSaved: Boolean,
 ) {
@@ -66,6 +68,7 @@ private data class SlotDraft(
         speciesName = speciesName,
         types = type1 to type2,
         ability = ability,
+        item = item,
         moves = moves,
         isCustomSaved = isCustomSaved,
     )
@@ -78,6 +81,7 @@ private data class SlotDraft(
             type1 = member.types.first,
             type2 = member.types.second,
             ability = member.ability,
+            item = member.item,
             moves = member.moves,
             isCustomSaved = member.isCustomSaved,
         )
@@ -152,6 +156,7 @@ fun SlotEditorScreen(
                             type1 = entry.types.first,
                             type2 = entry.types.second,
                             ability = entry.defaultAbility,
+                            item = null,
                             moves = List(MOVE_COUNT) { null },
                             isCustomSaved = false,
                         )
@@ -204,6 +209,13 @@ fun SlotEditorScreen(
                     onAbilityChange = { draft = currentDraft.copy(ability = it) },
                     searchAbilities = viewModel::searchAbilities,
                     loadCanonicalAbilities = viewModel::canonicalAbilities,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                ItemPicker(
+                    resetKey = currentDraft.id,
+                    item = currentDraft.item,
+                    onItemChange = { draft = currentDraft.copy(item = it) },
                     modifier = Modifier.fillMaxWidth(),
                 )
 
