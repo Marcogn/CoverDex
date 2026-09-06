@@ -29,15 +29,6 @@ sealed interface AbilityEffect {
     data object OnlySuperEffective : AbilityEffect
 }
 
-/** Ability slugs (PokéAPI identifier format, e.g. `"sap-sipper"`) that have a coverage-relevant
- * effect, in ability-picker display format (spaces instead of hyphens) — regenerated from
- * [ABILITY_EFFECTS] rather than hand-maintained a second time, so it cannot drift from the actual
- * effect table (phase-7-accuracy-and-customization.md §7.1). Not currently read by any UI; kept
- * for whatever surface wants a flat "which abilities matter" list without inspecting
- * [ABILITY_EFFECTS] itself — the ability picker's own "has an effect" badge
- * (`ui/team/SlotEditorScreen.kt`) checks `abilityKey(name) in ABILITY_EFFECTS` directly instead. */
-val KNOWN_ABILITIES_WITH_EFFECTS: List<String> = ABILITY_EFFECTS.keys.map { it.replace('-', ' ') }
-
 /**
  * Hardcoded map of ability slugs (lowercase, hyphenated, matching PokéAPI) to their
  * coverage-relevant effects. Only abilities that alter defensive/offensive type effectiveness or
@@ -94,6 +85,15 @@ val ABILITY_EFFECTS: Map<String, List<AbilityEffect>> = mapOf(
     "tera-shell" to listOf(AbilityEffect.BadgeOnly("Not very effective at full HP")),
     "wonder-guard" to listOf(AbilityEffect.OnlySuperEffective),
 )
+
+/** Ability slugs (PokéAPI identifier format, e.g. `"sap-sipper"`) that have a coverage-relevant
+ * effect, in ability-picker display format (spaces instead of hyphens) — regenerated from
+ * [ABILITY_EFFECTS] rather than hand-maintained a second time, so it cannot drift from the actual
+ * effect table (phase-7-accuracy-and-customization.md §7.1). Not currently read by any UI; kept
+ * for whatever surface wants a flat "which abilities matter" list without inspecting
+ * [ABILITY_EFFECTS] itself — the ability picker's own "has an effect" badge
+ * (`ui/team/SlotEditorScreen.kt`) checks `abilityKey(name) in ABILITY_EFFECTS` directly instead. */
+val KNOWN_ABILITIES_WITH_EFFECTS: List<String> = ABILITY_EFFECTS.keys.map { it.replace('-', ' ') }
 
 /** Lowercase, letters and digits only — so `"Well-Baked Body"`, `"well-baked-body"` and
  * `"wellbakedbody"` all resolve to the same [ABILITY_EFFECTS] entry, mirroring
