@@ -131,7 +131,7 @@ jobs:
       - name: Decode release keystore
         run: echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
         env:
-          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
       - name: Verify decoded keystore integrity
         run: |
@@ -144,9 +144,9 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon --stacktrace
         env:
           RELEASE_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
-          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       # gh release create attaches whatever file path it's given as-is, so the APK is
       # uploaded as a plain .apk release asset — never zipped.
