@@ -222,6 +222,17 @@ class DatasetAssemblyTest {
     }
 
     @Test
+    fun `every assembled form has a valid typing - non-null type1, and type2 never equal to it`() {
+        // Cheap structural guard for the invariant §7.3.3 asks for (the real 171-typing coverage
+        // lives in CoverageEngineTest against the full type space, not against 1351+ forms —
+        // see phase-7-accuracy-and-customization.md §7.3.2's own reasoning for why).
+        for (species in dataset.species) {
+            assertTrue(PokemonType.entries.contains(species.types.first))
+            assertTrue(species.types.second == null || species.types.second != species.types.first)
+        }
+    }
+
+    @Test
     fun `searchKey normalizes hyphens, spaces and case away`() {
         assertEquals("mrmime", searchKey("mr-mime"))
         assertEquals("mrmime", searchKey("Mr Mime"))

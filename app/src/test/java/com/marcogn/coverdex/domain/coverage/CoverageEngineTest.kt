@@ -329,6 +329,12 @@ class CoverageEngineTest {
     }
 
     @Test
+    fun `filter turns a x4 weakness into x3`() {
+        // Ice vs Grass/Ground is 2x * 2x = 4x in the fixture.
+        assertEquals(3.0, defensiveMultiplier(chart, PokemonType.ICE, PokemonType.GRASS to PokemonType.GROUND, "filter"), 0.0)
+    }
+
+    @Test
     fun `filter does not touch a neutral or resisted hit`() {
         assertEquals(1.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.NORMAL to null, "filter"), 0.0)
         assertEquals(0.5, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.FIRE to null, "filter"), 0.0)
@@ -528,5 +534,87 @@ class CoverageEngineTest {
         )
         val worst = mostVulnerableByType(chart, team)
         assertEquals(4.0, worst.getValue(PokemonType.ROCK), 0.0)
+    }
+
+    // --- exhaustive type-chart / dual-typing sweep (§7.3.1-2, phase-7-accuracy-and-customization.md) ---
+
+    private val validMultipliers = setOf(0.0, 0.5, 1.0, 2.0)
+
+    @Test
+    fun `every one of the 324 type chart cells is a real multiplier value`() {
+        for (atk in PokemonType.entries) {
+            for (def in PokemonType.entries) {
+                val mult = chart.multiplier(atk, def)
+                assertTrue("$atk -> $def was $mult, not one of $validMultipliers", mult in validMultipliers)
+            }
+        }
+    }
+
+    @Test
+    fun `classic asymmetric matchups are exactly right`() {
+        assertEquals(0.0, chart.multiplier(PokemonType.NORMAL, PokemonType.GHOST), 0.0)
+        assertEquals(0.0, chart.multiplier(PokemonType.FIGHTING, PokemonType.GHOST), 0.0)
+        assertEquals(0.0, chart.multiplier(PokemonType.GROUND, PokemonType.FLYING), 0.0)
+        assertEquals(2.0, chart.multiplier(PokemonType.FAIRY, PokemonType.DRAGON), 0.0)
+        assertEquals(2.0, chart.multiplier(PokemonType.STEEL, PokemonType.FAIRY), 0.0)
+        assertEquals(2.0, chart.multiplier(PokemonType.FIRE, PokemonType.STEEL), 0.0)
+        assertEquals(0.0, chart.multiplier(PokemonType.POISON, PokemonType.STEEL), 0.0)
+        assertEquals(0.0, chart.multiplier(PokemonType.ELECTRIC, PokemonType.GROUND), 0.0)
+    }
+
+    /** The complete space of typings a real Pokemon can have: 18 single types plus every
+     * unordered pair of two distinct types (18 + C(18,2) = 18 + 153 = 171). Enumerating all 1351+
+     * catalogue forms would only re-test this same 171-element space with worse failure
+     * messages — see docs/plan/phase-7-accuracy-and-customization.md §7.3.2. */
+    private fun allTypings(): List<Pair<PokemonType, PokemonType?>> {
+        val singles = PokemonType.entries.map { it to null }
+        val pairs = PokemonType.entries.flatMapIndexed { i, t1 ->
+            PokemonType.entries.drop(i + 1).map { t2 -> t1 to t2 }
+        }
+        return singles + pairs
+    }
+
+    @Test
+    fun `allTypings enumerates exactly 171 typings, 18 single and 153 dual`() {
+        val typings = allTypings()
+        assertEquals(171, typings.size)
+        assertEquals(18, typings.count { it.second == null })
+        assertEquals(153, typings.count { it.second != null })
+    }
+
+    @Test
+    fun `defensiveMultiplier for every one of the 171 typings equals the product of its two single-type lookups`() {
+        for (types in allTypings()) {
+            for (atk in PokemonType.entries) {
+                val expected = chart.multiplier(atk, types.first) * (types.second?.let { chart.multiplier(atk, it) } ?: 1.0)
+                val actual = defensiveMultiplier(chart, atk, types)
+                assertEquals("$atk vs $types", expected, actual, 0.0)
+            }
+        }
+    }
+
+    @Test
+    fun `defensiveProfile buckets every non-neutral type exactly once and omits every neutral one, for all 171 typings`() {
+        // defensiveProfile's own contract (its class doc): weaknesses ">1x", resistances "<1x and
+        // >0", immunities "0x" — a neutral (1x) matchup belongs to none of the three and is
+        // implicit by omission, not a fourth bucket. This test's "no gap" is therefore about the
+        // NON-neutral types only: every type whose real multiplier isn't 1.0 must appear in
+        // exactly one bucket, and every bucketed type's real multiplier must match its bucket.
+        for (types in allTypings()) {
+            val profile = defensiveProfile(chart, types)
+            val bucketed = profile.weaknesses + profile.resistances + profile.immunities
+
+            assertEquals("$types: a type landed in more than one bucket", bucketed.size, bucketed.toSet().size)
+
+            for (atk in PokemonType.entries) {
+                val mult = defensiveMultiplier(chart, atk, types)
+                when {
+                    mult == 0.0 -> assertTrue("$types: $atk ($mult) should be an immunity", atk in profile.immunities)
+                    mult > 1.0 -> assertTrue("$types: $atk ($mult) should be a weakness", atk in profile.weaknesses)
+                    mult < 1.0 -> assertTrue("$types: $atk ($mult) should be a resistance", atk in profile.resistances)
+                    else -> assertTrue("$types: $atk ($mult) is neutral, must not be bucketed", atk !in bucketed)
+                }
+            }
+        }
     }
 }
