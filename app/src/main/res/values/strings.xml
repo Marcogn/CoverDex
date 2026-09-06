@@ -80,6 +80,8 @@
     <string name="analysis_team_best">Miglior team</string>
     <string name="analysis_immune_to">immune a</string>
     <string name="analysis_wonder_guard_note">Solo le mosse super-efficaci infliggono danni</string>
+    <string name="analysis_super_effective_hits">i colpi super-efficaci</string>
+    <string name="analysis_never_super_effective">mai super-efficace contro questo Pokémon</string>
     <string name="analysis_pokemon_column_header">Pokémon</string>
 
     <!-- Suggestions (Phase 4) -->
@@ -145,6 +147,10 @@
     <string name="slot_type2_label">Tipo 2</string>
     <string name="slot_type_none">Nessuno</string>
     <string name="slot_ability_label">Abilità</string>
+    <string name="ability_picker_hidden_suffix"> (nascosta)</string>
+    <string name="ability_picker_custom_option">Abilità custom…</string>
+    <string name="ability_picker_back_to_canonical">Torna alle abilità canoniche</string>
+    <string name="ability_picker_effect_marker">●</string>
     <string name="slot_moves_title">Mosse</string>
     <string name="slot_move_pick_placeholder">Scegli o digita una mossa…</string>
     <string name="slot_move_custom_name_placeholder">Nome mossa personalizzata</string>

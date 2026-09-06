@@ -295,17 +295,121 @@ class CoverageEngineTest {
     }
 
     @Test
-    fun `wonder-guard does not alter any multiplier (badge-only)`() {
-        assertEquals(
-            defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GHOST to null),
-            defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GHOST to null, "wonder-guard"),
-            0.0,
-        )
-        assertEquals(
-            defensiveMultiplier(chart, PokemonType.DARK, PokemonType.GHOST to null),
-            defensiveMultiplier(chart, PokemonType.DARK, PokemonType.GHOST to null, "wonder-guard"),
-            0.0,
-        )
+    fun `wonder-guard blocks a non-super-effective hit but lets a super-effective one through unchanged`() {
+        // Fire vs Ghost is neutral (1x) in the fixture — Wonder Guard blocks it entirely.
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GHOST to null, "wonder-guard"), 0.0)
+        // Dark vs Ghost is 2x (super-effective) — passes through unchanged, real damage happens.
+        assertEquals(2.0, defensiveMultiplier(chart, PokemonType.DARK, PokemonType.GHOST to null, "wonder-guard"), 0.0)
+    }
+
+    @Test
+    fun `heatproof and water-bubble both halve Fire damage`() {
+        assertEquals(0.5, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.NORMAL to null, "heatproof"), 0.0)
+        assertEquals(0.5, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.NORMAL to null, "water-bubble"), 0.0)
+    }
+
+    @Test
+    fun `purifying-salt halves Ghost damage`() {
+        // Ghost vs Fire is neutral (1x, not immune) in the fixture.
+        assertEquals(0.5, defensiveMultiplier(chart, PokemonType.GHOST, PokemonType.FIRE to null, "purifying-salt"), 0.0)
+    }
+
+    @Test
+    fun `dry-skin absorbs Water and takes extra Fire damage`() {
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.WATER, PokemonType.NORMAL to null, "dry-skin"), 0.0)
+        assertEquals(1.25, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.NORMAL to null, "dry-skin"), 0.0)
+    }
+
+    @Test
+    fun `filter, solid-rock and prism-armor each reduce an already super-effective hit by a quarter`() {
+        // Fire vs Grass is 2x in the fixture.
+        for (ability in listOf("filter", "solid-rock", "prism-armor")) {
+            assertEquals(1.5, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GRASS to null, ability), 0.0)
+        }
+    }
+
+    @Test
+    fun `filter does not touch a neutral or resisted hit`() {
+        assertEquals(1.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.NORMAL to null, "filter"), 0.0)
+        assertEquals(0.5, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.FIRE to null, "filter"), 0.0)
+    }
+
+    @Test
+    fun `delta-stream caps a super-effective hit against the holder at neutral`() {
+        // Electric vs Flying is 2x in the fixture.
+        assertEquals(1.0, defensiveMultiplier(chart, PokemonType.ELECTRIC, PokemonType.FLYING to null, "delta-stream"), 0.0)
+    }
+
+    @Test
+    fun `primordial-sea and desolate-land are immune to Fire and Water respectively`() {
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GRASS to null, "primordial-sea"), 0.0)
+        assertEquals(0.0, defensiveMultiplier(chart, PokemonType.WATER, PokemonType.GRASS to null, "desolate-land"), 0.0)
+    }
+
+    @Test
+    fun `tera-shell is badge-only, no multiplier change`() {
+        assertEquals(2.0, defensiveMultiplier(chart, PokemonType.FIRE, PokemonType.GRASS to null, "tera-shell"), 0.0)
+    }
+
+    // --- offensive ability gap (overriddenMoveType / bypassesGhostImmunity, §7.2) ---
+
+    @Test
+    fun `refrigerate rewrites a Normal move to Ice for both offensiveCoverageForMember and the grid`() {
+        val member = buildMember("Vaporeon", PokemonType.WATER to null, listOf(PokemonType.NORMAL), ability = "refrigerate")
+
+        val coverage = offensiveCoverageForMember(chart, member, useMoves = true)
+        assertTrue(coverage.contains(PokemonType.GRASS)) // Ice hits Grass 2x; a bare Normal move would not
+
+        val multipliers = offensiveMultipliersForMember(chart, member)
+        assertEquals(2.0, multipliers.getValue(PokemonType.GRASS), 0.0)
+    }
+
+    @Test
+    fun `the -ate abilities never rewrite a move that already has a type`() {
+        val member = buildMember("Vaporeon", PokemonType.WATER to null, listOf(PokemonType.WATER), ability = "aerilate")
+
+        val coverage = offensiveCoverageForMember(chart, member, useMoves = true)
+        assertFalse(coverage.contains(PokemonType.FIGHTING)) // Flying would hit Fighting 2x; Water does not
+    }
+
+    @Test
+    fun `normalize rewrites every move to Normal, not just Normal-type ones`() {
+        val member = buildMember("Vaporeon", PokemonType.WATER to null, listOf(PokemonType.GRASS), ability = "normalize")
+
+        // Grass hits Ground 2x; Normal does not, so this proves the Grass move was rewritten away.
+        val coverage = offensiveCoverageForMember(chart, member, useMoves = true)
+        assertFalse(coverage.contains(PokemonType.GROUND))
+    }
+
+    @Test
+    fun `the -ate abilities do not apply to type-based coverage, only real moves`() {
+        // No moves entered — Ditto's own type (Normal) is used as the stand-in attack. If
+        // refrigerate wrongly applied here too, Normal would become Ice and Grass (2x to Ice)
+        // would show up in coverage; Normal itself never hits Grass for 2x.
+        val member = buildMember("Ditto", PokemonType.NORMAL to null, ability = "refrigerate")
+
+        val coverage = offensiveCoverageForMember(chart, member, useMoves = false)
+        assertFalse(coverage.contains(PokemonType.GRASS))
+    }
+
+    @Test
+    fun `scrappy lets Normal and Fighting moves hit Ghost neutrally, in the grid only`() {
+        val member = buildMember("Kecleon", PokemonType.NORMAL to null, listOf(PokemonType.NORMAL, PokemonType.FIGHTING), ability = "scrappy")
+
+        val multipliers = offensiveMultipliersForMember(chart, member)
+        assertEquals(1.0, multipliers.getValue(PokemonType.GHOST), 0.0)
+
+        // Coverage (the >=2x scan) is untouched: 0x -> 1x never crosses the threshold.
+        val coverage = offensiveCoverageForMember(chart, member, useMoves = true)
+        assertFalse(coverage.contains(PokemonType.GHOST))
+    }
+
+    @Test
+    fun `without scrappy, Normal and Fighting moves stay blocked by Ghost`() {
+        val member = buildMember("Kecleon", PokemonType.NORMAL to null, listOf(PokemonType.NORMAL))
+
+        val multipliers = offensiveMultipliersForMember(chart, member)
+        assertEquals(0.0, multipliers.getValue(PokemonType.GHOST), 0.0)
     }
 
     @Test

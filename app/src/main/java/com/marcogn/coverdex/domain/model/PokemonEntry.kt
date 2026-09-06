@@ -26,4 +26,9 @@ data class PokemonEntry(
     val generationIntroduced: Int,
     val defaultAbility: String?,
     val isDefaultForm: Boolean,
+    /** Current-generation base stat total (sum of all six stats). `0` when the pinned dataset has
+     * no `pokemon_stats` rows for this form — never negative, never null. Added in Phase 7 as the
+     * suggestion ranking's tie-break, never its primary sort — see
+     * docs/plan/phase-7-accuracy-and-customization.md §5. */
+    val baseStatTotal: Int = 0,
 )

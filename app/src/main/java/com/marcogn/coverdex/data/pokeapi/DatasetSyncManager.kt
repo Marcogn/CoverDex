@@ -78,6 +78,10 @@ class DatasetSyncManager @Inject constructor(
                 movesCsv = files.getValue(DatasetFile.MOVES),
                 typesCsv = files.getValue(DatasetFile.TYPES),
                 typeEfficacyCsv = files.getValue(DatasetFile.TYPE_EFFICACY),
+                pokemonStatsCsv = files.getValue(DatasetFile.POKEMON_STATS),
+                pokemonStatsPastCsv = files.getValue(DatasetFile.POKEMON_STATS_PAST),
+                abilityNamesCsv = files.getValue(DatasetFile.ABILITY_NAMES),
+                moveNamesCsv = files.getValue(DatasetFile.MOVE_NAMES),
             )
 
             _state.value = SyncState.Running(SyncStage.WRITING, progress = 0.95f)
@@ -87,6 +91,8 @@ class DatasetSyncManager @Inject constructor(
                 moves = dataset.moves.map { it.toEntity() },
                 abilities = dataset.abilities.map { it.toEntity() },
                 typeEfficacy = dataset.typeChart.toEntities(),
+                pokemonAbilities = dataset.pokemonAbilities.map { it.toEntity() },
+                bstPast = dataset.pastBst.map { it.toEntity() },
                 meta = PokeCacheMetaEntity(
                     schemaVersion = DATASET_SCHEMA_VERSION,
                     datasetRevision = DATASET_REVISION,

@@ -28,10 +28,10 @@ interface CustomPokemonDao {
      * is deliberately never part of it, so editing a roster entry can never reset its creation
      * time (and so its place in `observeRoster()`'s `ORDER BY createdAtEpochMillis`). */
     @Query(
-        "UPDATE custom_pokemon SET name = :name, type1 = :type1, type2 = :type2, ability = :ability " +
-            "WHERE id = :id",
+        "UPDATE custom_pokemon SET name = :name, type1 = :type1, type2 = :type2, ability = :ability, " +
+            "item = :item WHERE id = :id",
     )
-    suspend fun updateFields(id: String, name: String, type1: String, type2: String?, ability: String?)
+    suspend fun updateFields(id: String, name: String, type1: String, type2: String?, ability: String?, item: String?)
 
     @Query("DELETE FROM custom_pokemon_move WHERE customId = :customId")
     suspend fun deleteMovesForCustom(customId: String)
@@ -46,7 +46,7 @@ interface CustomPokemonDao {
     @Transaction
     suspend fun upsert(entity: CustomPokemonEntity, moves: List<CustomPokemonMoveEntity>) {
         if (exists(entity.id)) {
-            updateFields(entity.id, entity.name, entity.type1, entity.type2, entity.ability)
+            updateFields(entity.id, entity.name, entity.type1, entity.type2, entity.ability, entity.item)
         } else {
             insert(entity)
         }

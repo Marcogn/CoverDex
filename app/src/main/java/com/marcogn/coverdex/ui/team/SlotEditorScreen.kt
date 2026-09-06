@@ -40,8 +40,8 @@ import com.marcogn.coverdex.domain.model.PokemonMove
 import com.marcogn.coverdex.domain.model.PokemonType
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.sprite.SpriteContext
+import com.marcogn.coverdex.ui.common.AbilityPicker
 import com.marcogn.coverdex.ui.common.DropdownOption
-import com.marcogn.coverdex.ui.common.EditableComboBox
 import com.marcogn.coverdex.ui.common.PokemonSprite
 import com.marcogn.coverdex.ui.common.SearchableDropdown
 import com.marcogn.coverdex.ui.common.TypeBadge
@@ -197,16 +197,13 @@ fun SlotEditorScreen(
                     )
                 }
 
-                var abilityQuery by remember(currentDraft.id) { mutableStateOf(currentDraft.ability.orEmpty()) }
-                val abilityResults by remember(abilityQuery) { viewModel.searchAbilities(abilityQuery) }.collectAsState(initial = emptyList())
-                EditableComboBox(
-                    value = abilityQuery,
-                    onValueChange = { value ->
-                        abilityQuery = value
-                        draft = currentDraft.copy(ability = value.ifBlank { null })
-                    },
-                    label = stringResource(R.string.slot_ability_label),
-                    suggestions = abilityResults.map { it.displayName },
+                AbilityPicker(
+                    resetKey = currentDraft.id,
+                    pokedexId = currentDraft.pokedexId,
+                    ability = currentDraft.ability,
+                    onAbilityChange = { draft = currentDraft.copy(ability = it) },
+                    searchAbilities = viewModel::searchAbilities,
+                    loadCanonicalAbilities = viewModel::canonicalAbilities,
                     modifier = Modifier.fillMaxWidth(),
                 )
 

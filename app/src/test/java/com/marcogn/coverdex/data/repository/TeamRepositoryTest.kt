@@ -100,6 +100,8 @@ class TeamRepositoryTest {
             moves = emptyList(),
             abilities = emptyList(),
             typeEfficacy = emptyList(),
+            pokemonAbilities = emptyList(),
+            bstPast = emptyList(),
             meta = PokeCacheMetaEntity(schemaVersion = 1, datasetRevision = "abc123", syncedAtEpochMillis = 1000L, speciesCount = 1, moveCount = 0),
         )
         val teamId = repository.createTeam("My Team")

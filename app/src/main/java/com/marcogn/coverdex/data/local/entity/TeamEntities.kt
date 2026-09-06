@@ -44,6 +44,9 @@ data class TeamMemberEntity(
     val type2: String?,
     val ability: String?,
     val isCustomSaved: Boolean,
+    /** Nullable, added in Phase 7 (schema v3) — see
+     * docs/plan/phase-7-accuracy-and-customization.md §4. */
+    val item: String? = null,
 )
 
 @Entity(
@@ -77,6 +80,9 @@ data class CustomPokemonEntity(
     val type2: String?,
     val ability: String?,
     val createdAtEpochMillis: Long,
+    /** Nullable, added in Phase 7 (schema v3) — see
+     * docs/plan/phase-7-accuracy-and-customization.md §4. */
+    val item: String? = null,
 )
 
 @Entity(

@@ -4,3 +4,4 @@ id,identifier,generation_id,evolves_from_species_id,evolution_chain_id,color_id,
 144,articuno,1,,73,2,9,5,-1,3,35,0,80,0,1,0,1,0,176,192
 718,zygarde,6,,370,5,2,,-1,3,0,0,120,0,1,0,1,0,718,
 386,deoxys,3,,202,8,12,5,-1,3,0,0,120,0,1,1,0,1,416,
+999,teststat,1,,999,1,1,,1,45,70,0,20,0,4,0,0,0,999,

@@ -80,6 +80,8 @@
     <string name="analysis_team_best">Team best</string>
     <string name="analysis_immune_to">immune to</string>
     <string name="analysis_wonder_guard_note">Only super-effective moves deal damage</string>
+    <string name="analysis_super_effective_hits">super-effective hits</string>
+    <string name="analysis_never_super_effective">never super-effective against this Pokémon</string>
     <string name="analysis_pokemon_column_header">Pokémon</string>
 
     <!-- Suggestions (Phase 4) -->
@@ -145,6 +147,10 @@
     <string name="slot_type2_label">Type 2</string>
     <string name="slot_type_none">None</string>
     <string name="slot_ability_label">Ability</string>
+    <string name="ability_picker_hidden_suffix"> (hidden)</string>
+    <string name="ability_picker_custom_option">Custom ability…</string>
+    <string name="ability_picker_back_to_canonical">Back to canonical abilities</string>
+    <string name="ability_picker_effect_marker">●</string>
     <string name="slot_moves_title">Moves</string>
     <string name="slot_move_pick_placeholder">Pick or type a move…</string>
     <string name="slot_move_custom_name_placeholder">Custom move name</string>

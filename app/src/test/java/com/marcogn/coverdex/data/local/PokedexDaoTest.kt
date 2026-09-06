@@ -6,6 +6,8 @@ import com.marcogn.coverdex.data.local.dao.PokedexDao
 import com.marcogn.coverdex.data.local.entity.PokeAbilityEntity
 import com.marcogn.coverdex.data.local.entity.PokeCacheMetaEntity
 import com.marcogn.coverdex.data.local.entity.PokeMoveEntity
+import com.marcogn.coverdex.data.local.entity.PokePokemonAbilityEntity
+import com.marcogn.coverdex.data.local.entity.PokeSpeciesBstPastEntity
 import com.marcogn.coverdex.data.local.entity.PokeSpeciesEntity
 import com.marcogn.coverdex.data.local.entity.TypeEfficacyEntity
 import kotlinx.coroutines.flow.first
@@ -184,6 +186,8 @@ class PokedexDaoTest {
             moves = listOf(PokeMoveEntity(1, "pound", "Pound", "pound", "normal", 40, "PHYSICAL")),
             abilities = listOf(PokeAbilityEntity(65, "overgrow", "Overgrow", "overgrow")),
             typeEfficacy = listOf(TypeEfficacyEntity("fire", "grass", 2.0)),
+            pokemonAbilities = emptyList(),
+            bstPast = emptyList(),
             meta = PokeCacheMetaEntity(schemaVersion = 1, datasetRevision = "abc123", syncedAtEpochMillis = 1000L, speciesCount = 1, moveCount = 1),
         )
 
@@ -198,6 +202,8 @@ class PokedexDaoTest {
             moves = listOf(PokeMoveEntity(1, "pound", "Pound", "pound", "normal", 40, "PHYSICAL")),
             abilities = listOf(PokeAbilityEntity(65, "overgrow", "Overgrow", "overgrow")),
             typeEfficacy = listOf(TypeEfficacyEntity("fire", "grass", 2.0)),
+            pokemonAbilities = emptyList(),
+            bstPast = emptyList(),
             meta = PokeCacheMetaEntity(schemaVersion = 1, datasetRevision = "abc123", syncedAtEpochMillis = 1000L, speciesCount = 1, moveCount = 1),
         )
 
@@ -208,5 +214,43 @@ class PokedexDaoTest {
         assertTrue(dao.searchAbilities("overgrow", limit = -1).first().isEmpty())
         assertTrue(dao.getAllTypeEfficacy().isEmpty())
         assertNull(dao.getMeta())
+    }
+
+    @Test
+    fun `getAbilitiesForSpecies orders hidden last, then by slot`() = runTest {
+        dao.replaceAllPokemonAbilities(
+            listOf(
+                PokePokemonAbilityEntity(pokemonId = 1, slot = 3, abilitySlug = "chlorophyll", displayName = "Chlorophyll", isHidden = true),
+                PokePokemonAbilityEntity(pokemonId = 1, slot = 1, abilitySlug = "overgrow", displayName = "Overgrow", isHidden = false),
+            ),
+        )
+
+        val result = dao.getAbilitiesForSpecies(1)
+
+        assertEquals(listOf("overgrow", "chlorophyll"), result.map { it.abilitySlug })
+    }
+
+    @Test
+    fun `getAbilitiesForSpecies is empty for a species with no rows`() = runTest {
+        assertTrue(dao.getAbilitiesForSpecies(999).isEmpty())
+    }
+
+    @Test
+    fun `bst past rows round-trip and clearCache wipes them too`() = runTest {
+        dao.replaceCache(
+            species = listOf(species(1, "bulbasaur")),
+            moves = emptyList(),
+            abilities = emptyList(),
+            typeEfficacy = emptyList(),
+            pokemonAbilities = emptyList(),
+            bstPast = listOf(PokeSpeciesBstPastEntity(pokemonId = 144, generationId = 1, bst = 460)),
+            meta = PokeCacheMetaEntity(schemaVersion = 1, datasetRevision = "abc123", syncedAtEpochMillis = 1000L, speciesCount = 1, moveCount = 0),
+        )
+
+        assertEquals(460, dao.getAllBstPast().first { it.pokemonId == 144 }.bst)
+
+        dao.clearCache()
+
+        assertTrue(dao.getAllBstPast().isEmpty())
     }
 }

@@ -99,3 +99,49 @@ fun parseTypeEfficacy(csv: String): List<TypeEfficacyCsvRow> =
             damageFactor = row.getValue("damage_factor").toInt(),
         )
     }
+
+/** `stat_id`: 1 hp, 2 attack, 3 defense, 4 special-attack, 5 special-defense, 6 speed, 9 the
+ * Gen-1-only combined "special" — hardcoded here exactly as `damage_class_id` and the type ids
+ * are hardcoded in `assembleDataset`, per docs/plan/phase-7-accuracy-and-customization.md §2.1.
+ * `stats.csv` itself is never downloaded for this. */
+data class PokemonStatCsvRow(val pokemonId: Int, val statId: Int, val baseStat: Int)
+
+fun parsePokemonStats(csv: String): List<PokemonStatCsvRow> =
+    CsvParser.parse(csv).map { row ->
+        PokemonStatCsvRow(
+            pokemonId = row.getValue("pokemon_id").toInt(),
+            statId = row.getValue("stat_id").toInt(),
+            baseStat = row.getValue("base_stat").toInt(),
+        )
+    }
+
+/** A row means "this stat held this value through generation [generationId] inclusive" — see
+ * phase-7-accuracy-and-customization.md §2.2 for the derivation this backs. */
+data class PokemonStatPastCsvRow(val pokemonId: Int, val generationId: Int, val statId: Int, val baseStat: Int)
+
+fun parsePokemonStatsPast(csv: String): List<PokemonStatPastCsvRow> =
+    CsvParser.parse(csv).map { row ->
+        PokemonStatPastCsvRow(
+            pokemonId = row.getValue("pokemon_id").toInt(),
+            generationId = row.getValue("generation_id").toInt(),
+            statId = row.getValue("stat_id").toInt(),
+            baseStat = row.getValue("base_stat").toInt(),
+        )
+    }
+
+/** One row per (ability/move id, language). Only `local_language_id == 9` (English) rows are
+ * kept — see phase-7-accuracy-and-customization.md §2.1; a genuinely localized name is a
+ * follow-up, not this phase's job. */
+data class LocalizedNameCsvRow(val id: Int, val name: String)
+
+private const val ENGLISH_LANGUAGE_ID = "9"
+
+fun parseAbilityNames(csv: String): List<LocalizedNameCsvRow> =
+    CsvParser.parse(csv)
+        .filter { it.getValue("local_language_id") == ENGLISH_LANGUAGE_ID }
+        .map { row -> LocalizedNameCsvRow(id = row.getValue("ability_id").toInt(), name = row.getValue("name")) }
+
+fun parseMoveNames(csv: String): List<LocalizedNameCsvRow> =
+    CsvParser.parse(csv)
+        .filter { it.getValue("local_language_id") == ENGLISH_LANGUAGE_ID }
+        .map { row -> LocalizedNameCsvRow(id = row.getValue("move_id").toInt(), name = row.getValue("name")) }

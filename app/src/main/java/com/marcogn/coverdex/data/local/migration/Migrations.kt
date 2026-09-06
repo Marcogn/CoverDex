@@ -40,3 +40,26 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_custom_pokemon_move_customId` ON `custom_pokemon_move` (`customId`)")
     }
 }
+
+/** Additive only — adds the held-item columns and the two catalogue tables Phase 7 needs (base
+ * stats and canonical per-form abilities). See
+ * docs/plan/phase-7-accuracy-and-customization.md §8. The new `poke_species` column needs a
+ * `DEFAULT 0`: SQLite requires one on `ALTER TABLE ... ADD COLUMN` when the column is `NOT NULL`,
+ * so every pre-existing row gets a value instead of the migration failing outright. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `team_member` ADD COLUMN `item` TEXT")
+        db.execSQL("ALTER TABLE `custom_pokemon` ADD COLUMN `item` TEXT")
+        db.execSQL("ALTER TABLE `poke_species` ADD COLUMN `baseStatTotal` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `poke_pokemon_ability` (`pokemonId` INTEGER NOT NULL, " +
+                "`slot` INTEGER NOT NULL, `abilitySlug` TEXT NOT NULL, `displayName` TEXT NOT NULL, " +
+                "`isHidden` INTEGER NOT NULL, PRIMARY KEY(`pokemonId`, `slot`))",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `poke_species_bst_past` (`pokemonId` INTEGER NOT NULL, " +
+                "`generationId` INTEGER NOT NULL, `bst` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`pokemonId`, `generationId`))",
+        )
+    }
+}

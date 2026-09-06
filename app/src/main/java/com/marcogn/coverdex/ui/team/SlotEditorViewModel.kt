@@ -8,6 +8,7 @@ import com.marcogn.coverdex.data.settings.SettingsPreferences
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.MoveEntry
 import com.marcogn.coverdex.domain.model.PokemonEntry
+import com.marcogn.coverdex.domain.model.SpeciesAbility
 import com.marcogn.coverdex.domain.model.TeamMember
 import com.marcogn.coverdex.domain.repository.CustomPokemonRepository
 import com.marcogn.coverdex.domain.repository.PokedexRepository
@@ -53,6 +54,10 @@ class SlotEditorViewModel @Inject constructor(
     fun searchSpecies(query: String): Flow<List<PokemonEntry>> = pokedexRepository.searchSpecies(query)
 
     fun searchAbilities(query: String): Flow<List<AbilityEntry>> = pokedexRepository.searchAbilities(query)
+
+    /** The picked species' canonical abilities, for [com.marcogn.coverdex.ui.common.AbilityPicker] —
+     * see docs/plan/phase-7-accuracy-and-customization.md §3.2. */
+    suspend fun canonicalAbilities(pokemonId: Int): List<SpeciesAbility> = pokedexRepository.abilitiesForSpecies(pokemonId)
 
     fun searchMoves(query: String): Flow<List<MoveEntry>> = pokedexRepository.searchMoves(query)
 

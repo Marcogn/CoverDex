@@ -2,13 +2,17 @@ package com.marcogn.coverdex.data.repository
 
 import com.marcogn.coverdex.data.local.entity.PokeAbilityEntity
 import com.marcogn.coverdex.data.local.entity.PokeMoveEntity
+import com.marcogn.coverdex.data.local.entity.PokePokemonAbilityEntity
+import com.marcogn.coverdex.data.local.entity.PokeSpeciesBstPastEntity
 import com.marcogn.coverdex.data.local.entity.PokeSpeciesEntity
 import com.marcogn.coverdex.data.local.entity.TypeEfficacyEntity
 import com.marcogn.coverdex.domain.model.AbilityEntry
 import com.marcogn.coverdex.domain.model.DamageClass
 import com.marcogn.coverdex.domain.model.MoveEntry
+import com.marcogn.coverdex.domain.model.PastBst
 import com.marcogn.coverdex.domain.model.PokemonEntry
 import com.marcogn.coverdex.domain.model.PokemonType
+import com.marcogn.coverdex.domain.model.SpeciesAbility
 import com.marcogn.coverdex.domain.model.TypeChart
 
 fun PokemonEntry.toEntity(): PokeSpeciesEntity = PokeSpeciesEntity(
@@ -26,6 +30,7 @@ fun PokemonEntry.toEntity(): PokeSpeciesEntity = PokeSpeciesEntity(
     generationIntroduced = generationIntroduced,
     defaultAbility = defaultAbility,
     isDefaultForm = isDefaultForm,
+    baseStatTotal = baseStatTotal,
 )
 
 fun PokeSpeciesEntity.toDomain(): PokemonEntry? {
@@ -44,6 +49,7 @@ fun PokeSpeciesEntity.toDomain(): PokemonEntry? {
         generationIntroduced = generationIntroduced,
         defaultAbility = defaultAbility,
         isDefaultForm = isDefaultForm,
+        baseStatTotal = baseStatTotal,
     )
 }
 
@@ -76,6 +82,30 @@ fun TypeChart.toEntities(): List<TypeEfficacyEntity> =
     entries().map { (attacker, defender, factor) ->
         TypeEfficacyEntity(attacker = attacker.apiName, defender = defender.apiName, factor = factor)
     }
+
+fun SpeciesAbility.toEntity(): PokePokemonAbilityEntity = PokePokemonAbilityEntity(
+    pokemonId = pokemonId,
+    slot = slot,
+    abilitySlug = slug,
+    displayName = displayName,
+    isHidden = isHidden,
+)
+
+fun PokePokemonAbilityEntity.toDomain(): SpeciesAbility = SpeciesAbility(
+    pokemonId = pokemonId,
+    slug = abilitySlug,
+    displayName = displayName,
+    isHidden = isHidden,
+    slot = slot,
+)
+
+fun PastBst.toEntity(): PokeSpeciesBstPastEntity = PokeSpeciesBstPastEntity(
+    pokemonId = pokemonId,
+    generationId = generationId,
+    bst = bst,
+)
+
+fun PokeSpeciesBstPastEntity.toDomain(): PastBst = PastBst(pokemonId = pokemonId, generationId = generationId, bst = bst)
 
 fun List<TypeEfficacyEntity>.toTypeChart(): TypeChart {
     val table = mutableMapOf<PokemonType, MutableMap<PokemonType, Double>>()

@@ -11,6 +11,8 @@ import com.marcogn.coverdex.data.local.entity.CustomPokemonMoveEntity
 import com.marcogn.coverdex.data.local.entity.PokeAbilityEntity
 import com.marcogn.coverdex.data.local.entity.PokeCacheMetaEntity
 import com.marcogn.coverdex.data.local.entity.PokeMoveEntity
+import com.marcogn.coverdex.data.local.entity.PokePokemonAbilityEntity
+import com.marcogn.coverdex.data.local.entity.PokeSpeciesBstPastEntity
 import com.marcogn.coverdex.data.local.entity.PokeSpeciesEntity
 import com.marcogn.coverdex.data.local.entity.TeamEntity
 import com.marcogn.coverdex.data.local.entity.TeamMemberEntity
@@ -24,13 +26,15 @@ import com.marcogn.coverdex.data.local.entity.TypeEfficacyEntity
         PokeAbilityEntity::class,
         TypeEfficacyEntity::class,
         PokeCacheMetaEntity::class,
+        PokePokemonAbilityEntity::class,
+        PokeSpeciesBstPastEntity::class,
         TeamEntity::class,
         TeamMemberEntity::class,
         TeamMemberMoveEntity::class,
         CustomPokemonEntity::class,
         CustomPokemonMoveEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class CoverDexDatabase : RoomDatabase() {

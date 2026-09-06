@@ -8,6 +8,8 @@ import androidx.room.Transaction
 import com.marcogn.coverdex.data.local.entity.PokeAbilityEntity
 import com.marcogn.coverdex.data.local.entity.PokeCacheMetaEntity
 import com.marcogn.coverdex.data.local.entity.PokeMoveEntity
+import com.marcogn.coverdex.data.local.entity.PokePokemonAbilityEntity
+import com.marcogn.coverdex.data.local.entity.PokeSpeciesBstPastEntity
 import com.marcogn.coverdex.data.local.entity.PokeSpeciesEntity
 import com.marcogn.coverdex.data.local.entity.TypeEfficacyEntity
 import kotlinx.coroutines.flow.Flow
@@ -118,6 +120,45 @@ interface PokedexDao {
     @Query("SELECT * FROM type_efficacy")
     suspend fun getAllTypeEfficacy(): List<TypeEfficacyEntity>
 
+    // --- Per-form canonical abilities (Phase 7) ---
+
+    @Query("DELETE FROM poke_pokemon_ability")
+    suspend fun deleteAllPokemonAbilities()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPokemonAbilities(items: List<PokePokemonAbilityEntity>)
+
+    @Transaction
+    suspend fun replaceAllPokemonAbilities(items: List<PokePokemonAbilityEntity>) {
+        deleteAllPokemonAbilities()
+        insertPokemonAbilities(items)
+    }
+
+    /** Ordered hidden-last, then by slot — matches the ability picker's canonical-list order
+     * (phase-7-accuracy-and-customization.md §3.2). */
+    @Query("SELECT * FROM poke_pokemon_ability WHERE pokemonId = :pokemonId ORDER BY isHidden, slot")
+    suspend fun getAbilitiesForSpecies(pokemonId: Int): List<PokePokemonAbilityEntity>
+
+    // --- Historical base stat totals (Phase 7) ---
+
+    @Query("DELETE FROM poke_species_bst_past")
+    suspend fun deleteAllBstPast()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBstPast(items: List<PokeSpeciesBstPastEntity>)
+
+    @Transaction
+    suspend fun replaceAllBstPast(items: List<PokeSpeciesBstPastEntity>) {
+        deleteAllBstPast()
+        insertBstPast(items)
+    }
+
+    /** Every historical BST row — a small table (a few hundred rows at most; see
+     * phase-7-accuracy-and-customization.md §2.2), so callers building a per-generation lookup
+     * load it whole, the same one-shot-list shape as [getAllSpecies]/[getAllMoves]. */
+    @Query("SELECT * FROM poke_species_bst_past")
+    suspend fun getAllBstPast(): List<PokeSpeciesBstPastEntity>
+
     // --- Cache metadata ---
 
     @Query("SELECT * FROM poke_cache_meta WHERE id = 1")
@@ -140,12 +181,16 @@ interface PokedexDao {
         moves: List<PokeMoveEntity>,
         abilities: List<PokeAbilityEntity>,
         typeEfficacy: List<TypeEfficacyEntity>,
+        pokemonAbilities: List<PokePokemonAbilityEntity>,
+        bstPast: List<PokeSpeciesBstPastEntity>,
         meta: PokeCacheMetaEntity,
     ) {
         replaceAllSpecies(species)
         replaceAllMoves(moves)
         replaceAllAbilities(abilities)
         replaceAllTypeEfficacy(typeEfficacy)
+        replaceAllPokemonAbilities(pokemonAbilities)
+        replaceAllBstPast(bstPast)
         upsertMeta(meta)
     }
 
@@ -157,6 +202,8 @@ interface PokedexDao {
         deleteAllMoves()
         deleteAllAbilities()
         deleteAllTypeEfficacy()
+        deleteAllPokemonAbilities()
+        deleteAllBstPast()
         deleteMeta()
     }
 }

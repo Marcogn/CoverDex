@@ -4,3 +4,4 @@ id,identifier,species_id,height,weight,base_experience,order,is_default
 718,zygarde-50,718,50,3050,270,858,1
 10301,zygarde-mega,718,77,6100,,,0
 144,articuno,144,17,554,261,236,1
+999,teststat,999,3,10,50,1,1

@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import com.marcogn.coverdex.R
 import com.marcogn.coverdex.domain.ability.AbilityEffect
 import com.marcogn.coverdex.domain.ability.getAbilityEffects
-import com.marcogn.coverdex.domain.ability.normalizeAbilityName
 import com.marcogn.coverdex.domain.coverage.attackingTypesForMember
 import com.marcogn.coverdex.domain.coverage.defensiveMultiplier
 import com.marcogn.coverdex.domain.coverage.memberHasMoves
@@ -99,16 +98,20 @@ fun PerPokemonCard(member: TeamMember, chart: TypeChart, modifier: Modifier = Mo
                     // (stringResource-backed) — resolved here, in the composable context, rather
                     // than inside the plain joinToString lambda below, which cannot call them.
                     val immuneToLabel = stringResource(R.string.analysis_immune_to)
+                    val superEffectiveHitsLabel = stringResource(R.string.analysis_super_effective_hits)
+                    val neverSuperEffectiveLabel = stringResource(R.string.analysis_never_super_effective)
                     val typeNames = PokemonType.entries.associateWith { it.displayName() }
                     val effects = getAbilityEffects(member.ability)
-                    val isWonderGuard = normalizeAbilityName(member.ability) == "wonder-guard"
+                    val isWonderGuard = effects?.any { it is AbilityEffect.OnlySuperEffective } == true
                     val summary = effects
-                        ?.filter { it !is AbilityEffect.BadgeOnly }
+                        ?.filter { it !is AbilityEffect.BadgeOnly && it !is AbilityEffect.OnlySuperEffective }
                         ?.joinToString(", ") { effect ->
                             when (effect) {
                                 is AbilityEffect.Immunity -> "$immuneToLabel ${typeNames.getValue(effect.type)}"
                                 is AbilityEffect.Multiplier -> "×${effect.factor} ${typeNames.getValue(effect.type)}"
-                                is AbilityEffect.BadgeOnly -> ""
+                                is AbilityEffect.SuperEffectiveMultiplier -> "×${effect.factor} $superEffectiveHitsLabel"
+                                AbilityEffect.NeverSuperEffective -> neverSuperEffectiveLabel
+                                is AbilityEffect.BadgeOnly, AbilityEffect.OnlySuperEffective -> ""
                             }
                         }
                     DefRow(stringResource(R.string.slot_ability_label)) {
