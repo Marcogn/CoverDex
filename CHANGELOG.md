@@ -6,6 +6,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-06
+
 - **Fixed a crash in "Regenerate" (Surprise Me).** `regenerateSlot`'s
   candidate ranking re-evaluated its composite score (including the random
   tie-breaking noise) on every comparator invocation instead of once per
