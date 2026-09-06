@@ -100,6 +100,8 @@
     <string name="suggestions_already_weak">already weak: %1$s</string>
     <string name="suggestions_no_new_weaknesses">No new shared weaknesses introduced</string>
     <string name="suggestions_score">Score: %1$s</string>
+    <string name="suggestions_score_hint">Coverage gained minus weaknesses introduced</string>
+    <string name="suggestions_base_stat_total">Base stat total: %1$d</string>
 
     <!-- Surprise Me (Phase 4) -->
     <string name="surprise_me_title">Surprise Me 🎲</string>
@@ -176,6 +178,7 @@
     <string name="settings_section_team_suggestions">Team Suggestions</string>
     <string name="settings_include_mega">Include Mega/Dynamax/Gigantamax forms</string>
     <string name="settings_include_legendary">Include Legendary &amp; Mythical Pokémon</string>
+    <string name="settings_suggestion_count">Number of suggestions shown</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_theme_system">System default</string>
     <string name="settings_theme_light">Light</string>

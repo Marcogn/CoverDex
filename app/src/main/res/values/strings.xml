@@ -100,6 +100,8 @@
     <string name="suggestions_already_weak">già debole: %1$s</string>
     <string name="suggestions_no_new_weaknesses">Nessuna nuova debolezza condivisa introdotta</string>
     <string name="suggestions_score">Punteggio: %1$s</string>
+    <string name="suggestions_score_hint">Copertura guadagnata meno debolezze introdotte</string>
+    <string name="suggestions_base_stat_total">Statistiche totali: %1$d</string>
 
     <!-- Surprise Me (Phase 4) -->
     <string name="surprise_me_title">Sorprendimi 🎲</string>
@@ -176,6 +178,7 @@
     <string name="settings_section_team_suggestions">Suggerimenti Team</string>
     <string name="settings_include_mega">Includi forme Mega/Dynamax/Gigantamax</string>
     <string name="settings_include_legendary">Includi Leggendari e Mitici</string>
+    <string name="settings_suggestion_count">Numero di suggerimenti mostrati</string>
     <string name="settings_section_appearance">Aspetto</string>
     <string name="settings_theme_system">Predefinito sistema</string>
     <string name="settings_theme_light">Chiaro</string>

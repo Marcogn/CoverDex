@@ -34,6 +34,10 @@ data class Suggestion(
     val newWeaknesses: List<PokemonType>,
     val aggravatedWeaknesses: List<PokemonType>,
     val aggravatedMembers: Map<PokemonType, List<String>>,
+    /** `null` for a custom candidate (no catalogue entry to look one up on) — see
+     * docs/plan/phase-7-accuracy-and-customization.md §5. Ranking's tie-break only; never the
+     * primary sort. */
+    val baseStatTotal: Int? = null,
 ) {
     enum class Kind { ADD, REPLACE }
 }
@@ -63,8 +67,18 @@ fun memberFromEntry(e: PokemonEntry): TeamMember = TeamMember(
     isCustomSaved = false,
 )
 
-private fun findEntry(pool: List<PokemonEntry>, speciesName: String): PokemonEntry? =
-    pool.find { it.displayName == speciesName || it.name == speciesName.lowercase() }
+/** Looks a candidate/member up in [pool] by species name — displayName match first, then a
+ * lowercased raw identifier match, same precedence `pool.find { it.displayName == speciesName ||
+ * it.name == speciesName.lowercase() }` had. Built once per [computeSuggestions] call instead of
+ * scanned linearly per candidate: with the full ~1351-entry pool this was on the order of 1.8M
+ * string comparisons per recomputation (once per candidate, plus once per team member for the
+ * legendary filter) — see docs/plan/phase-7-accuracy-and-customization.md §0.7/§5.4. */
+private class EntryLookup(pool: List<PokemonEntry>) {
+    private val byDisplayName: Map<String, PokemonEntry> = buildMap { pool.forEach { putIfAbsent(it.displayName, it) } }
+    private val byName: Map<String, PokemonEntry> = buildMap { pool.forEach { putIfAbsent(it.name, it) } }
+
+    fun find(speciesName: String): PokemonEntry? = byDisplayName[speciesName] ?: byName[speciesName.lowercase()]
+}
 
 private data class RankedCandidate(
     val candidate: TeamMember,
@@ -73,10 +87,12 @@ private data class RankedCandidate(
     val replaceMember: TeamMember?,
     val isFinal: Boolean,
     val entryId: Int,
+    val baseStatTotal: Int?,
 )
 
 private val rankingComparator = compareByDescending<RankedCandidate> { it.bestScore }
     .thenByDescending { it.isFinal }
+    .thenByDescending { it.baseStatTotal ?: -1 }
     .thenBy { it.entryId }
 
 /**
@@ -92,8 +108,17 @@ fun computeSuggestions(
     pool: List<PokemonEntry>,
     customs: List<TeamMember>,
     options: SuggestionOptions,
+    /** Resolves a catalogue entry's base stat total for the ranking's tie-break — defaults to its
+     * current, latest-generation value ([PokemonEntry.baseStatTotal]); a caller building the
+     * pool for a specific `options.generation` passes a generation-aware resolver instead. See
+     * docs/plan/phase-7-accuracy-and-customization.md §5.2. Domain code stays Room-free: the
+     * caller resolves historical BST ahead of time and hands in this closure, same pattern as
+     * `domain/showdown/ShowdownFormat.kt`'s `resolveMove`/`resolveSpecies`. */
+    bstFor: (PokemonEntry) -> Int? = { it.baseStatTotal },
 ): List<Suggestion> {
     if (pool.isEmpty() && (!options.includeCustoms || customs.isEmpty())) return emptyList()
+
+    val entryLookup = EntryLookup(pool)
 
     var filtered = pool.filter { it.isFinalEvolution }
 
@@ -103,7 +128,7 @@ fun computeSuggestions(
 
     if (options.excludeLegendaries) {
         val teamHasLegendary = members.any { m ->
-            val entry = findEntry(pool, m.speciesName)
+            val entry = entryLookup.find(m.speciesName)
             entry != null && (entry.isLegendary || entry.isMythical)
         }
         if (!teamHasLegendary) {
@@ -129,7 +154,7 @@ fun computeSuggestions(
         val context = teamScoringContext(chart, members)
         deduped.map { cand ->
             val result = computeCompositeScore(chart, cand, context, teamAnalysis.unionCovered)
-            val entry = findEntry(pool, cand.speciesName)
+            val entry = entryLookup.find(cand.speciesName)
             RankedCandidate(
                 candidate = cand,
                 result = result,
@@ -137,6 +162,7 @@ fun computeSuggestions(
                 replaceMember = null,
                 isFinal = entry?.isFinalEvolution ?: false,
                 entryId = entry?.id ?: Int.MAX_VALUE,
+                baseStatTotal = entry?.let(bstFor),
             )
         }
     } else {
@@ -157,7 +183,7 @@ fun computeSuggestions(
                     bestResult = result
                 }
             }
-            val entry = findEntry(pool, cand.speciesName)
+            val entry = entryLookup.find(cand.speciesName)
             RankedCandidate(
                 candidate = cand,
                 result = bestResult,
@@ -165,6 +191,7 @@ fun computeSuggestions(
                 replaceMember = bestMember,
                 isFinal = entry?.isFinalEvolution ?: false,
                 entryId = entry?.id ?: Int.MAX_VALUE,
+                baseStatTotal = entry?.let(bstFor),
             )
         }
     }
@@ -184,6 +211,7 @@ fun computeSuggestions(
                 newWeaknesses = r.result.newWeaknesses,
                 aggravatedWeaknesses = r.result.aggravatedWeaknesses,
                 aggravatedMembers = r.result.aggravatedMembers,
+                baseStatTotal = r.baseStatTotal,
             )
         }
     } else {
@@ -201,6 +229,7 @@ fun computeSuggestions(
                 newWeaknesses = r.result.newWeaknesses,
                 aggravatedWeaknesses = r.result.aggravatedWeaknesses,
                 aggravatedMembers = r.result.aggravatedMembers,
+                baseStatTotal = r.baseStatTotal,
             )
         }
     }

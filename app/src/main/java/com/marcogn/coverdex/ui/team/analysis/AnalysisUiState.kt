@@ -18,8 +18,10 @@ data class AnalysisUiState(
     val showMoves: Boolean = false,
     val roster: List<TeamMember> = emptyList(),
     /** Every ranked suggestion from `computeSuggestions` — the screen displays only the first
-     * five (`phase-4-suggestions-and-generator.md` §4), kept unsliced here so a future caller
-     * (e.g. a "show more" affordance) is not blocked on a state-shape change. */
+     * [suggestionCount] (5-10, configurable as of Phase 7; see
+     * `docs/plan/phase-7-accuracy-and-customization.md` §6 — Phase 4 hardcoded 5), kept unsliced
+     * here so a future caller (e.g. a "show more" affordance) is not blocked on a state-shape
+     * change. */
     val suggestions: List<Suggestion> = emptyList(),
     /** Backed by `SettingsPreferences.includeCustomsAnalysis` (Phase 5) — persisted, but still
      * toggled right from this screen's `SuggestionFilters`, same as `showMoves`. */
@@ -28,6 +30,9 @@ data class AnalysisUiState(
      * `domain/suggestion/SuggestionEngine.kt`'s doc comment for why this is a number, not the
      * TypeScript's id-range key. */
     val generationFilter: Int? = null,
+    /** How many of [suggestions] the screen actually shows — backed by
+     * `SettingsPreferences.suggestionCount` (Phase 7). */
+    val suggestionCount: Int = 5,
 ) {
     val canAnalyse: Boolean get() = members.isNotEmpty()
 }

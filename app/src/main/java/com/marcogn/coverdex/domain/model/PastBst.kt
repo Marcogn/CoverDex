@@ -15,3 +15,26 @@ data class PastBst(
     val generationId: Int,
     val bst: Int,
 )
+
+/**
+ * Resolves a form's base stat total as of [generation] from the small set of historical
+ * breakpoints in [pastBst] — `null` means "all generations", i.e. the current, latest-generation
+ * value ([PokemonEntry.baseStatTotal]). For a real generation number, the answer is the BST at
+ * the *smallest stored breakpoint >= [generation]*, or the current value if none exists: each
+ * per-stat historical override is itself a step function that only changes at its own
+ * breakpoints, so the combined total is provably constant between consecutive stored breakpoints
+ * — the smallest one at or after [generation] always carries the correct value for every
+ * generation in that interval. See docs/plan/phase-7-accuracy-and-customization.md §2.2/§5.2 for
+ * the full derivation.
+ *
+ * Returns a resolver function rather than a single value so a suggestion pool of ~1351 entries is
+ * resolved without re-filtering [pastBst] once per entry.
+ */
+fun bstResolverFor(pastBst: List<PastBst>, generation: Int?): (PokemonEntry) -> Int? {
+    if (generation == null) return { it.baseStatTotal }
+    val applicableByPokemonId: Map<Int, PastBst> = pastBst
+        .filter { it.generationId >= generation }
+        .groupBy { it.pokemonId }
+        .mapValues { (_, rows) -> rows.minBy { it.generationId } }
+    return { entry -> applicableByPokemonId[entry.id]?.bst ?: entry.baseStatTotal }
+}

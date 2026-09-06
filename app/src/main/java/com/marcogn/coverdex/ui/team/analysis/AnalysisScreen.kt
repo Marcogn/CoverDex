@@ -151,7 +151,7 @@ fun AnalysisScreen(modifier: Modifier = Modifier, viewModel: AnalysisViewModel =
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                val displayed = state.suggestions.take(5)
+                val displayed = state.suggestions.take(state.suggestionCount)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (displayed.all { it.gain == 0 }) {
                         Text(
