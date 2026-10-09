@@ -146,6 +146,10 @@ To understand how the app is put together before changing anything, read:
   along the way (`docs/implementation-decisions.md`).
 - [`docs/release-signing.md`](docs/release-signing.md) — generating the
   release keystore and wiring up a signed build.
+- [`docs/ci.md`](docs/ci.md) — the CI, Build APK and Release workflows
+  and their secrets.
+- [`docs/claude.md`](docs/claude.md) — how the repository is set up for
+  Claude Code (the shared Android kit).
 
 Contributions are welcome — see
 [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) for the workflow
