@@ -73,22 +73,22 @@ settings), while `app/build.gradle.kts`'s `signingConfigs { create("release")
 { ... } }` block (written in Phase 0) still reads plain `RELEASE_KEYSTORE_PATH`/
 `RELEASE_KEYSTORE_PASSWORD`/`RELEASE_KEY_ALIAS`/`RELEASE_KEY_PASSWORD`
 environment variables — an internal contract between the workflows and
-Gradle, unrelated to the secret names and left as-is. The workflows are what
-bridge the two: they read the `ANDROID_*` secrets and re-expose them to
-Gradle as those `RELEASE_*` environment variables, decoding the base64
+Gradle, unrelated to the secret names and left as-is. The workflow callers are what
+bridge the two: they map the `ANDROID_*` secrets onto the kit's standard
+`RELEASE_*` names (`docs/ci.md`; renaming the secrets lets the mapping go),
+and the kit's workflows re-expose them to Gradle as those `RELEASE_*` environment variables, decoding the base64
 secret into a temporary file at `$RUNNER_TEMP/release.keystore` and passing
 its path as `RELEASE_KEYSTORE_PATH`. A local `./gradlew assembleRelease`
 with none of these set still succeeds — the release build type is simply
 left unsigned in that case, Android's own default.
 
 > The sibling project's (Hall of Memories) first three release attempts all
-> failed on `ANDROID_KEYSTORE_BASE64` not being valid base64. Both
-> `build-apk.yml` and `release.yml` print the decoded keystore's byte size
-> and SHA-256 right after decoding it, precisely so a signing failure later
-> in the same run ("Given final block not properly padded", "Invalid
-> keystore format", etc.) can be told apart from a corrupted/truncated
-> secret without guessing — verify the secret decodes correctly (matches
-> the local file's own `sha256sum`) before relying on the first real run.
+> failed on a keystore secret that wasn't valid base64. Since the switch to
+> the shared kit workflows (`docs/ci.md`), the workflows no longer print the
+> decoded keystore's size/hash; they check that every signing secret is set
+> and verify the APK's signature with `apksigner`. Before relying on the
+> first real run, check locally that the secret's value decodes to the same
+> file (`base64 -d | sha256sum` against the keystore's own `sha256sum`).
 
 ## 4. Read the SHA-1 back out
 
@@ -99,9 +99,10 @@ left unsigned in that case, Android's own default.
 Useful for verifying the keystore is the one actually in use, and is the
 starting point for registering this app with any Google API that checks a
 signing certificate (none are used in v1). `build-apk.yml` and
-`release.yml` both print it after every signed build via the same
-`signingReport` task, run against the decoded release keystore rather than
-the default debug one.
+`release.yml` (the kit's, `docs/ci.md`) print the certificate's SHA-256
+after every signed build via `apksigner`, not the SHA-1: run the command
+above, or `keytool -list -v -keystore <file>`, against the release keystore
+when the SHA-1 is needed.
 
 ## What this session could not do
 

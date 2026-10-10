@@ -37,3 +37,6 @@ legacy-web/public/icons/icon-192x192.png
 legacy-web/public/icons/icon-512x512.png
 legacy-web/public/icons/apple-touch-icon.png
 legacy-web/assets/
+
+# Claude Code personal settings
+.claude/settings.local.json

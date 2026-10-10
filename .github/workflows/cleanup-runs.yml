@@ -1,0 +1,13 @@
+# Clean up runs (manual, irreversible): deletes every completed run except the latest of each
+# workflow. Releases are untouched. Logic in the kit.
+name: Clean up runs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    uses: Marcogn/claude-skill-android-kit/.github/workflows/cleanup-runs.yml@v1

@@ -1,0 +1,29 @@
+name: Bug
+description: Something that doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: From opening the app, numbered. Attach the PDF if you can (or say what kind it is).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual
+      description: What should happen, what happens instead.
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Version and phone
+      description: App version (About screen), phone model, Android version.
+  - type: textarea
+    id: trace
+    attributes:
+      label: Stack trace
+      description: Release builds are minified; say which build, so the trace can be retraced with its mapping.txt (docs/ci.md).
+      render: text

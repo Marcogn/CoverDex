@@ -1,0 +1,26 @@
+name: Task
+description: A change to make (feature, refactor, chore), written so it can be handed to Claude as is
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this is done, from the user's point of view.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Files, plan or spec sections, decisions that apply (e.g. "plan-v2.md §9", "ADR 0003").
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: Checkable items, including tests and device checks.
+    validations:
+      required: true
+  - type: textarea
+    id: out
+    attributes:
+      label: Out of scope

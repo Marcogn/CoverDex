@@ -1,0 +1,44 @@
+# .github/dependabot.yml
+#
+# Weekly dependency update PRs for Gradle (version catalog, build scripts) and GitHub Actions.
+# Updates are grouped so a week brings at most a few PRs, not one per library. Each PR runs Android
+# CI like any other; a Claude session can be asked to take it to green (`.claude/skills/steward`).
+#
+# Shared by the author's Android projects: copy the file as is (docs/claude.md).
+# The project takes stable versions only (docs/plan.md, "Dependency upgrade"): a PR that proposes
+# an alpha/beta/RC is closed, or the version is added under `ignore` here.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # AGP, Kotlin, KSP and Compose move together: one PR, so they are tested together.
+      build-toolchain:
+        patterns:
+          - "com.android*"
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp*"
+          - "androidx.compose*"
+      androidx:
+        patterns:
+          - "androidx.*"
+      other:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "Deps"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "CI"
