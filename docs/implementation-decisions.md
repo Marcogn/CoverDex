@@ -1073,3 +1073,21 @@ at `@v1`).
   `ANDROID_KEYSTORE_BASE64`/`ANDROID_KEYSTORE_PASSWORD`/`ANDROID_KEY_ALIAS`/
   `ANDROID_KEY_PASSWORD`; the callers map them onto the kit's `RELEASE_*`
   names until they are renamed (then the mapping lines go).
+
+## In-app updates and Info screen, planned (2026-10-11)
+
+Planned in `docs/plan/phase-8-updates-and-about.md` (the author's request for all six apps):
+
+- **A port of ThePatientGamerHelper Phase 9**, not a design of its own and not a shared library: that
+  app is the pilot (Opus core there), this phase copies its `update` package (Sonnet).
+- **Updates from this repository's GitHub Releases** (`releases/latest`, no token, public repository),
+  checked **at startup only**: frequency Never / Every start / Daily / Weekly, default Weekly; "Check
+  now" in Info; debug builds never check automatically. "Not now" only closes the dialog. A new kind
+  of automatic network call for an app that otherwise syncs only on request: accepted by the author,
+  and "Never" turns it off.
+- **The APK is the release's `.apk` asset**, verified by SHA-256 `digest`, package name, higher
+  `versionCode` and signing certificate, installed through `PackageInstaller` with the system
+  confirmation. `minSdk` 24 needs the pre-28 signature API and the pre-26 global unknown-sources case.
+- **The dialog shows the Release body** (CHANGELOG headlines) plus a "Full changelog" link.
+- **The README's trademark disclaimer moves into the app** (Info screen).
+

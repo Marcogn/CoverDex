@@ -24,6 +24,7 @@ says so explicitly and tells you what to do about it.
 | 5 | [`phase-5-import-export-and-settings.md`](phase-5-import-export-and-settings.md) | Showdown import/export, settings, theme and language, local backup |
 | 6 | [`phase-6-release.md`](phase-6-release.md) | Signing, release pipeline, docs rewrite, `legacy-web/` deleted |
 | 7 | [`phase-7-accuracy-and-customization.md`](phase-7-accuracy-and-customization.md) | Base stats + correct English ability/move names in the dataset, canonical-vs-custom ability picking, held items (defensive subset), BST tie-break for suggestions, configurable suggestion count, and the ability-effect gaps the Phase 7 audit found |
+| 8 | [`phase-8-updates-and-about.md`](phase-8-updates-and-about.md) | Planned: in-app updates from GitHub Releases (port of ThePatientGamerHelper Phase 9), Info screen with version and disclaimers |
 
 Read before starting any phase: [`../../CLAUDE.md`](../../CLAUDE.md),
 [`native-spec.md`](native-spec.md), this file, the phase file itself, and
@@ -172,3 +173,5 @@ real bug found that way gets an entry in that file's "Known regressions".
 - **Phase 6 — Release**: ✅ done
 - **Phase 7 — Engine accuracy, abilities/items, BST ranking**: ✅ done —
   see [`phase-7-accuracy-and-customization.md`](phase-7-accuracy-and-customization.md)
+- **Phase 8 — In-app updates and Info screen**: 📋 planned — see
+  [`phase-8-updates-and-about.md`](phase-8-updates-and-about.md)

@@ -19,8 +19,9 @@ before editing anything, then read the phase plan you are executing.
 - [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
   — the most recently completed phase's plan (status: done): what was
   wrong with the engines before it (measured, with the dataset evidence)
-  and exactly what was built to fix it. No phase 8 exists yet — no
-  further phase is currently planned.
+  and exactly what was built to fix it. Phase 8 (in-app updates and
+  an Info screen) is planned in
+  [`docs/plan/phase-8-updates-and-about.md`](docs/plan/phase-8-updates-and-about.md).
 
 ## What this project is
 
@@ -76,6 +77,9 @@ the app is native-only from here on.
 - **Phase 6 — Release**: ✅ done
 - **Phase 7 — Engine accuracy, abilities/items, BST ranking**: ✅ done —
   see [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
+- **Phase 8 — In-app updates and Info screen**: 📋 planned (Sonnet) — see
+  [`docs/plan/phase-8-updates-and-about.md`](docs/plan/phase-8-updates-and-about.md);
+  starts after ThePatientGamerHelper Phase 9 (the pilot) is merged
 
 Tick these off as phases land — here and in
 [`docs/plan/README.md`](docs/plan/README.md). Do not implement anything not
