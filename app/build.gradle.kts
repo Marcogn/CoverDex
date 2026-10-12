@@ -13,8 +13,8 @@ android {
 
     defaultConfig {
         applicationId = "com.marcogn.coverdex"
-        // Capacitor build shipped minSdk 24; kept as-is here — nothing in this app needs
-        // java.time, so there's no reason to drop API 24-25 devices. See
+        // Capacitor build shipped minSdk 24; kept as-is here. java.time (used by the Phase 8
+        // update check) works on API 24-25 through core library desugaring, see below and
         // docs/plan/native-spec.md, "Identity".
         minSdk = 24
         targetSdk = 36
@@ -25,6 +25,10 @@ android {
         versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Phase 8: the repository the in-app updater reads releases from (and the Info screen links to).
+        buildConfigField("String", "UPDATE_GITHUB_OWNER", "\"Marcogn\"")
+        buildConfigField("String", "UPDATE_GITHUB_REPO", "\"CoverDex\"")
     }
 
     // The release keystore's SHA-1 stays stable across builds because the keystore is generated
@@ -68,6 +72,8 @@ android {
     }
 
     compileOptions {
+        // java.time on API 24-25 (Phase 8 update check); see docs/implementation-decisions.md, "Phase 8".
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -116,6 +122,8 @@ ksp {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.android.desugar.jdk.libs)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

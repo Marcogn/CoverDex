@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CatchingPokemon
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.marcogn.coverdex.R
+import com.marcogn.coverdex.ui.about.AboutScreen
 import com.marcogn.coverdex.ui.importexport.ImportShowdownScreen
 import com.marcogn.coverdex.ui.roster.RosterEditorScreen
 import com.marcogn.coverdex.ui.roster.RosterScreen
@@ -96,6 +98,13 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
                     onClick = { navigateFromDrawer(Destination.Settings) },
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Info, contentDescription = null) },
+                    label = { Text(stringResource(R.string.nav_drawer_about)) },
+                    selected = false,
+                    onClick = { navigateFromDrawer(Destination.About) },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                )
             }
         },
     ) {
@@ -135,6 +144,22 @@ fun CoverDexNavGraph(navController: NavHostController = rememberNavController())
                 SettingsScreen(
                     onMenuClick = onMenuClick,
                     onNavigateToImportShowdown = { navController.navigate(Destination.ImportShowdown) },
+                )
+            }
+            composable<Destination.About> { entry ->
+                AboutScreen(
+                    onMenuClick = onMenuClick,
+                    // Same popUpTo/saveState/restoreState pattern as the drawer, so leaving behaves like
+                    // every other drawer-only screen.
+                    onBack = {
+                        if (entry.lifecycleIsResumed()) {
+                            navController.navigate(Destination.Teams) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
                 )
             }
             composable<Destination.SurpriseMe> {

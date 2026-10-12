@@ -1,6 +1,6 @@
 # Phase 8 — In-app updates and an Info screen
 
-**Status:** planned (2026-10-11), not started.
+**Status:** code done (2026-10-12), awaiting CI and the device checks. Where it differs from the plan below, `../implementation-decisions.md` "Phase 8" is authoritative (desugaring, DataStore, no version code in Info, credit line, no Settings link).
 **Model:** Sonnet — a port of a reviewed design; the expensive decisions were made in the pilot's Opus
 stage.
 **Read first:** [`../../CLAUDE.md`](../../CLAUDE.md), [`README.md`](README.md) (working rules), and

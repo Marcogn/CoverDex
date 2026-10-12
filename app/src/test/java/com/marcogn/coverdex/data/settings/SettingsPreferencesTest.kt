@@ -3,10 +3,13 @@ package com.marcogn.coverdex.data.settings
 import androidx.datastore.preferences.core.edit
 import androidx.test.core.app.ApplicationProvider
 import com.marcogn.coverdex.domain.model.ThemeMode
+import com.marcogn.coverdex.domain.update.UpdateFrequency
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -117,5 +120,32 @@ class SettingsPreferencesTest {
 
         context.settingsDataStore.edit { it[SUGGESTION_COUNT_KEY] = 42 }
         assertEquals(10, preferences.suggestionCount.first())
+    }
+
+    @Test
+    fun `update frequency defaults to weekly and round trips`() = runTest {
+        assertEquals(UpdateFrequency.WEEKLY, preferences.updateFrequency.first())
+
+        UpdateFrequency.entries.forEach { option ->
+            preferences.setUpdateFrequency(option)
+            assertEquals(option, preferences.updateFrequency.first())
+        }
+    }
+
+    @Test
+    fun `an unknown stored update frequency falls back to weekly`() = runTest {
+        context.settingsDataStore.edit { it[UPDATE_FREQUENCY_KEY] = "HOURLY" }
+
+        assertEquals(UpdateFrequency.WEEKLY, preferences.updateFrequency.first())
+    }
+
+    @Test
+    fun `last update check is null until written then read back to the millisecond`() = runTest {
+        assertNull(preferences.lastUpdateCheckAt.first())
+
+        val at = Instant.ofEpochMilli(1_760_000_000_123L)
+        preferences.setLastUpdateCheckAt(at)
+
+        assertEquals(at, preferences.lastUpdateCheckAt.first())
     }
 }

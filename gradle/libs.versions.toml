@@ -19,8 +19,10 @@ espresso = "3.6.1"
 robolectric = "4.16.1"
 datastorePreferences = "1.1.1"
 appcompat = "1.7.0"
+desugarJdkLibs = "2.1.5"
 
 [libraries]
+android-desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }

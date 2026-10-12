@@ -31,9 +31,11 @@ import com.marcogn.coverdex.R
 import com.marcogn.coverdex.data.settings.MAX_SUGGESTION_COUNT
 import com.marcogn.coverdex.data.settings.MIN_SUGGESTION_COUNT
 import com.marcogn.coverdex.domain.model.ThemeMode
+import com.marcogn.coverdex.domain.update.UpdateFrequency
 import com.marcogn.coverdex.ui.common.CoverDexTopBar
 import com.marcogn.coverdex.ui.common.StepperCounter
 import com.marcogn.coverdex.ui.theme.ThemeViewModel
+import com.marcogn.coverdex.ui.update.UpdateViewModel
 
 @Composable
 fun SettingsScreen(
@@ -42,7 +44,9 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(),
 ) {
+    val updateFrequency by updateViewModel.frequency.collectAsState()
     val themeMode by themeViewModel.themeMode.collectAsState()
     var language by remember { mutableStateOf(currentAppLanguage()) }
     val uiState by settingsViewModel.uiState.collectAsState()
@@ -90,6 +94,21 @@ fun SettingsScreen(
                 LanguageOption(AppLanguage.ENGLISH, stringResource(R.string.settings_language_english), language) {
                     language = it
                     applyAppLanguage(it)
+                }
+            }
+            SettingsSection(title = stringResource(R.string.settings_updates_section_title)) {
+                Text(
+                    stringResource(R.string.settings_updates_frequency_label),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                UpdateFrequency.entries.forEach { option ->
+                    RadioRow(
+                        label = stringResource(option.labelRes()),
+                        selected = updateFrequency == option,
+                        onClick = { updateViewModel.onFrequencySelected(option) },
+                    )
                 }
             }
             DataSectionRow(
@@ -176,4 +195,11 @@ private fun RadioRow(label: String, selected: Boolean, onClick: () -> Unit) {
         RadioButton(selected = selected, onClick = null)
         Text(text = label, modifier = Modifier.padding(start = 8.dp))
     }
+}
+
+private fun UpdateFrequency.labelRes(): Int = when (this) {
+    UpdateFrequency.NEVER -> R.string.update_frequency_never
+    UpdateFrequency.EVERY_START -> R.string.update_frequency_every_start
+    UpdateFrequency.DAILY -> R.string.update_frequency_daily
+    UpdateFrequency.WEEKLY -> R.string.update_frequency_weekly
 }

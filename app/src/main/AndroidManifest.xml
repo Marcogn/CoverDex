@@ -4,6 +4,12 @@
     <!-- Needed from Phase 1 onward for the dataset sync (the CSV catalogue) and for sprite URLs. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      Phase 8: in-app updates hand the downloaded APK to the system installer (PackageInstaller).
+      The user still enables "install unknown apps" for this app and confirms every install.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name=".CoverDexApplication"
         android:allowBackup="true"
@@ -27,6 +33,11 @@
                 android:name="autoStoreLocales"
                 android:value="true" />
         </service>
+
+        <!-- Phase 8: PackageInstaller session status (explicit PendingIntent from ApkInstaller). -->
+        <receiver
+            android:name=".data.update.UpdateInstallReceiver"
+            android:exported="false" />
 
         <activity
             android:name=".MainActivity"
