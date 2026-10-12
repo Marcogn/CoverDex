@@ -6,6 +6,27 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **In-app updates from GitHub Releases.** The app checks this repository's
+  latest release at startup, shows what is new, downloads the APK, verifies it
+  (SHA-256 digest, package name, higher version code, same signing
+  certificate) and hands it to the system installer, always with the user's
+  confirmation.
+  - Update dialog with the release headlines, a "Full changelog" link,
+    Download / Not now, a progress dialog with Cancel, and a plain-language
+    reason when something fails.
+  - New "Updates" setting: Never / Every start / Daily / Weekly (default
+    Weekly). Release builds check at startup when due; debug builds never
+    check automatically.
+  - New permission: "install unknown apps" (`REQUEST_INSTALL_PACKAGES`),
+    asked for by the system only when installing an update. Below Android 8
+    the global "Unknown sources" setting applies instead; the dialog says so.
+- **New Info screen.** In the drawer: installed version, "Check for updates"
+  (works with frequency Never too), the credit line, GitHub link, MIT licence
+  and the legal notes (Pokémon trademarks, unofficial fan project, PokéAPI
+  data, Showdown format, not a damage calculator or battle simulator).
+- **Date handling now uses core library desugaring**, so the update check's
+  `java.time` code also runs on Android 7.0–7.1 (`minSdk` stays 24).
+
 ## [2.1.0] - 2026-09-12
 
 - **New app icon.** Replaced the launcher icon carried over verbatim from

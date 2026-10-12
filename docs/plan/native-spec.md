@@ -22,9 +22,10 @@ agent does not have to reverse-engineer intent from that code.
 `applicationId` is **unchanged** from the Capacitor build — the app keeps its
 identity on any device that already has it installed. `minSdk` stays at 24
 (the Capacitor project's value) rather than moving to Hall of Memories' 26:
-nothing in this app needs `java.time`, so there is no reason to drop API
-24–25 devices. If a later phase does need `java.time`, raise minSdk to 26
-rather than adding desugaring, and say so in the changelog.
+nothing in the core app needs `java.time`, so there is no reason to drop API
+24–25 devices. Phase 8's update check does use `java.time`; the author chose
+core library desugaring over raising minSdk (see
+`docs/implementation-decisions.md`, "Phase 8").
 
 ## What this app is
 

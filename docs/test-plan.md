@@ -444,3 +444,42 @@ None yet.
 ### Known regressions
 
 None yet.
+
+## Phase 8 — In-app updates and Info screen
+
+Needs a **signed release build** (a debug build never checks at startup and
+is signed with another key) and an older signed release already installed.
+The flow can only be tried between two releases that both contain it.
+
+- [ ] **Update found at startup.** Install an older signed release that
+  contains the updater, with frequency "Every start"; start the app. A
+  dialog shows the newer version, the installed one, the release headlines
+  and "Full changelog" (opens the GitHub changelog).
+- [ ] **Download and install.** Download shows a progress dialog with
+  Cancel (cancel returns to the first dialog, partial file gone). On
+  completion a "Ready to install" dialog; Install opens the
+  "install unknown apps" screen the first time (Android 8+), then the
+  system installer; after confirming, the app reopens on the new version
+  with teams and roster intact.
+- [ ] **Declining the system dialog** returns to "Ready to install" (no
+  loop); "Not now" closes it and the downloaded file is gone at the next
+  start.
+- [ ] **Android 7.x (API 24-25), if a device is at hand.** No per-app
+  permission screen: the dialog shows the "Unknown sources" hint, and the
+  installer works once that global setting is on. The update check and the
+  frequency setting do not crash (core library desugaring).
+- [ ] **Airplane mode at startup:** nothing shown, no crash.
+- [ ] **Frequency.** "Never": no prompt at startup, but Info -> "Check for
+  updates" works. "Every start": asks again after "Not now" at the next
+  start. Daily / Weekly: no second prompt within the period.
+- [ ] **Different signature.** An APK signed with another key is refused
+  with its own message before the system dialog.
+- [ ] **Info screen.** Drawer -> Info: installed version (no version code),
+  credit line, GitHub link, MIT licence, legal notes. Both languages, dark
+  theme, and the system back gesture leaves to the teams list.
+- [ ] **Check for updates on Info** shows "up to date", "version X is
+  available" (and opens the dialog) or the failure reason.
+
+### Known regressions
+
+None yet.

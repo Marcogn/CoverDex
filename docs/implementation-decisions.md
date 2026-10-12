@@ -1091,3 +1091,43 @@ Planned in `docs/plan/phase-8-updates-and-about.md` (the author's request for al
 - **The dialog shows the Release body** (CHANGELOG headlines) plus a "Full changelog" link.
 - **The README's trademark disclaimer moves into the app** (Info screen).
 
+## Phase 8 — In-app updates and Info screen (port of ThePatientGamerHelper Phase 9)
+
+Copied from the pilot at `95f0b97` (release 1.1.2), package renamed, then adapted. Where the pilot and this
+repository's plan diverged, the author chose (2026-10-12):
+
+- **Core library desugaring for `java.time`, superseding the Phase 0 rule.** The pilot's
+  `UpdateCheckPolicy`, `UpdateManager` and preferences use `Instant`/`Duration`, which need API 26. The
+  Phase 0 decision (and `native-spec.md`, "Identity") said that if a later phase needs `java.time`,
+  `minSdk` is raised to 26 rather than adding desugaring. The author explicitly chose desugaring
+  instead: `minSdk` stays 24 and the pilot's domain code and tests are reused unchanged. Cost: one new
+  build-time dependency, `com.android.tools:desugar_jdk_libs:2.1.5` (`coreLibraryDesugaring`), and a
+  slightly larger APK. The earlier `SimpleDateFormat`-based code (`DataSectionRow`, `BackupPayload`)
+  is left as is. The alternative that avoids any dependency, plain epoch-millisecond `Long`s in the
+  update code, was offered and not chosen.
+- **Update settings live in `SettingsPreferences` (DataStore),** as the plan says, not in the pilot's
+  standalone `SharedPreferences` class: `updateFrequency` (stored by enum name, unknown name falls back
+  to Weekly) and `lastUpdateCheckAt` (epoch millis). `UpdateManager` therefore reads them in its own
+  coroutine, and the frequency check at startup happens inside `scope.launch`.
+- **`ApkInstaller.canInstall()` reports true below API 26.** The pilot's `minSdk` is 26 and calls
+  `canRequestPackageInstalls()` unguarded; here it would throw `NoSuchMethodError` on API 24-25. There
+  is no per-app permission before API 26, the global "Unknown sources" setting applies, and the system
+  installer itself refuses or asks, so the app only shows a hint in the "Ready to install" dialog.
+  `ApkVerifier` already used `GET_SIGNATURES` below API 28 in the pilot.
+- **Info screen follows the pilot's later corrections:** only `VERSION_NAME` (the plan's "+
+  `VERSION_CODE`" was dropped in pilot 1.1.2) and the credit line "Fatto con il ❤️ da Marcogn" / "Made
+  with ❤️ from Marcogn" (pilot 1.1.1). Reachable from the drawer only, as in the pilot; the Settings
+  "App" row stays plain text (the plan wanted it to link to Info). It uses the drawer top bar like
+  Settings, with an explicit `BackHandler` back to the teams list.
+- **The "Ready to install" dialog is kept** (pilot Stage 9.2): the installer is not started
+  automatically after the download, because declining the system dialog lands in the same state and an
+  automatic install would loop.
+- **Disclaimers** are CoverDex's own (Pokémon trademarks and unofficial fan project, PokéAPI data and
+  sprites, Showdown format, not a damage calculator or battle simulator); wording is a proposal for
+  review in the PR.
+- **No `NetworkModule` binding for `GitHubReleaseClient`:** like the pilot, it is a `@Singleton` with an
+  `@Inject` constructor, so Hilt needs no `@Binds` (there is no interface to bind).
+- **Test fixtures are the pilot's real `releases/latest` responses** (repository
+  `ThePatientGamerHelper`), kept verbatim: they exercise the parser, not this repository.
+- **Not run locally:** see the PR for what CI verified.
+

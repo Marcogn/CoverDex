@@ -12,11 +12,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.marcogn.coverdex.data.update.UpdateManager
 import com.marcogn.coverdex.domain.model.ThemeMode
 import com.marcogn.coverdex.ui.navigation.CoverDexNavGraph
 import com.marcogn.coverdex.ui.theme.CoverDexTheme
 import com.marcogn.coverdex.ui.theme.ThemeViewModel
+import com.marcogn.coverdex.ui.update.UpdateDialogHost
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * `AppCompatActivity`, not `ComponentActivity`: `AppCompatDelegate.setApplicationLocales()`
@@ -26,9 +29,19 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject lateinit var updateManager: UpdateManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Phase 8: startup update check, at most once per process (UpdateManager guards it, so an
+        // activity recreation -- rotation, language change -- does not check again). Never in debug
+        // builds: they are signed with the debug key, so a release APK could not install over them;
+        // "Check now" in Info stays available there to try the flow.
+        if (!BuildConfig.DEBUG) {
+            updateManager.checkIfDue()
+        }
         setContent {
             CoverDexApp()
         }
@@ -46,6 +59,7 @@ private fun CoverDexApp(themeViewModel: ThemeViewModel = hiltViewModel()) {
     CoverDexTheme(darkTheme = darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
             CoverDexNavGraph()
+            UpdateDialogHost()
         }
     }
 }

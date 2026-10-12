@@ -77,9 +77,8 @@ the app is native-only from here on.
 - **Phase 6 — Release**: ✅ done
 - **Phase 7 — Engine accuracy, abilities/items, BST ranking**: ✅ done —
   see [`docs/plan/phase-7-accuracy-and-customization.md`](docs/plan/phase-7-accuracy-and-customization.md)
-- **Phase 8 — In-app updates and Info screen**: 📋 planned (Sonnet) — see
-  [`docs/plan/phase-8-updates-and-about.md`](docs/plan/phase-8-updates-and-about.md);
-  starts after ThePatientGamerHelper Phase 9 (the pilot) is merged
+- **Phase 8 — In-app updates and Info screen**: 🚧 code done, awaiting CI and the device checks — see
+  [`docs/plan/phase-8-updates-and-about.md`](docs/plan/phase-8-updates-and-about.md)
 
 Tick these off as phases land — here and in
 [`docs/plan/README.md`](docs/plan/README.md). Do not implement anything not
@@ -90,7 +89,7 @@ explicitly asks for it.
 
 - **`applicationId` stays `com.marcogn.coverdex`** and **`minSdk` stays
   24** — both carried over from the Capacitor build. The native app must
-  install over it, and nothing here needs `java.time`, so there's no
+  install over it, and nothing in the core app needs `java.time` (Phase 8's update check gets it through core library desugaring), so there's no
   reason to drop API 24–25. `versionCode` starts at 2 (the Capacitor build
   shipped 1) so the upgrade path exists at all.
 - **No data migration from the Capacitor build.** A clean break, decided
@@ -163,6 +162,7 @@ com.marcogn.coverdex
 │   ├── repository/   repository implementations (transactional) + Mappers
 │   ├── pokeapi/      PokeDataClient (HttpURLConnection), DatasetSyncManager
 │   ├── backup/       BackupArchive (zip), SAF import/export
+│   ├── update/       Phase 8: GitHubReleaseClient, ApkDownloader/Verifier/Installer, UpdateManager
 │   ├── settings/     SettingsPreferences (DataStore) + every other app-wide setting, one file
 │   └── debug/        DebugSeeder, behind BuildConfig.SEED_DEBUG_DATA
 ├── domain/
@@ -176,6 +176,7 @@ com.marcogn.coverdex
 │   ├── generator/       the ported team generator ("Surprise Me")
 │   ├── showdown/        export/import, contract-complete
 │   ├── backup/           BackupPayload DTOs + mapping
+│   ├── update/           Phase 8: AppVersion, release parsing/selection, UpdateCheckPolicy, UpdateState
 │   └── repository/     repository interfaces
 ├── di/                Hilt modules (Database, Repository, Coroutines, Network)
 └── ui/
@@ -185,7 +186,9 @@ com.marcogn.coverdex
     ├── team/           team detail: Pokémon tab (slot editor) + Analysis tab
     ├── roster/        the custom Pokémon roster
     ├── surprise/      the team generator screen
-    ├── settings/      theme, language, dataset, import/export, backup
+    ├── settings/      theme, language, dataset, import/export, backup, update frequency
+    ├── update/        Phase 8: UpdateDialogHost (app-wide), UpdateViewModel
+    ├── about/         Phase 8: the Info screen
     └── common/        shared composables (PokemonSprite, TypeBadge, SearchableDropdown, ...)
 ```
 

@@ -6,13 +6,18 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.marcogn.coverdex.domain.model.ThemeMode
+import com.marcogn.coverdex.domain.update.DEFAULT_UPDATE_FREQUENCY
+import com.marcogn.coverdex.domain.update.UpdateFrequency
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // Single DataStore file for every app-wide setting — one file, not one per preference
@@ -25,6 +30,8 @@ internal val INCLUDE_MEGA_DYNAMAX_KEY = booleanPreferencesKey("include_mega_dyna
 internal val EXCLUDE_LEGENDARIES_KEY = booleanPreferencesKey("exclude_legendaries")
 internal val INCLUDE_CUSTOMS_ANALYSIS_KEY = booleanPreferencesKey("include_customs_analysis")
 internal val SUGGESTION_COUNT_KEY = intPreferencesKey("suggestion_count")
+internal val UPDATE_FREQUENCY_KEY = stringPreferencesKey("update_frequency")
+internal val LAST_UPDATE_CHECK_KEY = longPreferencesKey("last_update_check_at")
 
 internal const val MIN_SUGGESTION_COUNT = 5
 internal const val MAX_SUGGESTION_COUNT = 10
@@ -107,4 +114,28 @@ class SettingsPreferences @Inject constructor(@ApplicationContext private val co
             preferences[SUGGESTION_COUNT_KEY] = count.coerceIn(MIN_SUGGESTION_COUNT, MAX_SUGGESTION_COUNT)
         }
     }
+
+    /** How often the startup update check runs — Phase 8. Stored by enum name; an unknown name
+     * (renamed constant, hand-edited store) falls back to the default. */
+    val updateFrequency: Flow<UpdateFrequency> = context.settingsDataStore.data.map { preferences ->
+        preferences[UPDATE_FREQUENCY_KEY]
+            ?.let { name -> UpdateFrequency.entries.firstOrNull { it.name == name } }
+            ?: DEFAULT_UPDATE_FREQUENCY
+    }
+
+    suspend fun setUpdateFrequency(frequency: UpdateFrequency) {
+        context.settingsDataStore.edit { preferences -> preferences[UPDATE_FREQUENCY_KEY] = frequency.name }
+    }
+
+    /** Last check that got an answer from GitHub (update or not); `null` = never. Stored as epoch millis. */
+    val lastUpdateCheckAt: Flow<Instant?> = context.settingsDataStore.data.map { preferences ->
+        preferences[LAST_UPDATE_CHECK_KEY]?.takeIf { it >= 0 }?.let(Instant::ofEpochMilli)
+    }
+
+    suspend fun setLastUpdateCheckAt(at: Instant) {
+        context.settingsDataStore.edit { preferences -> preferences[LAST_UPDATE_CHECK_KEY] = at.toEpochMilli() }
+    }
+
+    suspend fun currentUpdateFrequency(): UpdateFrequency = updateFrequency.first()
+    suspend fun currentLastUpdateCheckAt(): Instant? = lastUpdateCheckAt.first()
 }

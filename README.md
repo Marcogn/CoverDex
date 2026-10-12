@@ -89,6 +89,14 @@ on-device and every later launch is instant, fully offline included.
   explicitly, with more languages easy to add.
 - **Showdown-format import/export**, via clipboard, a `.txt` file, or
   copy/paste — export from a team's menu, import from Settings.
+- **In-app updates.** At startup (frequency in Settings: never, every start,
+  daily or weekly — weekly by default) the release build checks this
+  repository's latest GitHub release, shows its headlines, and — only if you
+  tap Download — downloads the APK, verifies it and opens Android's own
+  installer, which asks you to confirm. Nothing is installed silently, and
+  "Never" turns the automatic check off.
+- **Info screen** (drawer): installed version, "Check for updates", credits,
+  licence and the legal notes below.
 - **Local backup and restore** to a single file — every team and the
   custom roster, never the (re-downloadable) Pokédex cache.
 

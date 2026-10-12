@@ -24,6 +24,10 @@ sealed interface Destination {
     @Serializable
     data object Settings : Destination
 
+    /** The Info screen: version, "Check for updates", credits and legal notes. Drawer-only. */
+    @Serializable
+    data object About : Destination
+
     @Serializable
     data object SurpriseMe : Destination
 

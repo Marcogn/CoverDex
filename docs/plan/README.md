@@ -173,5 +173,5 @@ real bug found that way gets an entry in that file's "Known regressions".
 - **Phase 6 — Release**: ✅ done
 - **Phase 7 — Engine accuracy, abilities/items, BST ranking**: ✅ done —
   see [`phase-7-accuracy-and-customization.md`](phase-7-accuracy-and-customization.md)
-- **Phase 8 — In-app updates and Info screen**: 📋 planned — see
+- **Phase 8 — In-app updates and Info screen**: 🚧 code done, awaiting CI and the device checks — see
   [`phase-8-updates-and-about.md`](phase-8-updates-and-about.md)
