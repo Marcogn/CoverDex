@@ -6,6 +6,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-12
+
 - **In-app updates from GitHub Releases.** The app checks this repository's
   latest release at startup, shows what is new, downloads the APK, verifies it
   (SHA-256 digest, package name, higher version code, same signing
