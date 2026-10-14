@@ -1131,3 +1131,12 @@ repository's plan diverged, the author chose (2026-10-12):
   `ThePatientGamerHelper`), kept verbatim: they exercise the parser, not this repository.
 - **Not run locally:** see the PR for what CI verified.
 
+
+## Android kit updated (2026-10-14, kit 425e232 → 5fb47c3)
+
+Re-ran `/android-kit`. Taken from the kit: the `review-gate.sh` (Stop + PR) and
+`branch-name.sh` hooks with the `self-review` skill, the `deps-triage` skill, Dependabot cooldown,
+the Release workflow's `bump` choice (minor by default) with cleanup of old workflow runs, and the
+updated `close-phase`/`next-phase`/`new-plan`, `docs/ci.md`, `docs/claude.md`. CLAUDE.md gained the
+naming rule. Left as before: the `ANDROID_*` → `RELEASE_*` secret mapping in `release.yml` and
+`build-apk.yml` (rename the secrets to drop it).

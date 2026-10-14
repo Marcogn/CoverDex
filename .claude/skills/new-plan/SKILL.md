@@ -43,7 +43,7 @@ plan.
 
 ## 4. Write the plan
 
-On a new branch (the environment's, else `plan-<short-name>`):
+Name the session (`set_session_title` in a cloud session: `<project> Piano: <what>`). On a new branch (the environment's, else `plan/<short-name>`):
 
 - **The plan file**, where the project keeps plans and in its format. For each phase: goal, scope,
   prerequisites, model, "Done when" (including the tests to add and the CI being green), device

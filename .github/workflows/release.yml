@@ -1,24 +1,33 @@
-# Release (manual, with the version): cuts CHANGELOG.md's [Unreleased] section, bumps the version,
-# builds and signs, publishes the GitHub Release, then commits the bump to main. Logic in the kit
-# (its docs/ci.md explains every step); here only this project's values.
+# Release (manual): first deletes the old workflow runs (all but Release and the latest Build APK),
+# then cuts CHANGELOG.md's [Unreleased] section, bumps the version, builds and signs, publishes the
+# GitHub Release and commits the bump to main. The version is the current one with `bump` applied
+# (minor by default: 1.4.2 -> 1.5.0), or the exact one typed in `version`. Logic in the kit (its
+# docs/ci.md explains every step); here only this project's values.
 name: Release
 
 on:
   workflow_dispatch:
     inputs:
+      bump:
+        description: 'Part of the current version to increase (minor: 1.4.2 -> 1.5.0, patch: 1.4.3, major: 2.0.0)'
+        type: choice
+        options: [minor, patch, major]
+        default: minor
       version:
-        description: 'Version to release, e.g. 0.1.0 (must be greater than the current versionName in the app module build.gradle.kts)'
-        required: true
+        description: 'Optional exact version x.y.z, overrides the choice above (must be greater than the current one)'
+        required: false
         type: string
 
 permissions:
-  contents: write
+  contents: write   # version bump and Release
+  actions: write    # deleting the old runs
 
 jobs:
   release:
     uses: Marcogn/claude-skill-android-kit/.github/workflows/release.yml@v1
     with:
       version: ${{ inputs.version }}
+      bump: ${{ inputs.bump }}
       app-module: app
       java-version: '17'
     # Mapped to this repository's current secret names (ANDROID_*) until they are renamed to the
