@@ -314,13 +314,22 @@ push/PR. In a cloud session the SessionStart hook
 than fighting it. Never report a build as passing that you did not run.
 
 Claude Code tooling: `.claude/` holds the kit's skills (`verify`, `new-plan`,
-`next-phase`, `close-phase`, `steward`), the `architecture-reviewer` agent and
-the Android SDK hook, from
+`next-phase`, `close-phase`, `self-review`, `steward`, `deps-triage`), the
+`architecture-reviewer` agent, the Android SDK hook and the review/branch-name
+hooks (`review-gate.sh` blocks a PR or the end of a session while the diff is
+unreviewed), from
 [claude-skill-android-kit](https://github.com/Marcogn/claude-skill-android-kit)
 (`docs/claude.md`); `.github/workflows/` holds short callers of the kit's
 reusable workflows (`docs/ci.md`). `REVIEW.md` is what every review checks.
 Bugs and ideas found outside the current task become GitHub issues (bug/task
 templates, `docs/claude.md`, "Issues"), not notes in this file.
+
+Names: at the start of a cloud session, name it with `set_session_title`
+(`CoverDex <what>`, e.g. `CoverDex 8 Info screen`) and again if the task
+changes. Branches Claude creates are `<type>/<what-and-where>` (lowercase,
+hyphens, at least three words: `fix/crash-on-rotation`; types `feat`, `fix`,
+`refactor`, `docs`, `chore`, `deps`, `plan`, `phase`) — `branch-name.sh`
+refuses vaguer names (`docs/claude.md`, "Names").
 
 Testing approach: pure JVM unit tests for everything in `domain/`
 (the coverage, suggestion and generator engines; the CSV parser; the

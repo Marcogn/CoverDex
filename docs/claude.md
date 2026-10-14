@@ -28,16 +28,20 @@ Two more files feed reviews: `REVIEW.md` (read by Claude Code Review on GitHub a
 | File | What it does | Generic? |
 |---|---|---|
 | `.claude/hooks/android-sdk.sh` | Installs the Android SDK (cmdline-tools, licences, platform-tools, the `compileSdk` platform), writes `local.properties`, caps Gradle workers, sets `LC_ALL`. Cloud only; idempotent (≈0.5 s when done) | Yes |
-| `.claude/settings.json` | Runs that script at `SessionStart`; allows `./gradlew` and read-only git without prompts; denies reading keystores | Yes |
+| `.claude/hooks/review-gate.sh` | **Review before the PR.** At `Stop`, if the branch has committed code changes nobody reviewed, blocks the end of the session once and tells Claude to run `self-review`; before `create_pull_request`, denies the call until the review is recorded. Docs-only diffs are exempt | Yes |
+| `.claude/hooks/branch-name.sh` | Denies creating a branch whose name doesn't say what it is for (`<type>/<what-and-where>`, three words at least); `claude/…` names from the cloud environment pass | Yes |
+| `.claude/settings.json` | Runs the SDK script at `SessionStart`, the two gates above at `Stop` / `PreToolUse`; allows `./gradlew` and read-only git without prompts; denies reading keystores | Yes |
 | `.claude/skills/verify` | Lint + unit tests + debug build, what counts as transient, how to report. Claude Code (v2.1.286+) also runs a project skill named `verify` on its own before each commit that changes code | Yes |
 | `.claude/skills/new-plan` | Plans new work as phases in the project's format, after asking the decisive questions and considering the open issues; proposes it as a draft PR to adjust and merge. Writes no code | Yes |
 | `.claude/skills/next-phase` | The CLAUDE.md session protocol as steps: model check, reading order, prerequisites, open bugs, scope | Yes, for projects with a phase plan |
-| `.claude/skills/close-phase` | "Done when", checks, two independent reviews, docs, commit, draft PR, device checks | Yes |
+| `.claude/skills/self-review` | The review: `verify`, then `/code-review` and the `architecture-reviewer` agent on the diff in parallel, fix what is real, record it for the gate. Run by `close-phase`, or on its own by any session that changed code | Yes |
+| `.claude/skills/close-phase` | "Done when", `self-review`, docs, commit, draft PR, device checks | Yes |
+| `.claude/skills/deps-triage` | Verdict on each open Dependabot PR (safe / to look at / close) with the reason, from CI, update type and release notes. Never approves or merges | Yes |
 | `.claude/skills/steward` | How to read this CI's failures and handle review findings. Cloud sessions that watch a PR read it before acting on CI or review events | Yes |
 | `.claude/agents/architecture-reviewer.md` | Read-only reviewer of a diff against REVIEW.md, CLAUDE.md rules and ADRs. Always runs on Opus, whatever the session's model: a stricter second look at the end of a phase, for a little more usage | Yes (rules come from the repo) |
 | `REVIEW.md` | What a review must always check here, severity, what to skip | **No**: per project |
 | `.github/workflows/*.yml` | Short callers of the kit's reusable workflows: CI, Build APK, Release, cleanup, `@claude`, PR review (`docs/ci.md`) | Yes (`with:` values per project) |
-| `.github/dependabot.yml` | Weekly grouped dependency PRs (Gradle) and monthly (Actions) | Yes |
+| `.github/dependabot.yml` | Weekly grouped dependency PRs (Gradle) and monthly (Actions), with a cooldown so brand-new versions wait a few days (security updates don't) | Yes |
 | `.github/pull_request_template.md`, `ISSUE_TEMPLATE/` | Same structure for every PR; issues written so they can be handed to Claude as they are | Yes |
 | `docs/claude.md`, `docs/ci.md` | This page and the CI page | Yes |
 | `.claude/kit-version` | The kit version the project was last aligned with | Written by the skill |
@@ -98,6 +102,20 @@ minutes; this one takes ~15 s), and the SessionStart hook in each repository onl
    review (≈15–25 $ each per the docs). On other plans `claude-review.yml` does the job with the
    subscription.
 
+## Names: sessions and branches
+
+Both are read later, in lists, notifications and PRs, so they say what the work is.
+
+- **Branch**: `<type>/<what-and-where>`, lowercase with hyphens, three words at least:
+  `fix/crash-on-rotation`, `feat/export-pdf-share`, `deps/gradle-minor-bumps`, `plan/offline-sync`,
+  `phase/9-export-pdf`. Types: `feat`, `fix`, `refactor`, `docs`, `chore`, `deps`, `plan`, `phase`.
+  `branch-name.sh` refuses vaguer names for branches Claude creates. A `claude/…` branch is named by the
+  cloud environment, not by Claude: the hook lets it pass and can't improve it.
+- **Cloud session**: `<project> <what>`, e.g. `PdfToolkit crash on rotation`, `KartLog 9 Export PDF`.
+  Claude sets it at the start with the `set_session_title` tool (claude-code-remote) as soon as it
+  knows the task, and again if the task changes. A hook can't do it (hooks run shell commands, not
+  tools), so this one is an instruction: it lives in `CLAUDE.md` and in `next-phase` / `new-plan`.
+
 ## Issues: bugs and ideas, not the plan
 
 The plan stays in the docs (the plan files and the phase table CLAUDE.md points to): Claude reads them
@@ -129,12 +147,22 @@ progress view is missed.
 **Planned work**
 1. A cloud session **with the phase's model**, `/next-phase <N>`. The model check runs first; open
    bugs (and those the plan assigned to the phase) are offered before any work.
-2. Claude works with `verify` as it goes, then `/close-phase`: reviews, docs, draft PR.
+2. Claude works with `verify` as it goes, then `/close-phase`: `self-review`, docs, draft PR.
 3. The session watches the PR: CI failures and review comments wake it (`steward` rules).
 4. Mark the PR ready → `claude-review.yml` reviews it (if the token is set). Device checks on the
    phone, merge.
 
+The review does not depend on remembering `/close-phase`: any session that commits code and tries
+to finish, or to open a PR, is stopped by `review-gate.sh` until `self-review` has run. (Before
+this, the only automatic review was `claude-review.yml`, and it skips draft PRs, which is what
+cloud sessions open: so it never ran unless the PR was marked ready.)
+
 Any time: `@claude` on an issue or PR for small things (needs the token), or open an issue for a bug.
+
+**Dependency PRs**: when some have piled up, a session on the repo and `/deps-triage`: a verdict for
+each (safe / to look at / close) with the reason. Merge the safe ones, ask the session to take a "to
+look at" one to green if you want it. A scheduled routine could do the same weekly, but it spends the
+subscription also in weeks with nothing to see: add it only if running the skill by hand isn't enough.
 
 ## Habits that pay off
 
@@ -162,7 +190,8 @@ test, not as a percentage to chase.
 - **detekt**: the only line that supports Kotlin 2.4 and AGP 9 built-in Kotlin is 2.0.0, still
   alpha, and the project takes stable versions only (`docs/decisions.md`). Revisit at 2.0.0.
 - **Hooks that run Gradle after edits or at the end of a turn**: a build takes minutes and would slow
-  every turn; `verify` before commits gives the same safety.
+  every turn; `verify` before commits gives the same safety. (The review gate at `Stop` is cheap on
+  purpose: it runs git only, and the review itself is asked of Claude.)
 - **Scheduled routines** (e.g. a weekly health check): useful only with steady activity; they
   spend the subscription even when nothing changed. Easy to add later from a session.
 

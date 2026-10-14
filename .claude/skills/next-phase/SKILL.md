@@ -51,8 +51,9 @@ together with the open questions above, so the author answers once.
 
 ## 4. Plan, then work
 
-- Session title `<sub-phase> <Name>`; the branch is the one the environment gives, else the
-  sub-phase in kebab-case.
+- Name the session now (`docs/claude.md`, "Names"): in a cloud session call `set_session_title`
+  (claude-code-remote) with `<project> <sub-phase> <Name>`. The branch is the one the environment
+  gives, else `phase/<sub-phase>-<name>` in kebab-case (e.g. `phase/9-export-pdf`).
 - Write a task list (TaskCreate) from the plan's items and "Done when". Keep it current.
 - Only this sub-phase. Anything else you notice goes into CLAUDE.md "Current status" as a note.
 - Unclear or infeasible requirement: stop and ask, as CLAUDE.md says.

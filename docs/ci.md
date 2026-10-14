@@ -10,12 +10,24 @@ This page is part of the kit and is copied unchanged into each project.
 |---|---|---|---|
 | `android-ci.yml` (Android CI) | every pull request to `main`, every push to `main`; a new push cancels the run still going | lint, unit tests (with coverage if enabled), release build with R8 (unsigned), forbidden-permissions check on the packaged release manifest | lint, test and coverage reports (14 days). **No APK to install** |
 | `build-apk.yml` (Build APK) | by hand: Actions → Build APK → Run workflow, on any branch | release build signed with the persistent key, signature check | the APK and R8's `mapping.txt` (30 days) |
-| `release.yml` (Release) | by hand, with the version (`x.y.z`) | cuts `CHANGELOG.md`'s `[Unreleased]` and bumps the version, signed build, GitHub Release with the APK and `mapping.txt`, then commits the bump to `main` | the GitHub Release |
+| `release.yml` (Release) | by hand: pick `bump` (minor by default), or type an exact `version` | **first** deletes the completed runs of every workflow except Release and the latest successful Build APK; then cuts `CHANGELOG.md`'s `[Unreleased]`, bumps the version, signed build, GitHub Release with the APK and `mapping.txt`, commits the bump to `main` | the GitHub Release |
 | `cleanup-runs.yml` (Clean up runs) | by hand | deletes every completed run except the latest of each workflow (logs and artifacts); releases are untouched | — |
 | `claude.yml`, `claude-review.yml` | `@claude` mentions; PRs opened or marked ready | Claude on GitHub (see `docs/claude.md`); skip themselves without `CLAUDE_CODE_OAUTH_TOKEN` | comments, commits |
 
 Callers pin the kit at `@v1`, a branch of the kit that moves (fast-forward) with compatible changes;
 a change that would break callers gets `@v2`, and projects move to it on purpose.
+
+## Release versions
+
+The dispatch form can't show a computed default (GitHub dispatch defaults are fixed values), so it
+offers `bump` instead: `minor` (the default) turns `1.4.2` into `1.5.0`, `patch` into `1.4.3`,
+`major` into `2.0.0`, always from the app module's current `versionName`. Typing a `version`
+overrides the choice and must be greater than the current one. The run prints the number it chose
+in its summary before building anything.
+
+The old-runs cleanup needs `actions: write` in the caller's `permissions:` (the template has it); a
+caller without it still releases, the cleanup step just warns. The manual **Clean up runs** workflow
+is separate and keeps the latest run of every workflow.
 
 ## Values and secrets per project
 
