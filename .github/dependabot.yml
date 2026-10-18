@@ -2,7 +2,12 @@
 #
 # Weekly dependency update PRs for Gradle (version catalog, build scripts) and GitHub Actions.
 # Updates are grouped so a week brings at most a few PRs, not one per library. Each PR runs Android
-# CI like any other; a Claude session can be asked to take it to green (`.claude/skills/steward`).
+# CI like any other; `/deps-triage` in a Claude session gives a verdict on each open one, and a
+# session can be asked to take one to green (`.claude/skills/steward`).
+#
+# Cooldown: a version is proposed only after it has been out for a while, so the problems found by
+# the first adopters (a broken release, a quick x.y.1) show up before the PR does. Security updates
+# ignore it and arrive at once.
 #
 # Shared by the author's Android projects: copy the file as is (docs/claude.md).
 # The project takes stable versions only (docs/plan.md, "Dependency upgrade"): a PR that proposes
@@ -15,6 +20,10 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
     groups:
       # AGP, Kotlin, KSP and Compose move together: one PR, so they are tested together.
       build-toolchain:
@@ -36,6 +45,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7   # GitHub Actions supports only default-days
     groups:
       actions:
         patterns:
