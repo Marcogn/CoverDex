@@ -6,6 +6,16 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- **Build toolchain and libraries updated.** No user-visible change intended.
+  - Gradle 8.13 → 9.8.0, Android Gradle plugin 8.13.0 → 9.4.1 (built-in
+    Kotlin: the `org.jetbrains.kotlin.android` plugin is gone), Kotlin
+    2.0.21 → 2.4.21, KSP → 2.3.12, Compose BOM 2024.12.01 → 2026.09.00.
+  - core-ktx 1.19.1, navigation-compose 2.10.2, Room 2.8.5,
+    hilt-navigation-compose 1.4.0, appcompat 1.8.0, Hilt 2.60.1,
+    kotlinx-coroutines 1.11.0, kotlinx-serialization 1.11.0, Robolectric 4.17.
+  - `compileSdk` 36 → 37 (required by the new AndroidX libraries);
+    `targetSdk` stays 36, `minSdk` stays 24.
+
 ## [2.1.1] - 2026-10-12
 
 - **In-app updates from GitHub Releases.** The app checks this repository's

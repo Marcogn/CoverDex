@@ -1141,3 +1141,39 @@ and `branch-name.sh` hooks, the `self-review`, `deps-triage` and `issues-triage`
 and gains `actions: write` (the kit deletes old runs after a successful release); the `ANDROID_*` →
 `RELEASE_*` secret mapping stays. `CLAUDE.md` got the tooling list, the review-before-PR rule and the
 session/branch naming rule. Left out: nothing. Brought to 1721624 in the same PR (only `branch-name.sh`, rewritten to deny only clear cases, and one line of `docs/claude.md`).
+
+## Dependabot #44, #46 and #52 combined (2026-10-18)
+
+The three open Dependabot PRs could not land one at a time, each red in CI for a reason the next
+one fixes: AGP 9.4.1 (#44) needs Gradle ≥ 9.6.0; Gradle 9.8.0 (#46) removed an internal API that
+AGP 8.13 uses; Hilt ≥ 2.59 (#46) requires AGP 9 for its Gradle plugin; and core 1.19,
+navigation 2.10, hilt-navigation-compose 1.4 and (transitively) lifecycle 2.11 (#52) declare AGP
+≥ 9.1 and `compileSdk` ≥ 37 in their AAR metadata. So they land together, in one PR.
+
+- **Built-in Kotlin.** AGP 9 compiles Kotlin itself and the `org.jetbrains.kotlin.android` plugin is
+  not compatible with its new DSL ([AGP 9.0 release
+  notes](https://developer.android.com/build/releases/agp-9-0-0-release-notes)). The plugin is
+  removed (catalogue, root and app build scripts); `android { kotlinOptions }` becomes a top-level
+  `kotlin { compilerOptions }` block. No opt-out properties (`android.builtInKotlin=false`,
+  `android.newDsl=false`): the release notes say they go away in AGP 10.
+- **`compileSdk` 37, `targetSdk` 36.** Only compiling against 37 is required; moving `targetSdk`
+  opts into new runtime behaviour and is a separate decision.
+- **Room schemas on the `debug` assets** now use `assets.directories.add(...)`: `srcDirs(...)` is
+  deprecated in AGP 9's DSL. Same directory, same reason (see "Phase 2").
+- **Gradle wrapper** regenerated with `./gradlew wrapper --gradle-version 9.8.0
+  --gradle-distribution-sha256-sum …` (the jar is byte-identical to Dependabot's), which also adds
+  `distributionSha256Sum`, so a corrupted or tampered distribution download fails instead of running.
+- **`lifecycle` 2.8.7 → 2.11.0** in the catalogue: navigation 2.10 and hilt-navigation-compose 1.4
+  already resolve it to 2.11.0, so the catalogue now states what ships.
+- **ViewModel tests clear their ViewModels before closing the database.** With Room 2.8,
+  `AnalysisViewModelTest` failed intermittently with "connection is closed": the ViewModels it
+  built were never cleared, so their `viewModelScope` Room flows re-queried after `@After`'s
+  `database.close()` (one run passed, the next failed). `TrackedViewModels` (test sources) holds
+  them in a real `ViewModelStore`; `clear()` cancels their scopes as a device does, and
+  `AnalysisViewModelTest` and `SurpriseMeViewModelTest` (the only ViewModel tests over Room)
+  call it before closing. A query already running when the scope is cancelled ends inside a
+  cancelled coroutine, where its exception is not reported. `mergeDebugUnitTestAssets` is still
+  absent on AGP 9.4.1 (re-checked), so the "Phase 2" schema-assets wiring stands unchanged.
+- **Left as warnings, for a follow-up**: `androidx.hilt.navigation.compose.hiltViewModel` (moved to
+  `androidx.hilt.lifecycle.viewmodel.compose` in hilt 1.3) and `MenuAnchorType` (Material 3 1.4's
+  `ExposedDropdownMenuAnchorType`). Deprecations only; the build has no warnings-as-errors.

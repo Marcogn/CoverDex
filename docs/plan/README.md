@@ -136,7 +136,7 @@ network was reachable but `ANDROID_HOME` was unset and no SDK was installed.
 Check, in this order, and do not burn time fighting it:
 
 ```bash
-curl -sfo /dev/null -w '%{http_code}\n' https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/8.13.0/gradle-8.13.0.pom
+curl -sfo /dev/null -w '%{http_code}\n' https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/9.4.1/gradle-9.4.1.pom
 echo "$ANDROID_HOME"; command -v sdkmanager
 ```
 

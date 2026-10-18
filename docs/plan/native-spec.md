@@ -17,7 +17,7 @@ agent does not have to reverse-engineer intent from that code.
 | `applicationId` / package | `com.marcogn.coverdex` |
 | App label | CoverDex |
 | Database file | `coverdex.db` |
-| minSdk / targetSdk / compileSdk | 24 / 36 / 36 |
+| minSdk / targetSdk / compileSdk | 24 / 36 / 37 |
 
 `applicationId` is **unchanged** from the Capacitor build — the app keeps its
 identity on any device that already has it installed. `minSdk` stays at 24

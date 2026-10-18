@@ -41,7 +41,7 @@ and **not** a damage calculator.
 | Gradle root project | `CoverDex` |
 | `applicationId` / package | `com.marcogn.coverdex` |
 | Database file | `coverdex.db` |
-| minSdk / targetSdk / compileSdk | 24 / 36 / 36 |
+| minSdk / targetSdk / compileSdk | 24 / 36 / 37 |
 
 CoverDex is a rewrite of a working app, not a new one. It used to ship as a
 React/Capacitor PWA on GitHub Pages; that path is gone (see
@@ -251,7 +251,8 @@ there.
 - **Never `clearAllTables()`** — cache invalidation must name the cache
   tables explicitly or it takes the user's teams and roster with it.
 - **Every Robolectric test class needs `@Config(sdk = [26])`.** Robolectric's
-  shadow jar for this app's `compileSdk` (36) requires a newer JDK than CI
+  shadow jar for the SDK level it picks by default (this app's `targetSdk`,
+  36) requires a newer JDK than CI
   runs (`android-ci.yml` pins JDK 17) — without the pin, the test passes
   locally on a machine with a newer JDK and fails in CI with a confusing
   `UnsupportedOperationException at DefaultSdkProvider.java` that doesn't
@@ -282,11 +283,17 @@ there.
   `AssetManager.open()` call, whose Robolectric shadow is backed by
   whatever directory AGP's generated `test_config.properties` names as
   `android_merged_assets` — which is the actual `debug` variant's
-  `mergeDebugAssets` output, not a `debugUnitTest`-specific one (this AGP
-  version has no such task). `app/build.gradle.kts` wires the schemas into
+  `mergeDebugAssets` output, not a `debugUnitTest`-specific one (AGP 8.13
+  and 9.4.1 have no such task). `app/build.gradle.kts` wires the schemas into
   `sourceSets["debug"].assets` instead, which is what actually makes
   `Migration1To2Test` pass. See `docs/implementation-decisions.md`,
   "Phase 2", for how this was verified rather than assumed.
+- **A ViewModel built over a test's Room database must be cleared before
+  `@After` closes it.** Its `viewModelScope` otherwise keeps collecting a
+  Room flow, which can re-query after `database.close()`; Room 2.8 fails that
+  with "connection is closed", reported against whichever test is running
+  (an intermittent failure). Create test ViewModels through
+  `TrackedViewModels` (test sources) and call its `clear()` first in `@After`.
 - **`ALTER TABLE ... ADD COLUMN` needs a `DEFAULT` when the column is
   `NOT NULL`.** SQLite (and therefore Room's own migration SQL) rejects a
   `NOT NULL` column added this way with no default — every pre-existing

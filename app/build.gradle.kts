@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.kotlin.serialization)
@@ -9,7 +8,9 @@ plugins {
 
 android {
     namespace = "com.marcogn.coverdex"
-    compileSdk = 36
+    // 37 because core 1.19, navigation 2.10, hilt-navigation-compose 1.4 and lifecycle 2.11
+    // require it (their AAR metadata); targetSdk stays 36.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.marcogn.coverdex"
@@ -78,10 +79,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -104,7 +101,7 @@ android {
     // backed by the real `debug` variant's merged assets directory on disk, not by the JVM test
     // classpath. Adding the schemas to sourceSets["test"].assets (the officially documented
     // pattern for instrumented androidTest) does nothing for a Robolectric-based unit test in
-    // this AGP version — there is no separate assets merge for the debugUnitTest variant, so the
+    // AGP 8.13 or 9.4.1 (both checked) — there is no separate assets merge for the debugUnitTest variant, so the
     // only directory Robolectric's AssetManager ever sees is `debug`'s own mergeDebugAssets
     // output. So the schemas must be wired in as a `debug` source set asset instead; the handful
     // of KB this adds to debug-only APKs is an accepted cost. Without this, Migration1To2Test
@@ -112,8 +109,16 @@ android {
     // docs/implementation-decisions.md, "Phase 2".
     sourceSets {
         getByName("debug") {
-            assets.srcDirs("$projectDir/schemas")
+            assets.directories.add("$projectDir/schemas")
         }
+    }
+}
+
+// AGP 9 compiles Kotlin itself (built-in Kotlin), so the org.jetbrains.kotlin.android plugin and
+// its android { kotlinOptions } block are gone; the compiler options live here instead.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
