@@ -1160,5 +1160,20 @@ navigation 2.10, hilt-navigation-compose 1.4 and (transitively) lifecycle 2.11 (
   opts into new runtime behaviour and is a separate decision.
 - **Room schemas on the `debug` assets** now use `assets.directories.add(...)`: `srcDirs(...)` is
   deprecated in AGP 9's DSL. Same directory, same reason (see "Phase 2").
-- **Gradle wrapper**: only `distributionUrl` changed; `gradle-wrapper.jar` and the `gradlew`
-  scripts are still the 8.13 ones, which download and run 9.8.0 unchanged.
+- **Gradle wrapper** regenerated with `./gradlew wrapper --gradle-version 9.8.0
+  --gradle-distribution-sha256-sum …` (the jar is byte-identical to Dependabot's), which also adds
+  `distributionSha256Sum`, so a corrupted or tampered distribution download fails instead of running.
+- **`lifecycle` 2.8.7 → 2.11.0** in the catalogue: navigation 2.10 and hilt-navigation-compose 1.4
+  already resolve it to 2.11.0, so the catalogue now states what ships.
+- **ViewModel tests clear their ViewModels before closing the database.** With Room 2.8,
+  `AnalysisViewModelTest` failed intermittently with "connection is closed": the ViewModels it
+  built were never cleared, so their `viewModelScope` Room flows re-queried after `@After`'s
+  `database.close()` (one run passed, the next failed). `TrackedViewModels` (test sources) holds
+  them in a real `ViewModelStore`; `clear()` cancels their scopes as a device does, and
+  `AnalysisViewModelTest` and `SurpriseMeViewModelTest` (the only ViewModel tests over Room)
+  call it before closing. A query already running when the scope is cancelled ends inside a
+  cancelled coroutine, where its exception is not reported. `mergeDebugUnitTestAssets` is still
+  absent on AGP 9.4.1 (re-checked), so the "Phase 2" schema-assets wiring stands unchanged.
+- **Left as warnings, for a follow-up**: `androidx.hilt.navigation.compose.hiltViewModel` (moved to
+  `androidx.hilt.lifecycle.viewmodel.compose` in hilt 1.3) and `MenuAnchorType` (Material 3 1.4's
+  `ExposedDropdownMenuAnchorType`). Deprecations only; the build has no warnings-as-errors.

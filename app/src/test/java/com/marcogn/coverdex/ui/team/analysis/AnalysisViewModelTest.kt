@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.marcogn.coverdex.MainDispatcherRule
+import com.marcogn.coverdex.TrackedViewModels
 import com.marcogn.coverdex.data.local.CoverDexDatabase
 import com.marcogn.coverdex.data.repository.CustomPokemonRepositoryImpl
 import com.marcogn.coverdex.data.repository.TeamRepositoryImpl
@@ -59,16 +60,22 @@ class AnalysisViewModelTest {
 
     @After
     fun closeDatabase() {
+        viewModels.clear()
         database.close()
     }
 
-    private fun viewModel(teamId: String, pool: List<PokemonEntry> = emptyList()) = AnalysisViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("teamId" to teamId)),
-        teamRepository = teamRepository,
-        pokedexRepository = FakePokedexRepository(chart, pool = pool),
-        customPokemonRepository = customPokemonRepository,
-        settingsPreferences = settingsPreferences,
-    )
+    private val viewModels = TrackedViewModels()
+
+    private fun viewModel(teamId: String, pool: List<PokemonEntry> = emptyList()) =
+        viewModels.add(AnalysisViewModel::class.java) {
+            AnalysisViewModel(
+                savedStateHandle = SavedStateHandle(mapOf("teamId" to teamId)),
+                teamRepository = teamRepository,
+                pokedexRepository = FakePokedexRepository(chart, pool = pool),
+                customPokemonRepository = customPokemonRepository,
+                settingsPreferences = settingsPreferences,
+            )
+        }
 
     private fun waterFlyingWithElectricMove(): TeamMember {
         val thunderbolt = PokemonMove(

@@ -3,6 +3,7 @@ package com.marcogn.coverdex.ui.surprise
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.marcogn.coverdex.MainDispatcherRule
+import com.marcogn.coverdex.TrackedViewModels
 import com.marcogn.coverdex.data.local.CoverDexDatabase
 import com.marcogn.coverdex.data.repository.CustomPokemonRepositoryImpl
 import com.marcogn.coverdex.data.repository.TeamRepositoryImpl
@@ -51,14 +52,19 @@ class SurpriseMeViewModelTest {
 
     @After
     fun closeDatabase() {
+        viewModels.clear()
         database.close()
     }
 
-    private fun viewModel() = SurpriseMeViewModel(
-        pokedexRepository = FakePokedexRepository(chart, pool = pool),
-        customPokemonRepository = customPokemonRepository,
-        teamRepository = teamRepository,
-    )
+    private val viewModels = TrackedViewModels()
+
+    private fun viewModel() = viewModels.add(SurpriseMeViewModel::class.java) {
+        SurpriseMeViewModel(
+            pokedexRepository = FakePokedexRepository(chart, pool = pool),
+            customPokemonRepository = customPokemonRepository,
+            teamRepository = teamRepository,
+        )
+    }
 
     @Test
     fun `locking and removing an anchor updates lockedMembers`() = runTest(mainDispatcherRule.dispatcher) {
