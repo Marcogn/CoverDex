@@ -1132,7 +1132,7 @@ repository's plan diverged, the author chose (2026-10-12):
 - **Not run locally:** see the PR for what CI verified.
 
 
-## Android kit updated (2026-10-18, kit 0c21768)
+## Android kit updated (2026-10-18, kit 1721624)
 
 `/android-kit` re-run on top of 425e232. Copied unchanged: the `review-gate.sh` (review before the PR)
 and `branch-name.sh` hooks, the `self-review`, `deps-triage` and `issues-triage` skills, the updated
@@ -1140,4 +1140,4 @@ and `branch-name.sh` hooks, the `self-review`, `deps-triage` and `issues-triage`
 `docs/claude.md`. The Release caller takes `bump` (minor/patch/major) beside the optional `version`,
 and gains `actions: write` (the kit deletes old runs after a successful release); the `ANDROID_*` →
 `RELEASE_*` secret mapping stays. `CLAUDE.md` got the tooling list, the review-before-PR rule and the
-session/branch naming rule. Left out: nothing.
+session/branch naming rule. Left out: nothing. Brought to 1721624 in the same PR (only `branch-name.sh`, rewritten to deny only clear cases, and one line of `docs/claude.md`).
