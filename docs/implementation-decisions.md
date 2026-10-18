@@ -1141,3 +1141,24 @@ and `branch-name.sh` hooks, the `self-review`, `deps-triage` and `issues-triage`
 and gains `actions: write` (the kit deletes old runs after a successful release); the `ANDROID_*` →
 `RELEASE_*` secret mapping stays. `CLAUDE.md` got the tooling list, the review-before-PR rule and the
 session/branch naming rule. Left out: nothing. Brought to 1721624 in the same PR (only `branch-name.sh`, rewritten to deny only clear cases, and one line of `docs/claude.md`).
+
+## Dependabot #44, #46 and #52 combined (2026-10-18)
+
+The three open Dependabot PRs could not land one at a time, each red in CI for a reason the next
+one fixes: AGP 9.4.1 (#44) needs Gradle ≥ 9.6.0; Gradle 9.8.0 (#46) removed an internal API that
+AGP 8.13 uses; Hilt ≥ 2.59 (#46) requires AGP 9 for its Gradle plugin; and core 1.19,
+navigation 2.10, hilt-navigation-compose 1.4 and (transitively) lifecycle 2.11 (#52) declare AGP
+≥ 9.1 and `compileSdk` ≥ 37 in their AAR metadata. So they land together, in one PR.
+
+- **Built-in Kotlin.** AGP 9 compiles Kotlin itself and the `org.jetbrains.kotlin.android` plugin is
+  not compatible with its new DSL ([AGP 9.0 release
+  notes](https://developer.android.com/build/releases/agp-9-0-0-release-notes)). The plugin is
+  removed (catalogue, root and app build scripts); `android { kotlinOptions }` becomes a top-level
+  `kotlin { compilerOptions }` block. No opt-out properties (`android.builtInKotlin=false`,
+  `android.newDsl=false`): the release notes say they go away in AGP 10.
+- **`compileSdk` 37, `targetSdk` 36.** Only compiling against 37 is required; moving `targetSdk`
+  opts into new runtime behaviour and is a separate decision.
+- **Room schemas on the `debug` assets** now use `assets.directories.add(...)`: `srcDirs(...)` is
+  deprecated in AGP 9's DSL. Same directory, same reason (see "Phase 2").
+- **Gradle wrapper**: only `distributionUrl` changed; `gradle-wrapper.jar` and the `gradlew`
+  scripts are still the 8.13 ones, which download and run 9.8.0 unchanged.

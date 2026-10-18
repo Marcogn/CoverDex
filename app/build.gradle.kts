@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.kotlin.serialization)
@@ -9,7 +8,9 @@ plugins {
 
 android {
     namespace = "com.marcogn.coverdex"
-    compileSdk = 36
+    // 37 because core 1.19, navigation 2.10, hilt-navigation-compose 1.4 and lifecycle 2.11
+    // require it (their AAR metadata); targetSdk stays 36.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.marcogn.coverdex"
@@ -78,10 +79,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -112,8 +109,16 @@ android {
     // docs/implementation-decisions.md, "Phase 2".
     sourceSets {
         getByName("debug") {
-            assets.srcDirs("$projectDir/schemas")
+            assets.directories.add("$projectDir/schemas")
         }
+    }
+}
+
+// AGP 9 compiles Kotlin itself (built-in Kotlin), so the org.jetbrains.kotlin.android plugin and
+// its android { kotlinOptions } block are gone; the compiler options live here instead.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

@@ -41,7 +41,7 @@ and **not** a damage calculator.
 | Gradle root project | `CoverDex` |
 | `applicationId` / package | `com.marcogn.coverdex` |
 | Database file | `coverdex.db` |
-| minSdk / targetSdk / compileSdk | 24 / 36 / 36 |
+| minSdk / targetSdk / compileSdk | 24 / 36 / 37 |
 
 CoverDex is a rewrite of a working app, not a new one. It used to ship as a
 React/Capacitor PWA on GitHub Pages; that path is gone (see
@@ -251,7 +251,7 @@ there.
 - **Never `clearAllTables()`** — cache invalidation must name the cache
   tables explicitly or it takes the user's teams and roster with it.
 - **Every Robolectric test class needs `@Config(sdk = [26])`.** Robolectric's
-  shadow jar for this app's `compileSdk` (36) requires a newer JDK than CI
+  shadow jar for this app's `compileSdk` (37) requires a newer JDK than CI
   runs (`android-ci.yml` pins JDK 17) — without the pin, the test passes
   locally on a machine with a newer JDK and fails in CI with a confusing
   `UnsupportedOperationException at DefaultSdkProvider.java` that doesn't
