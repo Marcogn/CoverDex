@@ -1131,3 +1131,13 @@ repository's plan diverged, the author chose (2026-10-12):
   `ThePatientGamerHelper`), kept verbatim: they exercise the parser, not this repository.
 - **Not run locally:** see the PR for what CI verified.
 
+
+## Android kit updated (2026-10-18, kit 0c21768)
+
+`/android-kit` re-run on top of 425e232. Copied unchanged: the `review-gate.sh` (review before the PR)
+and `branch-name.sh` hooks, the `self-review`, `deps-triage` and `issues-triage` skills, the updated
+`close-phase`/`new-plan`/`next-phase`, `settings.json`, Dependabot (cooldown), `docs/ci.md` and
+`docs/claude.md`. The Release caller takes `bump` (minor/patch/major) beside the optional `version`,
+and gains `actions: write` (the kit deletes old runs after a successful release); the `ANDROID_*` →
+`RELEASE_*` secret mapping stays. `CLAUDE.md` got the tooling list, the review-before-PR rule and the
+session/branch naming rule. Left out: nothing.

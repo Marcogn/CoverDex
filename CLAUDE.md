@@ -314,11 +314,19 @@ push/PR. In a cloud session the SessionStart hook
 than fighting it. Never report a build as passing that you did not run.
 
 Claude Code tooling: `.claude/` holds the kit's skills (`verify`, `new-plan`,
-`next-phase`, `close-phase`, `steward`), the `architecture-reviewer` agent and
-the Android SDK hook, from
+`next-phase`, `self-review`, `close-phase`, `steward`, `deps-triage`,
+`issues-triage`), the `architecture-reviewer` agent and the hooks (Android
+SDK, `review-gate.sh`, `branch-name.sh`), from
 [claude-skill-android-kit](https://github.com/Marcogn/claude-skill-android-kit)
 (`docs/claude.md`); `.github/workflows/` holds short callers of the kit's
 reusable workflows (`docs/ci.md`). `REVIEW.md` is what every review checks.
+The review runs before any PR (`self-review`, enforced by
+`.claude/hooks/review-gate.sh`), not only at `/close-phase`.
+
+Names: at the start of a cloud session, name it with `set_session_title`
+(`CoverDex <what>`); branches Claude creates are `<type>/<what-and-where>`
+(`docs/claude.md`, "Names").
+
 Bugs and ideas found outside the current task become GitHub issues (bug/task
 templates, `docs/claude.md`, "Issues"), not notes in this file.
 
